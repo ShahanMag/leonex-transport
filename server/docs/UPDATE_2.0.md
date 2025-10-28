@@ -31,6 +31,19 @@ All phone numbers should be stored separately:
 - `phone_number` field (just digits)
 - Better for internationalization and formatting
 
+### 5. **Auto-Generated Codes** ✅
+Unique codes automatically generated for tracking:
+- **Company Code**: Auto-generated unique identifier (e.g., "COMP-001", "COMP-ABC123")
+- **Vehicle Code**: Auto-generated unique identifier (e.g., "VEH-001", "VEH-ABC123")
+- **Driver Code**: Auto-generated unique identifier (e.g., "DRV-001", "DRV-ABC123")
+- **Rental Code**: Auto-generated for each rental request (e.g., "RNT-2024-001", "RNT-ABC123DEF")
+
+### 6. **Iqama ID for Drivers** ✅
+Saudi Arabia specific ID requirement:
+- `iqama_id`: String field to store driver's Iqama ID (Saudi residency ID)
+- Used alongside license number for complete identification
+- Essential for legal/compliance purposes in Saudi market
+
 ---
 
 ## Updated Data Models
@@ -45,6 +58,7 @@ All phone numbers should be stored separately:
 ```javascript
 {
   company_id: ObjectId,
+  vehicle_code: String (unique, auto-generated),  // ✅ NEW: Auto-generated code (VEH-001)
   vehicle_type: String,
   plate_no: String (unique),
   status: String (enum: available, rented, maintenance),
@@ -70,6 +84,7 @@ All phone numbers should be stored separately:
 **Updated Fields:**
 ```javascript
 {
+  rental_code: String (unique, auto-generated),  // ✅ NEW: Auto-generated code (RNT-2024-001)
   vehicle_id: ObjectId,
   driver_id: ObjectId,
   from_location: String,
@@ -124,11 +139,12 @@ All phone numbers should be stored separately:
 
 ---
 
-### 4. Company Model - Add Country Code to Phone
+### 4. Company Model - Add Country Code and Auto-Generated Code
 
 **Update Fields:**
 ```javascript
 {
+  company_code: String (unique, auto-generated),  // ✅ NEW: Auto-generated code (COMP-001)
   name: String,
   address: String,
   email: String,
@@ -143,20 +159,22 @@ All phone numbers should be stored separately:
 
 ---
 
-### 5. Driver Model - Add Country Code to Phone
+### 5. Driver Model - Add Country Code, Iqama ID, and Auto-Generated Code
 
 **Update Fields:**
 ```javascript
 {
+  driver_code: String (unique, auto-generated),  // ✅ NEW: Auto-generated code (DRV-001)
   name: String,
   contact: String,
   license_no: String,
+  iqama_id: String,                   // ✅ NEW: Saudi Iqama ID (Residency ID)
   email: String,
   address: String,
   status: String,
 
   // Updated phone fields
-  phone_country_code: String,         // e.g., "+91"
+  phone_country_code: String,         // e.g., "+91", "+966" (Saudi)
   phone_number: String,               // Just digits
 
   // ... other fields
@@ -180,7 +198,9 @@ All phone numbers should be stored separately:
    ├── Acquisition Date (date picker)
    └── Status (dropdown: Available, Rented, Maintenance)
 
-4. System saves vehicle
+4. System saves vehicle and AUTOMATICALLY generates:
+   ├── vehicle_code: "VEH-001" (unique auto-generated code)
+   └── Creates Payment record:
 5. System AUTOMATICALLY creates Payment record:
    ├── Type: 'vehicle-acquisition'
    ├── Payer: Company
@@ -223,7 +243,8 @@ All phone numbers should be stored separately:
        └── Days Rented: end_date - start_date
        └── Rental Amount: days_rented × rental_price_per_day
 
-6. System saves load
+6. System saves load and AUTOMATICALLY generates:
+   ├── rental_code: "RNT-2024-001" (unique auto-generated code)
    └── Status: 'pending'
 ```
 
@@ -231,6 +252,7 @@ All phone numbers should be stored separately:
 - Rental pricing is NOW set per-job, not per-vehicle
 - Same vehicle can have different prices for different rentals
 - Price is calculated at rental time, not vehicle creation
+- Every rental gets a unique code for tracking
 
 ---
 
@@ -459,6 +481,9 @@ Display Format: "+91 9876543210"
 │ License Number * (text)              │
 │ [DL1234567890]                       │
 ├─────────────────────────────────────┤
+│ Iqama ID (text)                      │ ✅ NEW
+│ [1234567890]  (Saudi ID)             │ ✅ NEW
+├─────────────────────────────────────┤
 │ Contact Person * (text)              │
 │ [Jane Smith]                         │
 ├─────────────────────────────────────┤
@@ -468,10 +493,10 @@ Display Format: "+91 9876543210"
 │ Phone Number (with country code)     │
 │                                      │
 │ Country Code (dropdown)              │
-│ [+91 ▼] (India)                      │
+│ [+966 ▼] (Saudi Arabia)              │
 │                                      │
 │ Phone (text)                         │
-│ [9876543210]                         │
+│ [501234567]                          │
 ├─────────────────────────────────────┤
 │ Address (textarea)                   │
 │ [456 Worker Lane...]                 │
@@ -482,8 +507,11 @@ Display Format: "+91 9876543210"
 
 Database Storage:
 {
-  phone_country_code: "+91",
-  phone_number: "9876543210"
+  driver_code: "DRV-001",              // ✅ Auto-generated
+  license_no: "DL1234567890",
+  iqama_id: "1234567890",              // ✅ NEW: Saudi Iqama ID
+  phone_country_code: "+966",
+  phone_number: "501234567"
 }
 ```
 
@@ -617,27 +645,30 @@ Side Effect:
 ## Implementation Checklist
 
 ### Backend Database Schema
-- [ ] Update Vehicle model (remove driver_rental_price, driver_rental_type)
-- [ ] Update Load model (add rental_price_per_day, rental_type; rename rent_amount → rental_amount)
+- [ ] Update Vehicle model (remove driver_rental_price, driver_rental_type; add vehicle_code auto-generation)
+- [ ] Update Load model (add rental_price_per_day, rental_type; rename rent_amount → rental_amount; add rental_code auto-generation)
 - [ ] Update Payment model (already done in 1.0)
-- [ ] Update Company model (add phone_country_code, phone_number)
-- [ ] Update Driver model (add phone_country_code, phone_number)
+- [ ] Update Company model (add phone_country_code, phone_number; add company_code auto-generation)
+- [ ] Update Driver model (add phone_country_code, phone_number; add driver_code auto-generation; add iqama_id field)
 
 ### Backend Controllers
-- [ ] Update vehicleController.createVehicle() to auto-generate acquisition payment
-- [ ] Update loadController.createLoad() to accept rental_price_per_day
+- [ ] Update vehicleController.createVehicle() to auto-generate vehicle_code and acquisition payment
+- [ ] Update loadController.createLoad() to accept rental_price_per_day and auto-generate rental_code
 - [ ] Create loadController.completeLoad() to auto-generate rental payment
 - [ ] Update vehicleController to handle phone with country code
-- [ ] Update driverController to handle phone with country code
+- [ ] Update driverController to handle phone with country code and iqama_id
+- [ ] Update companyController to auto-generate company_code
+- [ ] Create code generation utility service (generateCode function for each entity)
 
 ### Backend Routes
 - [ ] Add PUT /api/loads/:id/complete endpoint
 
 ### Frontend Pages
-- [ ] Simplify Vehicle form (remove rental pricing fields)
-- [ ] Update Load form to show dynamic rental pricing after vehicle selection
-- [ ] Add country code dropdown to Company form
+- [ ] Simplify Vehicle form (remove rental pricing fields, display auto-generated vehicle_code)
+- [ ] Update Load form to show dynamic rental pricing after vehicle selection (display auto-generated rental_code)
+- [ ] Add country code dropdown to Company form (display auto-generated company_code)
 - [ ] Add country code dropdown to Driver form
+- [ ] Add Iqama ID field to Driver form
 - [ ] Update Payment page to show auto-generated payments (read-only with edit status)
 - [ ] Add "Complete Load" button/action in Loads page
 
@@ -645,6 +676,56 @@ Side Effect:
 - [ ] Create DynamicVehicleSelect component (shows vehicle with rental pricing options)
 - [ ] Update PhoneInput component to support country code selection
 - [ ] Create PaymentAuto component to show auto-generated vs manual payments
+
+---
+
+## Code Generation Strategy
+
+### Auto-Generated Code Format
+
+**Company Code:**
+```
+Format: COMP-XXX or COMP-YYMMDD-XXX
+Example: COMP-001, COMP-2024-10-001
+Trigger: Auto-generated when company is created
+Uniqueness: Unique across all companies
+Display: Show to admin after creation
+```
+
+**Vehicle Code:**
+```
+Format: VEH-XXX or [COMPANY_CODE]-VEH-XXX
+Example: VEH-001, COMP-001-VEH-001
+Trigger: Auto-generated when vehicle is added
+Uniqueness: Unique across all vehicles
+Display: Show in vehicle list and details
+```
+
+**Driver Code:**
+```
+Format: DRV-XXX or DRV-YYMMDD-XXX
+Example: DRV-001, DRV-2024-10-001
+Trigger: Auto-generated when driver is registered
+Uniqueness: Unique across all drivers
+Display: Show in driver list and rental assignments
+```
+
+**Rental Code:**
+```
+Format: RNT-YYYY-XXX or RNT-YYMMDD-XXX
+Example: RNT-2024-001, RNT-20241028-001
+Trigger: Auto-generated when rental request is created
+Uniqueness: Unique across all rentals
+Display: Show in rental list and invoices
+```
+
+### Implementation Notes
+
+1. **Database Level:** Use MongoDB's auto-incrementing counter or UUID-based generation
+2. **Consistency:** Codes should never change after creation (immutable)
+3. **Display:** Always show codes in all lists and detail views
+4. **Tracking:** Use codes for cross-referencing in reports and exports
+5. **Export:** Include codes in all exported data (CSV, PDF, Excel)
 
 ---
 
@@ -657,6 +738,10 @@ Side Effect:
 ✅ **International Support** - Country code separated for global usage
 ✅ **Audit Trail** - Every payment auto-generated with timestamp
 ✅ **Clear Financial Records** - Acquisition vs Rental payments always tracked
+✅ **Unique Tracking Codes** - Every entity (company, vehicle, driver, rental) has unique auto-generated code
+✅ **Legal Compliance** - Iqama ID field for Saudi market compliance
+✅ **Better Identification** - Drivers tracked by both license and Iqama ID in Saudi Arabia
+✅ **Cross-Reference Capability** - Codes enable easy cross-referencing across all reports and exports
 
 ---
 
@@ -666,8 +751,13 @@ Side Effect:
 |------|-----------|-----------|--------|
 | Vehicle.rent_price | ✓ | ✗ | REMOVED - Use Load-level pricing |
 | Vehicle.driver_rental_type | ✓ | ✗ | REMOVED - Use Load-level pricing |
+| Vehicle.vehicle_code | ✗ | ✓ | NEW - Auto-generated unique code |
 | Load.rent_amount | ✓ | Renamed to rental_amount | Backward compatible rename |
 | Load.rental_price_per_day | ✗ | ✓ | NEW - Per-load pricing |
+| Load.rental_code | ✗ | ✓ | NEW - Auto-generated unique code |
+| Company.company_code | ✗ | ✓ | NEW - Auto-generated unique code |
+| Driver.driver_code | ✗ | ✓ | NEW - Auto-generated unique code |
+| Driver.iqama_id | ✗ | ✓ | NEW - Saudi Iqama ID field |
 | Payment auto-creation | Manual | Auto | Payments created automatically |
 | Phone storage | Single field | country_code + phone_number | Enhanced format |
 

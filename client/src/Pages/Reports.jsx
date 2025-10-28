@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { reportAPI } from '../services/api';
 import Button from '../components/Button';
+import { showError } from '../utils/toast';
 
 export default function Reports() {
   const [activeReport, setActiveReport] = useState('balance');
@@ -33,7 +34,7 @@ export default function Reports() {
       }
       setReportData(response.data);
     } catch (error) {
-      alert('Failed to fetch report');
+      showError('Failed to fetch report');
     } finally {
       setIsLoading(false);
     }

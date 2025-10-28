@@ -6,7 +6,9 @@ exports.getAllPayments = async (req, res) => {
     const payments = await Payment.find()
       .populate('payer_id')
       .populate('payee_id')
-      .populate('load_id');
+      .populate('load_id')
+      .populate('vehicle_id', 'plate_no vehicle_type')
+      .populate('related_payment_id');
     res.status(200).json(payments);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -19,7 +21,9 @@ exports.getPaymentById = async (req, res) => {
     const payment = await Payment.findById(req.params.id)
       .populate('payer_id')
       .populate('payee_id')
-      .populate('load_id');
+      .populate('load_id')
+      .populate('vehicle_id', 'plate_no vehicle_type')
+      .populate('related_payment_id');
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
     res.status(200).json(payment);
   } catch (error) {
@@ -29,7 +33,22 @@ exports.getPaymentById = async (req, res) => {
 
 // Create payment
 exports.createPayment = async (req, res) => {
-  const { payer, payer_id, payee, payee_id, amount, type, balance, description, load_id } = req.body;
+  const {
+    payer,
+    payer_id,
+    payee,
+    payee_id,
+    amount,
+    payment_type,
+    balance,
+    description,
+    load_id,
+    vehicle_id,
+    status,
+    transaction_date,
+    related_payment_id,
+  } = req.body;
+
   try {
     const payment = new Payment({
       payer,
@@ -37,16 +56,22 @@ exports.createPayment = async (req, res) => {
       payee,
       payee_id,
       amount,
-      type,
+      payment_type,
       balance,
       description,
       load_id,
+      vehicle_id,
+      status: status || 'pending',
+      transaction_date: transaction_date || new Date(),
+      related_payment_id,
     });
     const savedPayment = await payment.save();
     const populated = await savedPayment.populate([
       'payer_id',
       'payee_id',
-      'load_id'
+      'load_id',
+      'vehicle_id',
+      'related_payment_id'
     ]);
     res.status(201).json(populated);
   } catch (error) {
@@ -64,7 +89,9 @@ exports.updatePayment = async (req, res) => {
     ).populate([
       'payer_id',
       'payee_id',
-      'load_id'
+      'load_id',
+      { path: 'vehicle_id', select: 'plate_no vehicle_type' },
+      'related_payment_id'
     ]);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
     res.status(200).json(payment);

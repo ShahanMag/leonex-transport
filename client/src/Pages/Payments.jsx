@@ -4,6 +4,7 @@ import Button from '../components/Button';
 import Table from '../components/Table';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
+import { showSuccess, showError, showConfirm } from '../utils/toast';
 
 export default function Payments() {
   const [payments, setPayments] = useState([]);
@@ -14,9 +15,10 @@ export default function Payments() {
     payer: '',
     payee: '',
     amount: '',
-    type: 'rental',
+    payment_type: 'driver-rental',
     balance: '',
     description: '',
+    status: 'pending',
   });
   const [errors, setErrors] = useState({});
 
@@ -30,7 +32,7 @@ export default function Payments() {
       const response = await paymentAPI.getAll();
       setPayments(response.data);
     } catch (error) {
-      alert('Failed to fetch payments');
+      showError('Failed to fetch payments');
     } finally {
       setIsLoading(false);
     }
@@ -41,11 +43,11 @@ export default function Payments() {
   };
 
   const handleSubmit = async (values) => {
-    if (!values.payer || !values.amount || !values.type) {
+    if (!values.payer || !values.amount || !values.payment_type) {
       setErrors({
         payer: !values.payer ? 'Payer is required' : '',
         amount: !values.amount ? 'Amount is required' : '',
-        type: !values.type ? 'Type is required' : '',
+        payment_type: !values.payment_type ? 'Payment type is required' : '',
       });
       return;
     }
@@ -54,10 +56,10 @@ export default function Payments() {
       setIsLoading(true);
       if (editingId) {
         await paymentAPI.update(editingId, values);
-        alert('Payment updated successfully');
+        showSuccess('Payment updated successfully');
       } else {
         await paymentAPI.create(values);
-        alert('Payment recorded successfully');
+        showSuccess('Payment recorded successfully');
       }
       setIsFormOpen(false);
       setEditingId(null);
@@ -65,14 +67,15 @@ export default function Payments() {
         payer: '',
         payee: '',
         amount: '',
-        type: 'rental',
+        payment_type: 'driver-rental',
         balance: '',
         description: '',
+        status: 'pending',
       });
       setErrors({});
       fetchPayments();
     } catch (error) {
-      alert('Failed to save payment');
+      showError('Failed to save payment');
     } finally {
       setIsLoading(false);
     }
@@ -85,18 +88,18 @@ export default function Payments() {
   };
 
   const handleDelete = async (payment) => {
-    if (!window.confirm('Are you sure you want to delete this payment?')) return;
-
-    try {
-      setIsLoading(true);
-      await paymentAPI.delete(payment._id);
-      alert('Payment deleted successfully');
-      fetchPayments();
-    } catch (error) {
-      alert('Failed to delete payment');
-    } finally {
-      setIsLoading(false);
-    }
+    showConfirm('Are you sure you want to delete this payment?', async () => {
+      try {
+        setIsLoading(true);
+        await paymentAPI.delete(payment._id);
+        showSuccess('Payment deleted successfully');
+        fetchPayments();
+      } catch (error) {
+        showError('Failed to delete payment');
+      } finally {
+        setIsLoading(false);
+      }
+    });
   };
 
   const handleOpenForm = () => {
@@ -104,9 +107,10 @@ export default function Payments() {
       payer: '',
       payee: '',
       amount: '',
-      type: 'rental',
+      payment_type: 'driver-rental',
       balance: '',
       description: '',
+      status: 'pending',
     });
     setEditingId(null);
     setErrors({});
@@ -118,11 +122,25 @@ export default function Payments() {
     { key: 'payee', label: 'Payee' },
     { key: 'amount', label: 'Amount' },
     {
-      key: 'type',
-      label: 'Type',
-      render: (type) => (
+      key: 'payment_type',
+      label: 'Payment Type',
+      render: (payment_type) => (
         <span className="px-3 py-1 rounded text-sm font-medium bg-blue-100 text-blue-800">
-          {type}
+          {payment_type}
+        </span>
+      )
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (status) => (
+        <span className={`px-3 py-1 rounded text-sm font-medium ${
+          status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+          status === 'completed' ? 'bg-green-100 text-green-800' :
+          status === 'failed' ? 'bg-red-100 text-red-800' :
+          'bg-gray-100 text-gray-800'
+        }`}>
+          {status}
         </span>
       )
     },
@@ -153,8 +171,32 @@ export default function Payments() {
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingId ? 'Edit Payment' : 'Record Payment'}
+        title={editingId ? 'Edit Payment' : 'Record New Payment'}
         size="lg"
+        footer={
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setIsFormOpen(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (!formValues.payer || !formValues.amount || !formValues.payment_type) {
+                  setErrors({
+                    payer: !formValues.payer ? 'Payer is required' : '',
+                    amount: !formValues.amount ? 'Amount is required' : '',
+                    payment_type: !formValues.payment_type ? 'Payment type is required' : '',
+                  });
+                  return;
+                }
+                handleSubmit(formValues);
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Processing...' : editingId ? 'Update Payment' : 'Record Payment'}
+            </Button>
+          </div>
+        }
       >
         <Form
           fields={[
@@ -162,15 +204,27 @@ export default function Payments() {
             { name: 'payee', label: 'Payee', placeholder: 'Enter payee name' },
             { name: 'amount', label: 'Amount', type: 'number', placeholder: 'Enter amount', required: true },
             {
-              name: 'type',
+              name: 'payment_type',
               label: 'Payment Type',
               type: 'select',
               required: true,
               options: [
-                { value: 'rental', label: 'Rental' },
+                { value: 'vehicle-acquisition', label: 'Vehicle Acquisition' },
+                { value: 'driver-rental', label: 'Driver Rental' },
+                { value: 'vehicle-maintenance', label: 'Vehicle Maintenance' },
                 { value: 'driver-commission', label: 'Driver Commission' },
-                { value: 'company-payment', label: 'Company Payment' },
                 { value: 'other', label: 'Other' },
+              ],
+            },
+            {
+              name: 'status',
+              label: 'Status',
+              type: 'select',
+              options: [
+                { value: 'pending', label: 'Pending' },
+                { value: 'completed', label: 'Completed' },
+                { value: 'failed', label: 'Failed' },
+                { value: 'refunded', label: 'Refunded' },
               ],
             },
             { name: 'balance', label: 'Balance', type: 'number', placeholder: 'Enter balance' },
@@ -180,7 +234,6 @@ export default function Payments() {
           errors={errors}
           onChange={handleFormChange}
           onSubmit={handleSubmit}
-          onCancel={() => setIsFormOpen(false)}
           isLoading={isLoading}
           submitText={editingId ? 'Update Payment' : 'Record Payment'}
         />

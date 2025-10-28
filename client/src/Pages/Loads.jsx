@@ -4,6 +4,7 @@ import Button from '../components/Button';
 import Table from '../components/Table';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
+import { showSuccess, showError, showConfirm } from '../utils/toast';
 
 export default function Loads() {
   const [loads, setLoads] = useState([]);
@@ -19,9 +20,10 @@ export default function Loads() {
     from_location: '',
     to_location: '',
     load_description: '',
-    rent_amount: '',
+    rental_amount: '',
     start_date: '',
     end_date: '',
+    distance_km: '',
   });
   const [assignValues, setAssignValues] = useState({ driver_id: '' });
   const [errors, setErrors] = useState({});
@@ -38,7 +40,7 @@ export default function Loads() {
       const response = await loadAPI.getAll();
       setLoads(response.data);
     } catch (error) {
-      alert('Failed to fetch loads');
+      showError('Failed to fetch loads');
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +51,7 @@ export default function Loads() {
       const response = await vehicleAPI.getAll();
       setVehicles(response.data);
     } catch (error) {
-      console.error('Failed to fetch vehicles');
+      showError('Failed to fetch vehicles');
     }
   };
 
@@ -58,7 +60,7 @@ export default function Loads() {
       const response = await driverAPI.getAll();
       setDrivers(response.data);
     } catch (error) {
-      console.error('Failed to fetch drivers');
+      showError('Failed to fetch drivers');
     }
   };
 
@@ -67,12 +69,11 @@ export default function Loads() {
   };
 
   const handleSubmit = async (values) => {
-    if (!values.vehicle_id || !values.from_location || !values.to_location || !values.rent_amount) {
+    if (!values.vehicle_id || !values.from_location || !values.to_location) {
       setErrors({
         vehicle_id: !values.vehicle_id ? 'Vehicle is required' : '',
         from_location: !values.from_location ? 'From location is required' : '',
         to_location: !values.to_location ? 'To location is required' : '',
-        rent_amount: !values.rent_amount ? 'Rent amount is required' : '',
       });
       return;
     }
@@ -81,10 +82,10 @@ export default function Loads() {
       setIsLoading(true);
       if (editingId) {
         await loadAPI.update(editingId, values);
-        alert('Load updated successfully');
+        showSuccess('Load updated successfully');
       } else {
         await loadAPI.create(values);
-        alert('Load created successfully');
+        showSuccess('Load created successfully');
       }
       setIsFormOpen(false);
       setEditingId(null);
@@ -93,14 +94,15 @@ export default function Loads() {
         from_location: '',
         to_location: '',
         load_description: '',
-        rent_amount: '',
+        rental_amount: '',
         start_date: '',
         end_date: '',
+        distance_km: '',
       });
       setErrors({});
       fetchLoads();
     } catch (error) {
-      alert('Failed to save load');
+      showError('Failed to save load');
     } finally {
       setIsLoading(false);
     }
@@ -115,14 +117,14 @@ export default function Loads() {
     try {
       setIsLoading(true);
       await loadAPI.assignDriver(assigningLoadId, values);
-      alert('Driver assigned successfully');
+      showSuccess('Driver assigned successfully');
       setIsAssignOpen(false);
       setAssigningLoadId(null);
       setAssignValues({ driver_id: '' });
       setErrors({});
       fetchLoads();
     } catch (error) {
-      alert('Failed to assign driver');
+      showError('Failed to assign driver');
     } finally {
       setIsLoading(false);
     }
@@ -135,18 +137,18 @@ export default function Loads() {
   };
 
   const handleDelete = async (load) => {
-    if (!window.confirm('Are you sure you want to delete this load?')) return;
-
-    try {
-      setIsLoading(true);
-      await loadAPI.delete(load._id);
-      alert('Load deleted successfully');
-      fetchLoads();
-    } catch (error) {
-      alert('Failed to delete load');
-    } finally {
-      setIsLoading(false);
-    }
+    showConfirm('Are you sure you want to delete this load?', async () => {
+      try {
+        setIsLoading(true);
+        await loadAPI.delete(load._id);
+        showSuccess('Load deleted successfully');
+        fetchLoads();
+      } catch (error) {
+        showError('Failed to delete load');
+      } finally {
+        setIsLoading(false);
+      }
+    });
   };
 
   const handleOpenAssign = (load) => {
@@ -162,9 +164,10 @@ export default function Loads() {
       from_location: '',
       to_location: '',
       load_description: '',
-      rent_amount: '',
+      rental_amount: '',
       start_date: '',
       end_date: '',
+      distance_km: '',
     });
     setEditingId(null);
     setErrors({});
@@ -179,7 +182,9 @@ export default function Loads() {
     },
     { key: 'from_location', label: 'From' },
     { key: 'to_location', label: 'To' },
-    { key: 'rent_amount', label: 'Amount' },
+    { key: 'rental_amount', label: 'Rental Amount' },
+    { key: 'days_rented', label: 'Days' },
+    { key: 'actual_rental_cost', label: 'Actual Cost' },
     {
       key: 'driver_id',
       label: 'Driver',
@@ -227,8 +232,32 @@ export default function Loads() {
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingId ? 'Edit Load' : 'Create Rental Request'}
+        title={editingId ? 'Edit Rental Request' : 'Create New Rental Request'}
         size="lg"
+        footer={
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setIsFormOpen(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (!formValues.vehicle_id || !formValues.from_location || !formValues.to_location) {
+                  setErrors({
+                    vehicle_id: !formValues.vehicle_id ? 'Vehicle is required' : '',
+                    from_location: !formValues.from_location ? 'From location is required' : '',
+                    to_location: !formValues.to_location ? 'To location is required' : '',
+                  });
+                  return;
+                }
+                handleSubmit(formValues);
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Processing...' : editingId ? 'Update Load' : 'Create Load'}
+            </Button>
+          </div>
+        }
       >
         <Form
           fields={[
@@ -242,15 +271,15 @@ export default function Loads() {
             { name: 'from_location', label: 'From Location', placeholder: 'Enter starting location', required: true },
             { name: 'to_location', label: 'To Location', placeholder: 'Enter destination', required: true },
             { name: 'load_description', label: 'Load Description', type: 'textarea', placeholder: 'Describe the load' },
-            { name: 'rent_amount', label: 'Rent Amount', type: 'number', placeholder: 'Enter rent amount', required: true },
             { name: 'start_date', label: 'Start Date', type: 'datetime-local' },
             { name: 'end_date', label: 'End Date', type: 'datetime-local' },
+            { name: 'distance_km', label: 'Distance (KM)', type: 'number', placeholder: 'Enter distance in km (optional)' },
+            { name: 'rental_amount', label: 'Rental Amount', type: 'number', placeholder: 'Enter manual amount (optional, auto-calculated from dates)' },
           ]}
           values={formValues}
           errors={errors}
           onChange={handleFormChange}
           onSubmit={handleSubmit}
-          onCancel={() => setIsFormOpen(false)}
           isLoading={isLoading}
           submitText={editingId ? 'Update Load' : 'Create Load'}
         />
@@ -261,7 +290,27 @@ export default function Loads() {
         isOpen={isAssignOpen}
         onClose={() => setIsAssignOpen(false)}
         title="Assign Driver to Load"
-        size="md"
+        size="lg"
+        footer={
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setIsAssignOpen(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (!assignValues.driver_id) {
+                  setErrors({ driver_id: 'Driver is required' });
+                  return;
+                }
+                handleAssignDriver(assignValues);
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Processing...' : 'Assign Driver'}
+            </Button>
+          </div>
+        }
       >
         <Form
           fields={[
@@ -277,7 +326,6 @@ export default function Loads() {
           errors={errors}
           onChange={setAssignValues}
           onSubmit={handleAssignDriver}
-          onCancel={() => setIsAssignOpen(false)}
           isLoading={isLoading}
           submitText="Assign Driver"
         />

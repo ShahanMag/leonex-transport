@@ -4,6 +4,7 @@ import Button from '../components/Button';
 import Table from '../components/Table';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
+import { showSuccess, showError, showConfirm } from '../utils/toast';
 
 export default function Vehicles() {
   const [vehicles, setVehicles] = useState([]);
@@ -15,11 +16,17 @@ export default function Vehicles() {
     company_id: '',
     vehicle_type: '',
     plate_no: '',
-    rent_price: '',
     status: 'available',
     manufacturer: '',
     year: '',
     capacity: '',
+    // Acquisition fields
+    acquisition_cost: '',
+    acquisition_type: 'bought',
+    acquisition_date: '',
+    // Driver rental fields
+    driver_rental_price: '',
+    driver_rental_type: 'per_day',
   });
   const [errors, setErrors] = useState({});
 
@@ -34,7 +41,7 @@ export default function Vehicles() {
       const response = await vehicleAPI.getAll();
       setVehicles(response.data);
     } catch (error) {
-      alert('Failed to fetch vehicles');
+      showError('Failed to fetch vehicles');
     } finally {
       setIsLoading(false);
     }
@@ -45,7 +52,7 @@ export default function Vehicles() {
       const response = await companyAPI.getAll();
       setCompanies(response.data);
     } catch (error) {
-      console.error('Failed to fetch companies');
+      showError('Failed to fetch companies');
     }
   };
 
@@ -54,12 +61,14 @@ export default function Vehicles() {
   };
 
   const handleSubmit = async (values) => {
-    if (!values.company_id || !values.vehicle_type || !values.plate_no || !values.rent_price) {
+    if (!values.company_id || !values.vehicle_type || !values.plate_no || !values.acquisition_cost || !values.driver_rental_price || !values.acquisition_date) {
       setErrors({
         company_id: !values.company_id ? 'Company is required' : '',
         vehicle_type: !values.vehicle_type ? 'Vehicle type is required' : '',
         plate_no: !values.plate_no ? 'Plate number is required' : '',
-        rent_price: !values.rent_price ? 'Rent price is required' : '',
+        acquisition_cost: !values.acquisition_cost ? 'Acquisition cost is required' : '',
+        driver_rental_price: !values.driver_rental_price ? 'Driver rental price is required' : '',
+        acquisition_date: !values.acquisition_date ? 'Acquisition date is required' : '',
       });
       return;
     }
@@ -68,10 +77,10 @@ export default function Vehicles() {
       setIsLoading(true);
       if (editingId) {
         await vehicleAPI.update(editingId, values);
-        alert('Vehicle updated successfully');
+        showSuccess('Vehicle updated successfully');
       } else {
         await vehicleAPI.create(values);
-        alert('Vehicle created successfully');
+        showSuccess('Vehicle created successfully');
       }
       setIsFormOpen(false);
       setEditingId(null);
@@ -88,7 +97,7 @@ export default function Vehicles() {
       setErrors({});
       fetchVehicles();
     } catch (error) {
-      alert('Failed to save vehicle');
+      showError('Failed to save vehicle');
     } finally {
       setIsLoading(false);
     }
@@ -101,18 +110,18 @@ export default function Vehicles() {
   };
 
   const handleDelete = async (vehicle) => {
-    if (!window.confirm('Are you sure you want to delete this vehicle?')) return;
-
-    try {
-      setIsLoading(true);
-      await vehicleAPI.delete(vehicle._id);
-      alert('Vehicle deleted successfully');
-      fetchVehicles();
-    } catch (error) {
-      alert('Failed to delete vehicle');
-    } finally {
-      setIsLoading(false);
-    }
+    showConfirm('Are you sure you want to delete this vehicle?', async () => {
+      try {
+        setIsLoading(true);
+        await vehicleAPI.delete(vehicle._id);
+        showSuccess('Vehicle deleted successfully');
+        fetchVehicles();
+      } catch (error) {
+        showError('Failed to delete vehicle');
+      } finally {
+        setIsLoading(false);
+      }
+    });
   };
 
   const handleOpenForm = () => {
@@ -120,11 +129,15 @@ export default function Vehicles() {
       company_id: '',
       vehicle_type: '',
       plate_no: '',
-      rent_price: '',
       status: 'available',
       manufacturer: '',
       year: '',
       capacity: '',
+      acquisition_cost: '',
+      acquisition_type: 'bought',
+      acquisition_date: '',
+      driver_rental_price: '',
+      driver_rental_type: 'per_day',
     });
     setEditingId(null);
     setErrors({});
@@ -139,7 +152,8 @@ export default function Vehicles() {
       label: 'Company',
       render: (value) => value?.name || 'N/A'
     },
-    { key: 'rent_price', label: 'Rent Price' },
+    { key: 'acquisition_cost', label: 'Acquisition Cost' },
+    { key: 'driver_rental_price', label: 'Driver Rental Price' },
     {
       key: 'status',
       label: 'Status',
@@ -174,8 +188,35 @@ export default function Vehicles() {
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingId ? 'Edit Vehicle' : 'Add Vehicle'}
+        title={editingId ? 'Edit Vehicle' : 'Add New Vehicle'}
         size="lg"
+        footer={
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setIsFormOpen(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (!formValues.company_id || !formValues.vehicle_type || !formValues.plate_no || !formValues.acquisition_cost || !formValues.driver_rental_price || !formValues.acquisition_date) {
+                  setErrors({
+                    company_id: !formValues.company_id ? 'Company is required' : '',
+                    vehicle_type: !formValues.vehicle_type ? 'Vehicle type is required' : '',
+                    plate_no: !formValues.plate_no ? 'Plate number is required' : '',
+                    acquisition_cost: !formValues.acquisition_cost ? 'Acquisition cost is required' : '',
+                    driver_rental_price: !formValues.driver_rental_price ? 'Driver rental price is required' : '',
+                    acquisition_date: !formValues.acquisition_date ? 'Acquisition date is required' : '',
+                  });
+                  return;
+                }
+                handleSubmit(formValues);
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Processing...' : editingId ? 'Update Vehicle' : 'Add Vehicle'}
+            </Button>
+          </div>
+        }
       >
         <Form
           fields={[
@@ -188,7 +229,29 @@ export default function Vehicles() {
             },
             { name: 'vehicle_type', label: 'Vehicle Type', placeholder: 'e.g., Truck, Van', required: true },
             { name: 'plate_no', label: 'Plate Number', placeholder: 'e.g., ABC123', required: true },
-            { name: 'rent_price', label: 'Rent Price', type: 'number', placeholder: 'Enter rent price', required: true },
+            { name: 'acquisition_cost', label: 'Acquisition Cost', type: 'number', placeholder: 'Amount company paid', required: true },
+            {
+              name: 'acquisition_type',
+              label: 'Acquisition Type',
+              type: 'select',
+              required: true,
+              options: [
+                { value: 'bought', label: 'Bought' },
+                { value: 'rented', label: 'Rented from Supplier' },
+              ],
+            },
+            { name: 'acquisition_date', label: 'Acquisition Date', type: 'date', required: true },
+            { name: 'driver_rental_price', label: 'Driver Rental Price', type: 'number', placeholder: 'What driver pays per day/job', required: true },
+            {
+              name: 'driver_rental_type',
+              label: 'Rental Type',
+              type: 'select',
+              options: [
+                { value: 'per_day', label: 'Per Day' },
+                { value: 'per_job', label: 'Per Job' },
+                { value: 'per_km', label: 'Per KM' },
+              ],
+            },
             {
               name: 'status',
               label: 'Status',
@@ -207,7 +270,6 @@ export default function Vehicles() {
           errors={errors}
           onChange={handleFormChange}
           onSubmit={handleSubmit}
-          onCancel={() => setIsFormOpen(false)}
           isLoading={isLoading}
           submitText={editingId ? 'Update Vehicle' : 'Add Vehicle'}
         />

@@ -33,17 +33,37 @@ exports.getVehiclesByCompany = async (req, res) => {
 
 // Create vehicle
 exports.createVehicle = async (req, res) => {
-  const { company_id, vehicle_type, plate_no, rent_price, status, manufacturer, year, capacity } = req.body;
+  const {
+    company_id,
+    vehicle_type,
+    plate_no,
+    status,
+    manufacturer,
+    year,
+    capacity,
+    // New acquisition fields
+    acquisition_cost,
+    acquisition_type,
+    acquisition_date,
+    // Driver rental fields
+    driver_rental_price,
+    driver_rental_type,
+  } = req.body;
+
   try {
     const vehicle = new Vehicle({
       company_id,
       vehicle_type,
       plate_no,
-      rent_price,
       status,
       manufacturer,
       year,
       capacity,
+      acquisition_cost,
+      acquisition_type,
+      acquisition_date,
+      driver_rental_price,
+      driver_rental_type,
     });
     const savedVehicle = await vehicle.save();
     const populated = await savedVehicle.populate('company_id', 'name');

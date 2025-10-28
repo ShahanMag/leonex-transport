@@ -95,27 +95,7 @@ export default function Form({
         );
       })}
 
-      <div className="flex gap-3 mt-6">
-        <Button
-          type="submit"
-          variant="primary"
-          size="md"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Processing...' : submitText}
-        </Button>
-        {onCancel && (
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={onCancel}
-            disabled={isLoading}
-          >
-            {cancelText}
-          </Button>
-        )}
-      </div>
+      {/* Buttons are handled by parent Modal component when used in modals */}
     </form>
   );
 }

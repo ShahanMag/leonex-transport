@@ -4,6 +4,7 @@ import Button from '../components/Button';
 import Table from '../components/Table';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
+import { showSuccess, showError, showConfirm } from '../utils/toast';
 
 export default function Drivers() {
   const [drivers, setDrivers] = useState([]);
@@ -31,7 +32,7 @@ export default function Drivers() {
       const response = await driverAPI.getAll();
       setDrivers(response.data);
     } catch (error) {
-      alert('Failed to fetch drivers');
+      showError('Failed to fetch drivers');
     } finally {
       setIsLoading(false);
     }
@@ -55,10 +56,10 @@ export default function Drivers() {
       setIsLoading(true);
       if (editingId) {
         await driverAPI.update(editingId, values);
-        alert('Driver updated successfully');
+        showSuccess('Driver updated successfully');
       } else {
         await driverAPI.create(values);
-        alert('Driver registered successfully');
+        showSuccess('Driver registered successfully');
       }
       setIsFormOpen(false);
       setEditingId(null);
@@ -74,7 +75,7 @@ export default function Drivers() {
       setErrors({});
       fetchDrivers();
     } catch (error) {
-      alert('Failed to save driver');
+      showError('Failed to save driver');
     } finally {
       setIsLoading(false);
     }
@@ -87,18 +88,18 @@ export default function Drivers() {
   };
 
   const handleDelete = async (driver) => {
-    if (!window.confirm('Are you sure you want to delete this driver?')) return;
-
-    try {
-      setIsLoading(true);
-      await driverAPI.delete(driver._id);
-      alert('Driver deleted successfully');
-      fetchDrivers();
-    } catch (error) {
-      alert('Failed to delete driver');
-    } finally {
-      setIsLoading(false);
-    }
+    showConfirm('Are you sure you want to delete this driver?', async () => {
+      try {
+        setIsLoading(true);
+        await driverAPI.delete(driver._id);
+        showSuccess('Driver deleted successfully');
+        fetchDrivers();
+      } catch (error) {
+        showError('Failed to delete driver');
+      } finally {
+        setIsLoading(false);
+      }
+    });
   };
 
   const handleOpenForm = () => {
@@ -156,8 +157,32 @@ export default function Drivers() {
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingId ? 'Edit Driver' : 'Register Driver'}
+        title={editingId ? 'Edit Driver' : 'Register New Driver'}
         size="lg"
+        footer={
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setIsFormOpen(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (!formValues.name || !formValues.contact || !formValues.license_no) {
+                  setErrors({
+                    name: !formValues.name ? 'Name is required' : '',
+                    contact: !formValues.contact ? 'Contact is required' : '',
+                    license_no: !formValues.license_no ? 'License number is required' : '',
+                  });
+                  return;
+                }
+                handleSubmit(formValues);
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Processing...' : editingId ? 'Update Driver' : 'Register Driver'}
+            </Button>
+          </div>
+        }
       >
         <Form
           fields={[
@@ -182,7 +207,6 @@ export default function Drivers() {
           errors={errors}
           onChange={handleFormChange}
           onSubmit={handleSubmit}
-          onCancel={() => setIsFormOpen(false)}
           isLoading={isLoading}
           submitText={editingId ? 'Update Driver' : 'Register Driver'}
         />

@@ -4,6 +4,7 @@ import Button from '../components/Button';
 import Table from '../components/Table';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
+import { showSuccess, showError, showConfirm } from '../utils/toast';
 
 export default function Companies() {
   const [companies, setCompanies] = useState([]);
@@ -29,7 +30,7 @@ export default function Companies() {
       const response = await companyAPI.getAll();
       setCompanies(response.data);
     } catch (error) {
-      alert('Failed to fetch companies');
+      showError('Failed to fetch companies');
     } finally {
       setIsLoading(false);
     }
@@ -53,10 +54,10 @@ export default function Companies() {
       setIsLoading(true);
       if (editingId) {
         await companyAPI.update(editingId, values);
-        alert('Company updated successfully');
+        showSuccess('Company updated successfully');
       } else {
         await companyAPI.create(values);
-        alert('Company created successfully');
+        showSuccess('Company created successfully');
       }
       setIsFormOpen(false);
       setEditingId(null);
@@ -64,7 +65,7 @@ export default function Companies() {
       setErrors({});
       fetchCompanies();
     } catch (error) {
-      alert('Failed to save company');
+      showError('Failed to save company');
     } finally {
       setIsLoading(false);
     }
@@ -77,18 +78,18 @@ export default function Companies() {
   };
 
   const handleDelete = async (company) => {
-    if (!window.confirm('Are you sure you want to delete this company?')) return;
-
-    try {
-      setIsLoading(true);
-      await companyAPI.delete(company._id);
-      alert('Company deleted successfully');
-      fetchCompanies();
-    } catch (error) {
-      alert('Failed to delete company');
-    } finally {
-      setIsLoading(false);
-    }
+    showConfirm('Are you sure you want to delete this company?', async () => {
+      try {
+        setIsLoading(true);
+        await companyAPI.delete(company._id);
+        showSuccess('Company deleted successfully');
+        fetchCompanies();
+      } catch (error) {
+        showError('Failed to delete company');
+      } finally {
+        setIsLoading(false);
+      }
+    });
   };
 
   const handleOpenForm = () => {
@@ -125,8 +126,32 @@ export default function Companies() {
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingId ? 'Edit Company' : 'Add Company'}
-        size="md"
+        title={editingId ? 'Edit Company' : 'Add New Company'}
+        size="lg"
+        footer={
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setIsFormOpen(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (!formValues.name || !formValues.contact || !formValues.address) {
+                  setErrors({
+                    name: !formValues.name ? 'Name is required' : '',
+                    contact: !formValues.contact ? 'Contact is required' : '',
+                    address: !formValues.address ? 'Address is required' : '',
+                  });
+                  return;
+                }
+                handleSubmit(formValues);
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Processing...' : editingId ? 'Update Company' : 'Add Company'}
+            </Button>
+          </div>
+        }
       >
         <Form
           fields={[
@@ -140,7 +165,6 @@ export default function Companies() {
           errors={errors}
           onChange={handleFormChange}
           onSubmit={handleSubmit}
-          onCancel={() => setIsFormOpen(false)}
           isLoading={isLoading}
           submitText={editingId ? 'Update Company' : 'Add Company'}
         />
