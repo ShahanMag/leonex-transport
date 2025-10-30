@@ -11,6 +11,7 @@ export default function Companies() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [formValues, setFormValues] = useState({
     name: '',
     contact: '',
@@ -32,6 +33,26 @@ export default function Companies() {
       setCompanies(response.data);
     } catch (error) {
       showError('Failed to fetch companies');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearch = async (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    if (!query.trim()) {
+      fetchCompanies();
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await companyAPI.search(query);
+      setCompanies(response.data);
+    } catch (error) {
+      showError('Failed to search companies');
     } finally {
       setIsLoading(false);
     }
@@ -124,6 +145,16 @@ export default function Companies() {
         <Button variant="success" onClick={handleOpenForm}>
           + Add Company
         </Button>
+      </div>
+
+      <div className="mb-6 flex gap-4">
+        <input
+          type="text"
+          placeholder="Search company by name..."
+          value={searchQuery}
+          onChange={handleSearch}
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
 
       <Table columns={columns} data={companies} actions={actions} isLoading={isLoading} />

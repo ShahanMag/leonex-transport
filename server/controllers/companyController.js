@@ -11,6 +11,25 @@ exports.getAllCompanies = async (req, res) => {
   }
 };
 
+// Search companies by name
+exports.searchCompanies = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    const companies = await Company.find({
+      name: { $regex: query, $options: 'i' } // Case-insensitive search
+    });
+
+    res.status(200).json(companies);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get company by ID
 exports.getCompanyById = async (req, res) => {
   try {

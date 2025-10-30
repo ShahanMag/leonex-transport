@@ -12,17 +12,16 @@ export default function Vehicles() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [formValues, setFormValues] = useState({
     company_id: '',
     vehicle_type: '',
     plate_no: '',
     status: 'available',
-    manufacturer: '',
-    year: '',
-    capacity: '',
     // Acquisition fields
     acquisition_cost: '',
-    acquisition_type: 'bought',
     acquisition_date: '',
   });
   const [errors, setErrors] = useState({});
@@ -50,6 +49,43 @@ export default function Vehicles() {
       setCompanies(response.data);
     } catch (error) {
       showError('Failed to fetch companies');
+    }
+  };
+
+  const handleSearch = async (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    if (!query.trim()) {
+      fetchVehicles();
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await vehicleAPI.search(query);
+      setVehicles(response.data);
+    } catch (error) {
+      showError('Failed to search vehicles');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDateFilter = async () => {
+    if (!startDate || !endDate) {
+      showError('Please select both start and end dates');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await vehicleAPI.filter(startDate, endDate);
+      setVehicles(response.data);
+    } catch (error) {
+      showError('Failed to filter vehicles');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -85,11 +121,7 @@ export default function Vehicles() {
         vehicle_type: '',
         plate_no: '',
         status: 'available',
-        manufacturer: '',
-        year: '',
-        capacity: '',
         acquisition_cost: '',
-        acquisition_type: 'bought',
         acquisition_date: '',
       });
       setErrors({});
@@ -128,11 +160,7 @@ export default function Vehicles() {
       vehicle_type: '',
       plate_no: '',
       status: 'available',
-      manufacturer: '',
-      year: '',
-      capacity: '',
       acquisition_cost: '',
-      acquisition_type: 'bought',
       acquisition_date: '',
     });
     setEditingId(null);
@@ -177,6 +205,42 @@ export default function Vehicles() {
         <Button variant="success" onClick={handleOpenForm}>
           + Add Vehicle
         </Button>
+      </div>
+
+      <div className="mb-6 space-y-4">
+        <div className="flex gap-4">
+          <input
+            type="text"
+            placeholder="Search vehicle by plate number..."
+            value={searchQuery}
+            onChange={handleSearch}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="flex gap-4 items-end">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <Button variant="primary" onClick={handleDateFilter}>
+            Filter by Date
+          </Button>
+        </div>
       </div>
 
       <Table columns={columns} data={vehicles} actions={actions} isLoading={isLoading} />
@@ -225,16 +289,6 @@ export default function Vehicles() {
             { name: 'vehicle_type', label: 'Vehicle Type', placeholder: 'e.g., Truck, Van', required: true },
             { name: 'plate_no', label: 'Plate Number', placeholder: 'e.g., ABC123', required: true },
             { name: 'acquisition_cost', label: 'Acquisition Cost', type: 'number', placeholder: 'Amount company paid', required: true },
-            {
-              name: 'acquisition_type',
-              label: 'Acquisition Type',
-              type: 'select',
-              required: true,
-              options: [
-                { value: 'bought', label: 'Bought' },
-                { value: 'rented', label: 'Rented from Supplier' },
-              ],
-            },
             { name: 'acquisition_date', label: 'Acquisition Date', type: 'date', required: true },
             {
               name: 'status',
@@ -246,9 +300,6 @@ export default function Vehicles() {
                 { value: 'maintenance', label: 'Maintenance' },
               ],
             },
-            { name: 'manufacturer', label: 'Manufacturer', placeholder: 'e.g., Volvo' },
-            { name: 'year', label: 'Year', type: 'number', placeholder: 'e.g., 2022' },
-            { name: 'capacity', label: 'Capacity (tons)', type: 'number', placeholder: 'e.g., 25' },
           ]}
           values={formValues}
           errors={errors}

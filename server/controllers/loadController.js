@@ -39,6 +39,56 @@ exports.getAllLoads = async (req, res) => {
   }
 };
 
+// Search loads by rental code or vehicle plate number
+exports.searchLoads = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    // Find vehicles matching the plate number
+    const vehicles = await Vehicle.find({
+      plate_no: { $regex: query, $options: 'i' }
+    });
+    const vehicleIds = vehicles.map(v => v._id);
+
+    // Search loads by rental code OR vehicle plate number
+    const loads = await Load.find({
+      $or: [
+        { rental_code: { $regex: query, $options: 'i' } },
+        { vehicle_id: { $in: vehicleIds } }
+      ]
+    })
+      .populate('vehicle_id', 'plate_no vehicle_type vehicle_code')
+      .populate('driver_id', 'name contact driver_code');
+
+    res.status(200).json(loads);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Filter loads by vehicle
+exports.filterLoadsByVehicle = async (req, res) => {
+  try {
+    const { vehicle_id } = req.query;
+
+    if (!vehicle_id) {
+      return res.status(400).json({ message: 'vehicle_id is required' });
+    }
+
+    const loads = await Load.find({ vehicle_id })
+      .populate('vehicle_id', 'plate_no vehicle_type vehicle_code')
+      .populate('driver_id', 'name contact driver_code');
+
+    res.status(200).json(loads);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get load by ID
 exports.getLoadById = async (req, res) => {
   try {
@@ -67,8 +117,8 @@ exports.createLoad = async (req, res) => {
   } = req.body;
 
   try {
-    // Get vehicle
-    const vehicle = await Vehicle.findById(vehicle_id);
+    // Get vehicle and company
+    const vehicle = await Vehicle.findById(vehicle_id).populate('company_id');
     if (!vehicle) {
       return res.status(404).json({ message: 'Vehicle not found' });
     }
@@ -99,12 +149,35 @@ exports.createLoad = async (req, res) => {
     });
 
     const savedLoad = await load.save();
+
+    // Auto-create rental payment with installment structure (payment created when load is created)
+    const payment = new Payment({
+      payer: 'Driver', // Will be updated when driver is assigned
+      payee: vehicle?.company_id?.name || 'Unknown',
+      payee_id: vehicle?.company_id?._id,
+      total_amount: rental_amount,
+      total_paid: 0,
+      total_due: rental_amount,
+      description: `Rental payment for ${rental_code} - ${from_location} to ${to_location}`,
+      payment_type: 'driver-rental',
+      status: 'unpaid',
+      vehicle_id: vehicle_id,
+      load_id: savedLoad._id,
+      transaction_date: new Date(start_date),
+      installments: [],
+    });
+
+    const savedPayment = await payment.save();
+
     const populated = await savedLoad.populate([
       { path: 'vehicle_id', select: 'plate_no vehicle_type vehicle_code' },
       { path: 'driver_id', select: 'name contact driver_code' },
     ]);
 
-    res.status(201).json(populated);
+    res.status(201).json({
+      ...populated.toObject(),
+      auto_payment_id: savedPayment._id,
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -166,25 +239,29 @@ exports.assignDriver = async (req, res) => {
     // Update vehicle status to rented
     await Vehicle.findByIdAndUpdate(load.vehicle_id, { status: 'rented' });
 
+    // Update payment payer with driver info
+    const driver = await Driver.findById(driver_id);
+    await Payment.findOneAndUpdate(
+      { load_id: load._id },
+      {
+        payer: driver?.name || 'Unknown',
+        payer_id: driver_id,
+        driver_id: driver_id
+      }
+    );
+
     res.status(200).json(load);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
-// Complete load - AUTO-CREATE RENTAL PAYMENT
+// Complete load
 exports.completeLoad = async (req, res) => {
   try {
-    const load = await Load.findById(req.params.id)
-      .populate('vehicle_id')
-      .populate('driver_id')
-      .populate({ path: 'vehicle_id', populate: { path: 'company_id' } });
+    const load = await Load.findById(req.params.id);
 
     if (!load) return res.status(404).json({ message: 'Load not found' });
-
-    // Get the vehicle's company
-    const vehicle = await Vehicle.findById(load.vehicle_id).populate('company_id');
-    const driver = await Driver.findById(load.driver_id);
 
     // Update load status to completed
     const updatedLoad = await Load.findByIdAndUpdate(
@@ -199,27 +276,7 @@ exports.completeLoad = async (req, res) => {
     // Update vehicle status back to available
     await Vehicle.findByIdAndUpdate(load.vehicle_id, { status: 'available' });
 
-    // Auto-create rental payment
-    const payment = new Payment({
-      payer: driver?.name || 'Unknown',
-      payer_id: load.driver_id,
-      payee: vehicle?.company_id?.name || 'Unknown',
-      payee_id: vehicle?.company_id?._id,
-      amount: load.rental_amount,
-      description: `Rental payment for ${load.rental_code} - ${vehicle?.plate_no || 'Vehicle'}`,
-      payment_type: 'driver-rental',
-      status: 'completed',
-      vehicle_id: load.vehicle_id,
-      load_id: load._id,
-      transaction_date: new Date(),
-    });
-
-    const savedPayment = await payment.save();
-
-    res.status(200).json({
-      ...updatedLoad.toObject(),
-      auto_payment_id: savedPayment._id,
-    });
+    res.status(200).json(updatedLoad);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

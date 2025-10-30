@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import logoImage from '../assets/image.png';
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -21,8 +22,9 @@ export default function Navigation() {
   return (
     <nav className="bg-blue-700 text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-        <Link to="/" className="text-2xl font-bold">
-          VRS
+        <Link to="/" className="flex items-center gap-2">
+          <img src={logoImage} alt="Leonex Road Freight Transport" className="h-10 w-auto" />
+          <span className="text-xl font-bold hidden sm:inline">Leonex</span>
         </Link>
 
         {/* Desktop Menu */}

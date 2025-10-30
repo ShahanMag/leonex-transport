@@ -15,6 +15,8 @@ export default function Loads() {
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [assigningLoadId, setAssigningLoadId] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedVehicleFilter, setSelectedVehicleFilter] = useState('');
   const [formValues, setFormValues] = useState({
     vehicle_id: '',
     from_location: '',
@@ -63,6 +65,46 @@ export default function Loads() {
       setDrivers(response.data);
     } catch (error) {
       showError('Failed to fetch drivers');
+    }
+  };
+
+  const handleSearch = async (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    if (!query.trim()) {
+      fetchLoads();
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await loadAPI.search(query);
+      setLoads(response.data);
+    } catch (error) {
+      showError('Failed to search loads');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVehicleFilter = async (e) => {
+    const vehicleId = e.target.value;
+    setSelectedVehicleFilter(vehicleId);
+
+    if (!vehicleId) {
+      fetchLoads();
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await loadAPI.filter(vehicleId);
+      setLoads(response.data);
+    } catch (error) {
+      showError('Failed to filter loads');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -239,22 +281,46 @@ export default function Loads() {
     },
   ];
 
-  const actions = [
-    {
-      label: 'Assign',
-      onClick: (load) => load.status === 'pending' && handleOpenAssign(load),
-      variant: 'primary',
-      disabled: (load) => load.status !== 'pending'
-    },
-    {
-      label: 'Complete',
-      onClick: handleCompleteLoad,
-      variant: 'success',
-      disabled: (load) => load.status !== 'assigned'
-    },
-    { label: 'Edit', onClick: handleEdit, variant: 'primary', disabled: (load) => load.status === 'completed' },
-    { label: 'Delete', onClick: handleDelete, variant: 'danger' },
-  ];
+  // Dynamic actions based on load status
+  const getActions = (load) => {
+    const baseActions = [];
+
+    // Show Assign button only for pending loads
+    if (load.status === 'pending') {
+      baseActions.push({
+        label: 'Assign',
+        onClick: () => handleOpenAssign(load),
+        variant: 'primary',
+      });
+    }
+
+    // Show Complete button only for assigned loads
+    if (load.status === 'assigned') {
+      baseActions.push({
+        label: 'Complete',
+        onClick: () => handleCompleteLoad(load),
+        variant: 'success',
+      });
+    }
+
+    // Show Edit button for pending and assigned loads (not for completed)
+    if (load.status !== 'completed') {
+      baseActions.push({
+        label: 'Edit',
+        onClick: () => handleEdit(load),
+        variant: 'primary',
+      });
+    }
+
+    // Always show Delete button
+    baseActions.push({
+      label: 'Delete',
+      onClick: () => handleDelete(load),
+      variant: 'danger',
+    });
+
+    return baseActions;
+  };
 
   return (
     <div className="p-6">
@@ -265,7 +331,29 @@ export default function Loads() {
         </Button>
       </div>
 
-      <Table columns={columns} data={loads} actions={actions} isLoading={isLoading} />
+      <div className="mb-6 flex gap-4">
+        <input
+          type="text"
+          placeholder="Search load by rental code or vehicle number..."
+          value={searchQuery}
+          onChange={handleSearch}
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <select
+          value={selectedVehicleFilter}
+          onChange={handleVehicleFilter}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Vehicles</option>
+          {vehicles.map((v) => (
+            <option key={v._id} value={v._id}>
+              {v.plate_no} - {v.vehicle_type}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <Table columns={columns} data={loads} actions={getActions} isLoading={isLoading} />
 
       {/* Create/Edit Load Modal */}
       <Modal

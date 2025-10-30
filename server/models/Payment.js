@@ -1,5 +1,21 @@
 const mongoose = require('mongoose');
 
+// Installment subdocument schema
+const installmentSchema = new mongoose.Schema(
+  {
+    amount: {
+      type: Number,
+      required: true,
+    },
+    paid_date: {
+      type: Date,
+      default: Date.now,
+    },
+    notes: String,
+  },
+  { _id: true, timestamps: true }
+);
+
 const paymentSchema = new mongoose.Schema(
   {
     payer: {
@@ -9,32 +25,45 @@ const paymentSchema = new mongoose.Schema(
     payer_id: mongoose.Schema.Types.ObjectId,
     payee: String,
     payee_id: mongoose.Schema.Types.ObjectId,
-    amount: {
+
+    // Amount fields for installment tracking
+    total_amount: {
       type: Number,
       required: true,
     },
+    total_paid: {
+      type: Number,
+      default: 0,
+    },
+    total_due: {
+      type: Number,
+      required: true,
+    },
+
+    // Legacy field - kept for backward compatibility
+    amount: Number,
     balance: Number,
     description: String,
 
-    // Renamed from type to avoid conflict with type keyword
+    // Payment type - only two types supported
     payment_type: {
       type: String,
       enum: [
         'vehicle-acquisition',    // Company buys/rents vehicle from supplier
         'driver-rental',          // Driver pays company for rental
-        'vehicle-maintenance',    // Company pays for maintenance
-        'driver-commission',      // Company pays driver commission
-        'other'
       ],
       required: true,
     },
 
-    // Status tracking
+    // Status tracking - for installment payments
     status: {
       type: String,
-      enum: ['pending', 'completed', 'failed', 'refunded'],
-      default: 'pending',
+      enum: ['unpaid', 'partial', 'paid'],
+      default: 'unpaid',
     },
+
+    // Installments array
+    installments: [installmentSchema],
 
     // Date fields
     date: {
@@ -54,6 +83,10 @@ const paymentSchema = new mongoose.Schema(
     load_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Load',
+    },
+    driver_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Driver',
     },
 
     // Link related payments (e.g., acquisition payment linked to rental payment)

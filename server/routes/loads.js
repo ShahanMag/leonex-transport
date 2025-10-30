@@ -3,6 +3,8 @@ const router = express.Router();
 const loadController = require('../controllers/loadController');
 
 router.get('/', loadController.getAllLoads);
+router.get('/search', loadController.searchLoads);
+router.get('/filter', loadController.filterLoadsByVehicle);
 router.get('/:id', loadController.getLoadById);
 router.post('/', loadController.createLoad);
 router.put('/:id', loadController.updateLoad);

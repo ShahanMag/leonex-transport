@@ -26,18 +26,10 @@ const vehicleSchema = new mongoose.Schema(
       enum: ['available', 'rented', 'maintenance'],
       default: 'available',
     },
-    manufacturer: String,
-    year: Number,
-    capacity: Number,
 
     // Acquisition fields - What company paid to acquire/rent vehicle from supplier
     acquisition_cost: {
       type: Number,
-      required: true,
-    },
-    acquisition_type: {
-      type: String,
-      enum: ['bought', 'rented'],
       required: true,
     },
     acquisition_date: {

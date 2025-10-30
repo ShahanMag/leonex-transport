@@ -39,13 +39,19 @@ export default function Table({ columns, data, actions, isLoading = false }) {
               {actions && (
                 <td className="px-4 py-3 text-center">
                   <div className="flex justify-center gap-2">
-                    {actions.map((action, actionIndex) => (
+                    {/* Support both static actions array and dynamic function */}
+                    {(typeof actions === 'function' ? actions(row) : actions).map((action, actionIndex) => (
                       <button
                         key={actionIndex}
                         onClick={() => action.onClick(row)}
+                        disabled={action.disabled}
                         className={`px-3 py-1 rounded text-sm font-medium transition ${
-                          action.variant === 'danger'
+                          action.disabled
+                            ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                            : action.variant === 'danger'
                             ? 'bg-red-600 text-white hover:bg-red-700'
+                            : action.variant === 'success'
+                            ? 'bg-green-600 text-white hover:bg-green-700'
                             : action.variant === 'warning'
                             ? 'bg-yellow-600 text-white hover:bg-yellow-700'
                             : 'bg-blue-600 text-white hover:bg-blue-700'

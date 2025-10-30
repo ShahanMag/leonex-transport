@@ -11,6 +11,25 @@ exports.getAllDrivers = async (req, res) => {
   }
 };
 
+// Search drivers by name
+exports.searchDrivers = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    const drivers = await Driver.find({
+      name: { $regex: query, $options: 'i' } // Case-insensitive search
+    });
+
+    res.status(200).json(drivers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get driver by ID
 exports.getDriverById = async (req, res) => {
   try {
@@ -26,14 +45,10 @@ exports.getDriverById = async (req, res) => {
 exports.createDriver = async (req, res) => {
   const {
     name,
-    contact,
-    license_no,
     iqama_id,
     status,
-    email,
     phone_country_code = '+966',
     phone_number,
-    address,
   } = req.body;
 
   try {
@@ -43,14 +58,10 @@ exports.createDriver = async (req, res) => {
     const driver = new Driver({
       driver_code,
       name,
-      contact,
-      license_no,
       iqama_id,
       status: status || 'active',
-      email,
       phone_country_code,
       phone_number,
-      address,
     });
 
     const savedDriver = await driver.save();

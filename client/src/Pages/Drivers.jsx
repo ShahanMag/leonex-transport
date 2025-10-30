@@ -11,16 +11,13 @@ export default function Drivers() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [formValues, setFormValues] = useState({
     name: '',
-    contact: '',
-    license_no: '',
     iqama_id: '',
     status: 'active',
-    email: '',
     phone_country_code: '+966',
     phone_number: '',
-    address: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -40,16 +37,36 @@ export default function Drivers() {
     }
   };
 
+  const handleSearch = async (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+
+    if (!query.trim()) {
+      fetchDrivers();
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await driverAPI.search(query);
+      setDrivers(response.data);
+    } catch (error) {
+      showError('Failed to search drivers');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleFormChange = (values) => {
     setFormValues(values);
   };
 
   const handleSubmit = async (values) => {
-    if (!values.name || !values.contact || !values.license_no) {
+    if (!values.name || !values.iqama_id || !values.phone_number) {
       setErrors({
         name: !values.name ? 'Name is required' : '',
-        contact: !values.contact ? 'Contact is required' : '',
-        license_no: !values.license_no ? 'License number is required' : '',
+        iqama_id: !values.iqama_id ? 'Iqama ID is required' : '',
+        phone_number: !values.phone_number ? 'Phone number is required' : '',
       });
       return;
     }
@@ -67,14 +84,10 @@ export default function Drivers() {
       setEditingId(null);
       setFormValues({
         name: '',
-        contact: '',
-        license_no: '',
         iqama_id: '',
         status: 'active',
-        email: '',
         phone_country_code: '+966',
         phone_number: '',
-        address: '',
       });
       setErrors({});
       fetchDrivers();
@@ -109,14 +122,10 @@ export default function Drivers() {
   const handleOpenForm = () => {
     setFormValues({
       name: '',
-      contact: '',
-      license_no: '',
       iqama_id: '',
       status: 'active',
-      email: '',
       phone_country_code: '+966',
       phone_number: '',
-      address: '',
     });
     setEditingId(null);
     setErrors({});
@@ -126,10 +135,7 @@ export default function Drivers() {
   const columns = [
     { key: 'driver_code', label: 'Code' },
     { key: 'name', label: 'Driver Name' },
-    { key: 'license_no', label: 'License Number' },
     { key: 'iqama_id', label: 'Iqama ID' },
-    { key: 'contact', label: 'Contact' },
-    { key: 'email', label: 'Email' },
     {
       key: 'phone_number',
       label: 'Phone',
@@ -164,6 +170,16 @@ export default function Drivers() {
         </Button>
       </div>
 
+      <div className="mb-6 flex gap-4">
+        <input
+          type="text"
+          placeholder="Search driver by name..."
+          value={searchQuery}
+          onChange={handleSearch}
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
       <Table columns={columns} data={drivers} actions={actions} isLoading={isLoading} />
 
       <Modal
@@ -179,11 +195,11 @@ export default function Drivers() {
             <Button
               variant="primary"
               onClick={() => {
-                if (!formValues.name || !formValues.contact || !formValues.license_no) {
+                if (!formValues.name || !formValues.iqama_id || !formValues.phone_number) {
                   setErrors({
                     name: !formValues.name ? 'Name is required' : '',
-                    contact: !formValues.contact ? 'Contact is required' : '',
-                    license_no: !formValues.license_no ? 'License number is required' : '',
+                    iqama_id: !formValues.iqama_id ? 'Iqama ID is required' : '',
+                    phone_number: !formValues.phone_number ? 'Phone number is required' : '',
                   });
                   return;
                 }
@@ -199,10 +215,7 @@ export default function Drivers() {
         <Form
           fields={[
             { name: 'name', label: 'Driver Name', placeholder: 'Enter driver name', required: true },
-            { name: 'contact', label: 'Contact Person', placeholder: 'Enter contact', required: true },
-            { name: 'license_no', label: 'License Number', placeholder: 'Enter license number', required: true },
-            { name: 'iqama_id', label: 'Iqama ID (Saudi)', placeholder: 'Enter Saudi Iqama ID' },
-            { name: 'email', label: 'Email', type: 'email', placeholder: 'Enter email' },
+            { name: 'iqama_id', label: 'Iqama ID (Saudi)', placeholder: 'Enter Saudi Iqama ID', required: true },
             {
               name: 'phone_country_code',
               label: 'Country Code',
@@ -215,8 +228,7 @@ export default function Drivers() {
                 { value: '+971', label: '+971 (UAE)' },
               ],
             },
-            { name: 'phone_number', label: 'Phone Number', placeholder: 'Enter phone number (digits only)' },
-            { name: 'address', label: 'Address', placeholder: 'Enter address' },
+            { name: 'phone_number', label: 'Phone Number', placeholder: 'Enter phone number (digits only)', required: true },
             {
               name: 'status',
               label: 'Status',

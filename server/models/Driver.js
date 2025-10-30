@@ -11,31 +11,25 @@ const driverSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    contact: {
-      type: String,
-      required: true,
-    },
-    license_no: {
+    iqama_id: {
       type: String,
       required: true,
       unique: true,
-    },
-    iqama_id: {
-      type: String,
     },
     status: {
       type: String,
       enum: ['active', 'inactive', 'suspended'],
       default: 'active',
     },
-    email: String,
     // Separated phone fields for better internationalization support
     phone_country_code: {
       type: String,
       default: '+966',  // Default to Saudi Arabia code
     },
-    phone_number: String,
-    address: String,
+    phone_number: {
+      type: String,
+      required: true,
+    },
   },
   { timestamps: true }
 );
