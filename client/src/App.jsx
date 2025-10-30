@@ -1,13 +1,13 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import Navigation from "./components/Navigation";
-import Dashboard from "./pages/Dashboard";
-import Companies from "./pages/Companies";
-import Vehicles from "./pages/Vehicles";
-import Drivers from "./pages/Drivers";
-import Loads from "./pages/Loads";
-import Payments from "./pages/Payments";
-import Reports from "./pages/Reports";
+import Dashboard from "./Pages/Dashboard";
+import Companies from "./Pages/Companies";
+import Vehicles from "./Pages/Vehicles";
+import Drivers from "./Pages/Drivers";
+import Loads from "./Pages/Loads";
+import Payments from "./Pages/Payments";
+import Reports from "./Pages/Reports";
 
 function App() {
   return (
