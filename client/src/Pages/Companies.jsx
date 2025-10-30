@@ -16,7 +16,8 @@ export default function Companies() {
     contact: '',
     address: '',
     email: '',
-    phone: '',
+    phone_country_code: '+91',
+    phone_number: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -61,7 +62,7 @@ export default function Companies() {
       }
       setIsFormOpen(false);
       setEditingId(null);
-      setFormValues({ name: '', contact: '', address: '', email: '', phone: '' });
+      setFormValues({ name: '', contact: '', address: '', email: '', phone_country_code: '+91', phone_number: '' });
       setErrors({});
       fetchCompanies();
     } catch (error) {
@@ -93,18 +94,22 @@ export default function Companies() {
   };
 
   const handleOpenForm = () => {
-    setFormValues({ name: '', contact: '', address: '', email: '', phone: '' });
+    setFormValues({ name: '', contact: '', address: '', email: '', phone_country_code: '+91', phone_number: '' });
     setEditingId(null);
     setErrors({});
     setIsFormOpen(true);
   };
 
   const columns = [
+    { key: 'company_code', label: 'Code' },
     { key: 'name', label: 'Company Name' },
     { key: 'contact', label: 'Contact Person' },
-    { key: 'address', label: 'Address' },
     { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Phone' },
+    {
+      key: 'phone_number',
+      label: 'Phone',
+      render: (value, row) => `${row.phone_country_code} ${row.phone_number}`
+    },
   ];
 
   const actions = [
@@ -159,7 +164,19 @@ export default function Companies() {
             { name: 'contact', label: 'Contact Person', placeholder: 'Enter contact person', required: true },
             { name: 'address', label: 'Address', placeholder: 'Enter address', required: true },
             { name: 'email', label: 'Email', type: 'email', placeholder: 'Enter email' },
-            { name: 'phone', label: 'Phone', placeholder: 'Enter phone number' },
+            {
+              name: 'phone_country_code',
+              label: 'Country Code',
+              type: 'select',
+              options: [
+                { value: '+91', label: '+91 (India)' },
+                { value: '+1', label: '+1 (USA/Canada)' },
+                { value: '+44', label: '+44 (UK)' },
+                { value: '+966', label: '+966 (Saudi Arabia)' },
+                { value: '+971', label: '+971 (UAE)' },
+              ],
+            },
+            { name: 'phone_number', label: 'Phone Number', placeholder: 'Enter phone number (digits only)' },
           ]}
           values={formValues}
           errors={errors}

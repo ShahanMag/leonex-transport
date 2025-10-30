@@ -24,9 +24,6 @@ export default function Vehicles() {
     acquisition_cost: '',
     acquisition_type: 'bought',
     acquisition_date: '',
-    // Driver rental fields
-    driver_rental_price: '',
-    driver_rental_type: 'per_day',
   });
   const [errors, setErrors] = useState({});
 
@@ -61,13 +58,12 @@ export default function Vehicles() {
   };
 
   const handleSubmit = async (values) => {
-    if (!values.company_id || !values.vehicle_type || !values.plate_no || !values.acquisition_cost || !values.driver_rental_price || !values.acquisition_date) {
+    if (!values.company_id || !values.vehicle_type || !values.plate_no || !values.acquisition_cost || !values.acquisition_date) {
       setErrors({
         company_id: !values.company_id ? 'Company is required' : '',
         vehicle_type: !values.vehicle_type ? 'Vehicle type is required' : '',
         plate_no: !values.plate_no ? 'Plate number is required' : '',
         acquisition_cost: !values.acquisition_cost ? 'Acquisition cost is required' : '',
-        driver_rental_price: !values.driver_rental_price ? 'Driver rental price is required' : '',
         acquisition_date: !values.acquisition_date ? 'Acquisition date is required' : '',
       });
       return;
@@ -88,11 +84,13 @@ export default function Vehicles() {
         company_id: '',
         vehicle_type: '',
         plate_no: '',
-        rent_price: '',
         status: 'available',
         manufacturer: '',
         year: '',
         capacity: '',
+        acquisition_cost: '',
+        acquisition_type: 'bought',
+        acquisition_date: '',
       });
       setErrors({});
       fetchVehicles();
@@ -136,8 +134,6 @@ export default function Vehicles() {
       acquisition_cost: '',
       acquisition_type: 'bought',
       acquisition_date: '',
-      driver_rental_price: '',
-      driver_rental_type: 'per_day',
     });
     setEditingId(null);
     setErrors({});
@@ -145,6 +141,7 @@ export default function Vehicles() {
   };
 
   const columns = [
+    { key: 'vehicle_code', label: 'Code' },
     { key: 'plate_no', label: 'Plate Number' },
     { key: 'vehicle_type', label: 'Type' },
     {
@@ -153,7 +150,6 @@ export default function Vehicles() {
       render: (value) => value?.name || 'N/A'
     },
     { key: 'acquisition_cost', label: 'Acquisition Cost' },
-    { key: 'driver_rental_price', label: 'Driver Rental Price' },
     {
       key: 'status',
       label: 'Status',
@@ -198,13 +194,12 @@ export default function Vehicles() {
             <Button
               variant="primary"
               onClick={() => {
-                if (!formValues.company_id || !formValues.vehicle_type || !formValues.plate_no || !formValues.acquisition_cost || !formValues.driver_rental_price || !formValues.acquisition_date) {
+                if (!formValues.company_id || !formValues.vehicle_type || !formValues.plate_no || !formValues.acquisition_cost || !formValues.acquisition_date) {
                   setErrors({
                     company_id: !formValues.company_id ? 'Company is required' : '',
                     vehicle_type: !formValues.vehicle_type ? 'Vehicle type is required' : '',
                     plate_no: !formValues.plate_no ? 'Plate number is required' : '',
                     acquisition_cost: !formValues.acquisition_cost ? 'Acquisition cost is required' : '',
-                    driver_rental_price: !formValues.driver_rental_price ? 'Driver rental price is required' : '',
                     acquisition_date: !formValues.acquisition_date ? 'Acquisition date is required' : '',
                   });
                   return;
@@ -241,17 +236,6 @@ export default function Vehicles() {
               ],
             },
             { name: 'acquisition_date', label: 'Acquisition Date', type: 'date', required: true },
-            { name: 'driver_rental_price', label: 'Driver Rental Price', type: 'number', placeholder: 'What driver pays per day/job', required: true },
-            {
-              name: 'driver_rental_type',
-              label: 'Rental Type',
-              type: 'select',
-              options: [
-                { value: 'per_day', label: 'Per Day' },
-                { value: 'per_job', label: 'Per Job' },
-                { value: 'per_km', label: 'Per KM' },
-              ],
-            },
             {
               name: 'status',
               label: 'Status',

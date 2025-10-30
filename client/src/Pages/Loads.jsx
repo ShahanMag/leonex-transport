@@ -20,11 +20,13 @@ export default function Loads() {
     from_location: '',
     to_location: '',
     load_description: '',
-    rental_amount: '',
+    rental_price_per_day: '',
+    rental_type: 'per_day',
+    distance_km: '',
     start_date: '',
     end_date: '',
-    distance_km: '',
   });
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [assignValues, setAssignValues] = useState({ driver_id: '' });
   const [errors, setErrors] = useState({});
 
@@ -64,16 +66,26 @@ export default function Loads() {
     }
   };
 
+  const handleVehicleSelect = (vehicleId) => {
+    const vehicle = vehicles.find(v => v._id === vehicleId);
+    setSelectedVehicle(vehicle);
+    setFormValues(prev => ({
+      ...prev,
+      vehicle_id: vehicleId,
+    }));
+  };
+
   const handleFormChange = (values) => {
     setFormValues(values);
   };
 
   const handleSubmit = async (values) => {
-    if (!values.vehicle_id || !values.from_location || !values.to_location) {
+    if (!values.vehicle_id || !values.from_location || !values.to_location || !values.rental_price_per_day) {
       setErrors({
         vehicle_id: !values.vehicle_id ? 'Vehicle is required' : '',
         from_location: !values.from_location ? 'From location is required' : '',
         to_location: !values.to_location ? 'To location is required' : '',
+        rental_price_per_day: !values.rental_price_per_day ? 'Rental price per day is required' : '',
       });
       return;
     }
@@ -94,11 +106,13 @@ export default function Loads() {
         from_location: '',
         to_location: '',
         load_description: '',
-        rental_amount: '',
+        rental_price_per_day: '',
+        rental_type: 'per_day',
+        distance_km: '',
         start_date: '',
         end_date: '',
-        distance_km: '',
       });
+      setSelectedVehicle(null);
       setErrors({});
       fetchLoads();
     } catch (error) {
@@ -158,23 +172,41 @@ export default function Loads() {
     setIsAssignOpen(true);
   };
 
+  const handleCompleteLoad = async (load) => {
+    showConfirm('Mark this load as completed and create rental payment?', async () => {
+      try {
+        setIsLoading(true);
+        await loadAPI.completeLoad(load._id);
+        showSuccess('Load completed and rental payment created');
+        fetchLoads();
+      } catch (error) {
+        showError('Failed to complete load');
+      } finally {
+        setIsLoading(false);
+      }
+    });
+  };
+
   const handleOpenForm = () => {
     setFormValues({
       vehicle_id: '',
       from_location: '',
       to_location: '',
       load_description: '',
-      rental_amount: '',
+      rental_price_per_day: '',
+      rental_type: 'per_day',
+      distance_km: '',
       start_date: '',
       end_date: '',
-      distance_km: '',
     });
+    setSelectedVehicle(null);
     setEditingId(null);
     setErrors({});
     setIsFormOpen(true);
   };
 
   const columns = [
+    { key: 'rental_code', label: 'Rental Code' },
     {
       key: 'vehicle_id',
       label: 'Vehicle',
@@ -182,9 +214,9 @@ export default function Loads() {
     },
     { key: 'from_location', label: 'From' },
     { key: 'to_location', label: 'To' },
-    { key: 'rental_amount', label: 'Rental Amount' },
+    { key: 'rental_price_per_day', label: 'Rate' },
+    { key: 'rental_amount', label: 'Amount' },
     { key: 'days_rented', label: 'Days' },
-    { key: 'actual_rental_cost', label: 'Actual Cost' },
     {
       key: 'driver_id',
       label: 'Driver',
@@ -210,10 +242,17 @@ export default function Loads() {
   const actions = [
     {
       label: 'Assign',
-      onClick: handleOpenAssign,
-      variant: 'primary'
+      onClick: (load) => load.status === 'pending' && handleOpenAssign(load),
+      variant: 'primary',
+      disabled: (load) => load.status !== 'pending'
     },
-    { label: 'Edit', onClick: handleEdit, variant: 'primary' },
+    {
+      label: 'Complete',
+      onClick: handleCompleteLoad,
+      variant: 'success',
+      disabled: (load) => load.status !== 'assigned'
+    },
+    { label: 'Edit', onClick: handleEdit, variant: 'primary', disabled: (load) => load.status === 'completed' },
     { label: 'Delete', onClick: handleDelete, variant: 'danger' },
   ];
 
@@ -242,11 +281,12 @@ export default function Loads() {
             <Button
               variant="primary"
               onClick={() => {
-                if (!formValues.vehicle_id || !formValues.from_location || !formValues.to_location) {
+                if (!formValues.vehicle_id || !formValues.from_location || !formValues.to_location || !formValues.rental_price_per_day) {
                   setErrors({
                     vehicle_id: !formValues.vehicle_id ? 'Vehicle is required' : '',
                     from_location: !formValues.from_location ? 'From location is required' : '',
                     to_location: !formValues.to_location ? 'To location is required' : '',
+                    rental_price_per_day: !formValues.rental_price_per_day ? 'Rental price is required' : '',
                   });
                   return;
                 }
@@ -268,17 +308,47 @@ export default function Loads() {
               required: true,
               options: vehicles.map((v) => ({ value: v._id, label: `${v.plate_no} (${v.vehicle_type})` })),
             },
+            ...(selectedVehicle ? [
+              {
+                name: 'rental_price_per_day',
+                label: 'Rental Price Per Day',
+                type: 'number',
+                placeholder: 'Enter rental price for this job',
+                required: true,
+              },
+              {
+                name: 'rental_type',
+                label: 'Pricing Type',
+                type: 'select',
+                options: [
+                  { value: 'per_day', label: 'Per Day' },
+                  { value: 'per_job', label: 'Per Job' },
+                  { value: 'per_km', label: 'Per KM' },
+                ],
+              },
+              ...(formValues.rental_type === 'per_km' ? [
+                {
+                  name: 'distance_km',
+                  label: 'Distance (KM)',
+                  type: 'number',
+                  placeholder: 'Enter distance in kilometers',
+                }
+              ] : [])
+            ] : []),
             { name: 'from_location', label: 'From Location', placeholder: 'Enter starting location', required: true },
             { name: 'to_location', label: 'To Location', placeholder: 'Enter destination', required: true },
             { name: 'load_description', label: 'Load Description', type: 'textarea', placeholder: 'Describe the load' },
             { name: 'start_date', label: 'Start Date', type: 'datetime-local' },
             { name: 'end_date', label: 'End Date', type: 'datetime-local' },
-            { name: 'distance_km', label: 'Distance (KM)', type: 'number', placeholder: 'Enter distance in km (optional)' },
-            { name: 'rental_amount', label: 'Rental Amount', type: 'number', placeholder: 'Enter manual amount (optional, auto-calculated from dates)' },
           ]}
           values={formValues}
           errors={errors}
-          onChange={handleFormChange}
+          onChange={(values) => {
+            handleFormChange(values);
+            if (values.vehicle_id && values.vehicle_id !== formValues.vehicle_id) {
+              handleVehicleSelect(values.vehicle_id);
+            }
+          }}
           onSubmit={handleSubmit}
           isLoading={isLoading}
           submitText={editingId ? 'Update Load' : 'Create Load'}

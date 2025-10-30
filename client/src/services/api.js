@@ -44,6 +44,7 @@ export const loadAPI = {
   create: (data) => api.post('/loads', data),
   update: (id, data) => api.put(`/loads/${id}`, data),
   assignDriver: (id, data) => api.put(`/loads/${id}/assign-driver`, data),
+  completeLoad: (id) => api.put(`/loads/${id}/complete`, { status: 'completed' }),
   delete: (id) => api.delete(`/loads/${id}`),
 };
 

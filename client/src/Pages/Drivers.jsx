@@ -15,9 +15,11 @@ export default function Drivers() {
     name: '',
     contact: '',
     license_no: '',
+    iqama_id: '',
     status: 'active',
     email: '',
-    phone: '',
+    phone_country_code: '+966',
+    phone_number: '',
     address: '',
   });
   const [errors, setErrors] = useState({});
@@ -67,9 +69,11 @@ export default function Drivers() {
         name: '',
         contact: '',
         license_no: '',
+        iqama_id: '',
         status: 'active',
         email: '',
-        phone: '',
+        phone_country_code: '+966',
+        phone_number: '',
         address: '',
       });
       setErrors({});
@@ -107,9 +111,11 @@ export default function Drivers() {
       name: '',
       contact: '',
       license_no: '',
+      iqama_id: '',
       status: 'active',
       email: '',
-      phone: '',
+      phone_country_code: '+966',
+      phone_number: '',
       address: '',
     });
     setEditingId(null);
@@ -118,11 +124,17 @@ export default function Drivers() {
   };
 
   const columns = [
+    { key: 'driver_code', label: 'Code' },
     { key: 'name', label: 'Driver Name' },
     { key: 'license_no', label: 'License Number' },
+    { key: 'iqama_id', label: 'Iqama ID' },
     { key: 'contact', label: 'Contact' },
     { key: 'email', label: 'Email' },
-    { key: 'phone', label: 'Phone' },
+    {
+      key: 'phone_number',
+      label: 'Phone',
+      render: (value, row) => `${row.phone_country_code} ${row.phone_number}`
+    },
     {
       key: 'status',
       label: 'Status',
@@ -189,8 +201,21 @@ export default function Drivers() {
             { name: 'name', label: 'Driver Name', placeholder: 'Enter driver name', required: true },
             { name: 'contact', label: 'Contact Person', placeholder: 'Enter contact', required: true },
             { name: 'license_no', label: 'License Number', placeholder: 'Enter license number', required: true },
+            { name: 'iqama_id', label: 'Iqama ID (Saudi)', placeholder: 'Enter Saudi Iqama ID' },
             { name: 'email', label: 'Email', type: 'email', placeholder: 'Enter email' },
-            { name: 'phone', label: 'Phone', placeholder: 'Enter phone number' },
+            {
+              name: 'phone_country_code',
+              label: 'Country Code',
+              type: 'select',
+              options: [
+                { value: '+91', label: '+91 (India)' },
+                { value: '+1', label: '+1 (USA/Canada)' },
+                { value: '+44', label: '+44 (UK)' },
+                { value: '+966', label: '+966 (Saudi Arabia)' },
+                { value: '+971', label: '+971 (UAE)' },
+              ],
+            },
+            { name: 'phone_number', label: 'Phone Number', placeholder: 'Enter phone number (digits only)' },
             { name: 'address', label: 'Address', placeholder: 'Enter address' },
             {
               name: 'status',
