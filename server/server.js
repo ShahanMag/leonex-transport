@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const cors = require("cors");
 require("dotenv").config();
 const connectDB = require("./config/database");
 const errorHandler = require("./middleware/errorHandler");
@@ -19,32 +20,22 @@ const app = express();
 connectDB();
 
 // ===== CRITICAL: CORS MUST BE FIRST =====
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
+const corsOptions = {
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
+  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+  maxAge: 3600,
+  credentials: false,
+};
 
-  // Allow requests from any origin
-  res.setHeader("Access-Control-Allow-Origin", origin || "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
-  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  res.setHeader("Access-Control-Max-Age", "3600");
-
-  console.log(`[CORS] ${req.method} ${req.path} from origin: ${origin}`);
-
-  // Handle preflight requests (OPTIONS)
-  if (req.method === "OPTIONS") {
-    console.log(`[CORS] Preflight request handled for ${req.path}`);
-    return res.status(200).send();
-  }
-
-  next();
-});
+app.use(cors(corsOptions));
 
 // Body parser middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Health check endpoint
-app.get("/api/health", (req, res) => {
+app.get("/api/health", (_req, res) => {
   res.status(200).json({ message: "Server is running" });
 });
 
@@ -60,7 +51,7 @@ app.use("/api/reports", reportRoutes);
 app.use(errorHandler);
 
 // 404 handler
-app.use((req, res) => {
+app.use((_req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
