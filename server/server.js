@@ -20,15 +20,18 @@ const app = express();
 connectDB();
 
 // ===== CRITICAL: CORS MUST BE FIRST =====
-const corsOptions = {
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
-  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
-  maxAge: 3600,
-  credentials: false,
-};
-
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: [
+      "https://leonix-transport.netlify.app", // Your production frontend
+      "http://localhost:5173", // Local development
+      "http://localhost:3000", // Alternative local port
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Body parser middleware
 app.use(bodyParser.json());
