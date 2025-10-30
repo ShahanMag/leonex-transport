@@ -7,6 +7,11 @@ const vehicleSchema = new mongoose.Schema(
       ref: 'Company',
       required: true,
     },
+    vehicle_code: {
+      type: String,
+      unique: true,
+      required: true,
+    },
     vehicle_type: {
       type: String,
       required: true,
@@ -38,17 +43,6 @@ const vehicleSchema = new mongoose.Schema(
     acquisition_date: {
       type: Date,
       required: true,
-    },
-
-    // Driver rental fields - What driver pays company per day/job/km
-    driver_rental_price: {
-      type: Number,
-      required: true,
-    },
-    driver_rental_type: {
-      type: String,
-      enum: ['per_day', 'per_job', 'per_km'],
-      default: 'per_day',
     },
   },
   { timestamps: true }

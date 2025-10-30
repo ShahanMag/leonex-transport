@@ -1,4 +1,5 @@
 const Company = require('../models/Company');
+const codeGenerator = require('../utils/codeGenerator');
 
 // Get all companies
 exports.getAllCompanies = async (req, res) => {
@@ -23,9 +24,29 @@ exports.getCompanyById = async (req, res) => {
 
 // Create company
 exports.createCompany = async (req, res) => {
-  const { name, contact, address, email, phone } = req.body;
+  const {
+    name,
+    contact,
+    address,
+    email,
+    phone_country_code = '+91',
+    phone_number,
+  } = req.body;
+
   try {
-    const company = new Company({ name, contact, address, email, phone });
+    // Auto-generate company code
+    const company_code = await codeGenerator.generateCompanyCode();
+
+    const company = new Company({
+      company_code,
+      name,
+      contact,
+      address,
+      email,
+      phone_country_code,
+      phone_number,
+    });
+
     const savedCompany = await company.save();
     res.status(201).json(savedCompany);
   } catch (error) {

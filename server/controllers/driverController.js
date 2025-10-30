@@ -1,4 +1,5 @@
 const Driver = require('../models/Driver');
+const codeGenerator = require('../utils/codeGenerator');
 
 // Get all drivers
 exports.getAllDrivers = async (req, res) => {
@@ -23,17 +24,35 @@ exports.getDriverById = async (req, res) => {
 
 // Create driver
 exports.createDriver = async (req, res) => {
-  const { name, contact, license_no, status, email, phone, address } = req.body;
+  const {
+    name,
+    contact,
+    license_no,
+    iqama_id,
+    status,
+    email,
+    phone_country_code = '+966',
+    phone_number,
+    address,
+  } = req.body;
+
   try {
+    // Auto-generate driver code
+    const driver_code = await codeGenerator.generateDriverCode();
+
     const driver = new Driver({
+      driver_code,
       name,
       contact,
       license_no,
-      status,
+      iqama_id,
+      status: status || 'active',
       email,
-      phone,
+      phone_country_code,
+      phone_number,
       address,
     });
+
     const savedDriver = await driver.save();
     res.status(201).json(savedDriver);
   } catch (error) {

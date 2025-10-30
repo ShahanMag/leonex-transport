@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 
 const loadSchema = new mongoose.Schema(
   {
+    rental_code: {
+      type: String,
+      unique: true,
+      required: true,
+    },
     vehicle_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Vehicle',
@@ -21,10 +26,25 @@ const loadSchema = new mongoose.Schema(
     },
     load_description: String,
 
-    // Renamed from rent_amount - Driver pays to company
+    // Dynamic pricing fields - NEW in 2.0
+    rental_price_per_day: {
+      type: Number,
+      required: true,
+    },
+    rental_type: {
+      type: String,
+      enum: ['per_day', 'per_job', 'per_km'],
+      default: 'per_day',
+    },
+    distance_km: Number,           // For per-km rental type
+
+    // Calculated/stored amounts
     rental_amount: {
       type: Number,
       required: true,
+    },
+    actual_rental_cost: {
+      type: Number,
     },
 
     status: {
@@ -38,8 +58,6 @@ const loadSchema = new mongoose.Schema(
 
     // Calculated fields
     days_rented: Number,           // Calculated from end_date - start_date
-    actual_rental_cost: Number,    // Calculated: days_rented × driver_rental_price
-    distance_km: Number,           // For per-km rental type
   },
   { timestamps: true }
 );

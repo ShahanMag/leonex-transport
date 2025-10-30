@@ -1,4 +1,7 @@
 const Vehicle = require('../models/Vehicle');
+const Payment = require('../models/Payment');
+const Company = require('../models/Company');
+const codeGenerator = require('../utils/codeGenerator');
 
 // Get all vehicles
 exports.getAllVehicles = async (req, res) => {
@@ -41,33 +44,55 @@ exports.createVehicle = async (req, res) => {
     manufacturer,
     year,
     capacity,
-    // New acquisition fields
     acquisition_cost,
     acquisition_type,
     acquisition_date,
-    // Driver rental fields
-    driver_rental_price,
-    driver_rental_type,
   } = req.body;
 
   try {
+    // Auto-generate vehicle code
+    const vehicle_code = await codeGenerator.generateVehicleCode();
+
     const vehicle = new Vehicle({
       company_id,
+      vehicle_code,
       vehicle_type,
       plate_no,
-      status,
+      status: status || 'available',
       manufacturer,
       year,
       capacity,
       acquisition_cost,
       acquisition_type,
       acquisition_date,
-      driver_rental_price,
-      driver_rental_type,
     });
+
     const savedVehicle = await vehicle.save();
+
+    // Get company details for payment creation
+    const company = await Company.findById(company_id);
+
+    // Auto-create acquisition payment
+    const payment = new Payment({
+      payer: company?.name || 'Unknown',
+      payer_id: company_id,
+      payee: 'Supplier',
+      amount: acquisition_cost,
+      description: `Acquired ${vehicle_type} - ${plate_no}`,
+      payment_type: 'vehicle-acquisition',
+      status: 'completed',
+      vehicle_id: savedVehicle._id,
+      transaction_date: new Date(acquisition_date),
+    });
+
+    const savedPayment = await payment.save();
+
     const populated = await savedVehicle.populate('company_id', 'name');
-    res.status(201).json(populated);
+
+    res.status(201).json({
+      ...populated.toObject(),
+      auto_payment_id: savedPayment._id,
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

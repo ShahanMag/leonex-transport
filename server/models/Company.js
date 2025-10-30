@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 
 const companySchema = new mongoose.Schema(
   {
+    company_code: {
+      type: String,
+      unique: true,
+      required: true,
+    },
     name: {
       type: String,
       required: true,
@@ -15,7 +20,12 @@ const companySchema = new mongoose.Schema(
       required: true,
     },
     email: String,
-    phone: String,
+    // Separated phone fields for better internationalization support
+    phone_country_code: {
+      type: String,
+      default: '+91',
+    },
+    phone_number: String,
   },
   { timestamps: true }
 );
