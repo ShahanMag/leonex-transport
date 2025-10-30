@@ -8,7 +8,7 @@ import Drivers from "./Pages/Drivers";
 import Loads from "./Pages/Loads";
 import Payments from "./Pages/Payments";
 import Reports from "./Pages/Reports";
-
+import './App.css'
 function App() {
   return (
     <BrowserRouter>
