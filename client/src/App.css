@@ -76,6 +76,16 @@ main {
   z-index: 0;
 }
 
+/* Modal positioning - above sidebar but below top bar */
+.modal {
+  z-index: 40;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  z-index: 39;
+}
+
 /* Toast positioning adjustment for sidebar */
 .sonner-toaster {
   z-index: 50;
