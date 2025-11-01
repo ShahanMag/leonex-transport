@@ -1,5 +1,4 @@
 const Payment = require('../models/Payment');
-const Vehicle = require('../models/Vehicle');
 const Load = require('../models/Load');
 const Driver = require('../models/Driver');
 const Company = require('../models/Company');
@@ -11,7 +10,6 @@ exports.getAllPayments = async (req, res) => {
       .populate('payer_id')
       .populate('payee_id')
       .populate('load_id')
-      .populate('vehicle_id', 'plate_no vehicle_type')
       .populate('related_payment_id');
     res.status(200).json(payments);
   } catch (error) {
@@ -19,7 +17,7 @@ exports.getAllPayments = async (req, res) => {
   }
 };
 
-// Search payments by vehicle plate number
+// Search payments by plate number or vehicle type
 exports.searchPayments = async (req, res) => {
   try {
     const { query } = req.query;
@@ -28,21 +26,16 @@ exports.searchPayments = async (req, res) => {
       return res.status(400).json({ message: 'Search query is required' });
     }
 
-    // Find vehicles with matching plate number
-    const Vehicle = require('../models/Vehicle');
-    const vehicles = await Vehicle.find({
-      plate_no: { $regex: query, $options: 'i' }
-    });
-
-    const vehicleIds = vehicles.map(v => v._id);
-
+    // Search by plate_no or vehicle_type in payments
     const payments = await Payment.find({
-      vehicle_id: { $in: vehicleIds }
+      $or: [
+        { plate_no: { $regex: query, $options: 'i' } },
+        { vehicle_type: { $regex: query, $options: 'i' } }
+      ]
     })
       .populate('payer_id')
       .populate('payee_id')
       .populate('load_id')
-      .populate('vehicle_id', 'plate_no vehicle_type')
       .populate('related_payment_id');
 
     res.status(200).json(payments);
@@ -71,7 +64,6 @@ exports.filterPayments = async (req, res) => {
       .populate('payer_id')
       .populate('payee_id')
       .populate('load_id')
-      .populate('vehicle_id', 'plate_no vehicle_type')
       .populate('related_payment_id');
 
     res.status(200).json(payments);
@@ -87,7 +79,6 @@ exports.getPaymentById = async (req, res) => {
       .populate('payer_id')
       .populate('payee_id')
       .populate('load_id')
-      .populate('vehicle_id', 'plate_no vehicle_type')
       .populate('related_payment_id');
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
     res.status(200).json(payment);
@@ -96,101 +87,13 @@ exports.getPaymentById = async (req, res) => {
   }
 };
 
-// Create payment - Manual recording
+// Create payment - Manual recording (simplified - payments are created via transaction endpoint)
 exports.createPayment = async (req, res) => {
-  const {
-    payment_type,
-    vehicle_id,
-    load_id,
-  } = req.body;
-
   try {
-    // Validate payment type
-    if (!payment_type || !['vehicle-acquisition', 'driver-rental'].includes(payment_type)) {
-      return res.status(400).json({
-        message: 'Payment type must be either vehicle-acquisition or driver-rental'
-      });
-    }
-
-    let payment;
-
-    if (payment_type === 'vehicle-acquisition') {
-      // Acquisition payment - requires vehicle_id
-      if (!vehicle_id) {
-        return res.status(400).json({ message: 'vehicle_id is required for vehicle-acquisition' });
-      }
-
-      const vehicle = await Vehicle.findById(vehicle_id).populate('company_id');
-      if (!vehicle) {
-        return res.status(404).json({ message: 'Vehicle not found' });
-      }
-
-      // Create acquisition payment
-      payment = new Payment({
-        payer: vehicle.company_id?.name || 'Unknown',
-        payer_id: vehicle.company_id?._id,
-        payee: 'Supplier',
-        total_amount: vehicle.acquisition_cost,
-        total_paid: 0,
-        total_due: vehicle.acquisition_cost,
-        description: `Acquired ${vehicle.vehicle_type} - ${vehicle.plate_no}`,
-        payment_type: 'vehicle-acquisition',
-        status: 'unpaid',
-        vehicle_id: vehicle._id,
-        transaction_date: vehicle.acquisition_date,
-        installments: [],
-      });
-
-    } else if (payment_type === 'driver-rental') {
-      // Rental payment - requires load_id
-      if (!load_id) {
-        return res.status(400).json({ message: 'load_id is required for driver-rental' });
-      }
-
-      const load = await Load.findById(load_id)
-        .populate('vehicle_id')
-        .populate('driver_id');
-
-      if (!load) {
-        return res.status(404).json({ message: 'Load not found' });
-      }
-
-      if (!load.driver_id) {
-        return res.status(400).json({ message: 'Driver must be assigned to load before creating payment' });
-      }
-
-      const vehicle = await Vehicle.findById(load.vehicle_id).populate('company_id');
-
-      // Create rental payment
-      payment = new Payment({
-        payer: load.driver_id?.name || 'Unknown',
-        payer_id: load.driver_id?._id,
-        payee: vehicle?.company_id?.name || 'Unknown',
-        payee_id: vehicle?.company_id?._id,
-        driver_id: load.driver_id?._id,
-        total_amount: load.rental_amount,
-        total_paid: 0,
-        total_due: load.rental_amount,
-        description: `Rental payment for ${load.rental_code} - ${load.from_location} to ${load.to_location}`,
-        payment_type: 'driver-rental',
-        status: 'unpaid',
-        vehicle_id: load.vehicle_id,
-        load_id: load._id,
-        transaction_date: load.start_date,
-        installments: [],
-      });
-    }
-
-    const savedPayment = await payment.save();
-    const populated = await savedPayment.populate([
-      'payer_id',
-      'payee_id',
-      'load_id',
-      'vehicle_id',
-      'driver_id',
-      'related_payment_id'
-    ]);
-    res.status(201).json(populated);
+    res.status(400).json({
+      message: 'Manual payment creation is deprecated. Use the unified rental transaction endpoint instead.',
+      endpoint: 'POST /api/transactions/rental'
+    });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -207,7 +110,6 @@ exports.updatePayment = async (req, res) => {
       'payer_id',
       'payee_id',
       'load_id',
-      { path: 'vehicle_id', select: 'plate_no vehicle_type' },
       'related_payment_id'
     ]);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
@@ -285,7 +187,6 @@ exports.registerInstallment = async (req, res) => {
       'payer_id',
       'payee_id',
       'load_id',
-      { path: 'vehicle_id', select: 'plate_no vehicle_type' },
       'related_payment_id',
     ]);
 
@@ -361,7 +262,6 @@ exports.updateInstallment = async (req, res) => {
       'payer_id',
       'payee_id',
       'load_id',
-      { path: 'vehicle_id', select: 'plate_no vehicle_type' },
       'related_payment_id',
     ]);
 
@@ -415,7 +315,6 @@ exports.deleteInstallment = async (req, res) => {
       'payer_id',
       'payee_id',
       'load_id',
-      { path: 'vehicle_id', select: 'plate_no vehicle_type' },
       'related_payment_id',
     ]);
 

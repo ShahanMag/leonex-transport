@@ -1,5 +1,4 @@
 const Company = require('../models/Company');
-const Vehicle = require('../models/Vehicle');
 const Driver = require('../models/Driver');
 const Load = require('../models/Load');
 
@@ -25,32 +24,6 @@ exports.generateCompanyCode = async () => {
     return `COMP-${String(nextNumber).padStart(3, '0')}`;
   } catch (error) {
     console.error('Error generating company code:', error);
-    throw error;
-  }
-};
-
-/**
- * Generate unique vehicle code
- * Format: VEH-XXX (3-digit incrementing number)
- */
-exports.generateVehicleCode = async () => {
-  try {
-    const lastVehicle = await Vehicle.findOne()
-      .select('vehicle_code')
-      .sort({ _id: -1 })
-      .exec();
-
-    let nextNumber = 1;
-    if (lastVehicle && lastVehicle.vehicle_code) {
-      const match = lastVehicle.vehicle_code.match(/VEH-(\d+)/);
-      if (match) {
-        nextNumber = parseInt(match[1]) + 1;
-      }
-    }
-
-    return `VEH-${String(nextNumber).padStart(3, '0')}`;
-  } catch (error) {
-    console.error('Error generating vehicle code:', error);
     throw error;
   }
 };
