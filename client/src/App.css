@@ -1,0 +1,118 @@
+/* Root Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+/* Sidebar Layout */
+.flex {
+  display: flex;
+}
+
+.h-screen {
+  height: 100vh;
+}
+
+/* Main content area - ensure proper spacing with sidebar */
+main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #f9fafb;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+main {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for main content */
+main::-webkit-scrollbar {
+  width: 8px;
+}
+
+main::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+main::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+main::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Page transitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+main > * {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  main {
+    padding-top: 60px; /* Space for mobile menu button */
+  }
+}
+
+/* Sidebar specific styles for mobile */
+@media (max-width: 768px) {
+  /* Prevent body scroll when sidebar is open */
+  body.sidebar-open {
+    overflow: hidden;
+  }
+}
+
+/* Ensure content doesn't get hidden behind buttons */
+main {
+  position: relative;
+  z-index: 0;
+}
+
+/* Toast positioning adjustment for sidebar */
+.sonner-toaster {
+  z-index: 50;
+}
+
+/* Page container padding */
+main > div {
+  min-height: 100%;
+}
+
+/* Fade transition for route changes */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+main > div > div {
+  animation: slideIn 0.2s ease-in-out;
+}
