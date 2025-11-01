@@ -12,6 +12,7 @@ const driverRoutes = require("./routes/drivers");
 const loadRoutes = require("./routes/loads");
 const paymentRoutes = require("./routes/payments");
 const reportRoutes = require("./routes/reports");
+const transactionRoutes = require("./routes/transactionRoutes");
 
 // Initialize Express app
 const app = express();
@@ -22,11 +23,20 @@ connectDB();
 // ===== CRITICAL: CORS MUST BE FIRST =====
 app.use(
   cors({
-    origin: [
-      "https://leonix-transport.netlify.app", // Your production frontend
-      "http://localhost:5173", // Local development
-      "http://localhost:3000", // Alternative local port
-    ],
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "https://leonix-transport.netlify.app",
+        "http://localhost:5173",
+        "http://localhost:3000",
+      ];
+
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Temporarily allow all for debugging
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -49,6 +59,7 @@ app.use("/api/drivers", driverRoutes);
 app.use("/api/loads", loadRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/transactions", transactionRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

@@ -1,7 +1,7 @@
 const Payment = require('../models/Payment');
 const Load = require('../models/Load');
-const Vehicle = require('../models/Vehicle');
 const Driver = require('../models/Driver');
+const Company = require('../models/Company');
 
 // Balance Report - Displays pending payments per driver or company
 exports.getBalanceReport = async (req, res) => {
@@ -52,30 +52,37 @@ exports.getPaymentHistory = async (req, res) => {
   }
 };
 
-// Vehicle Utilization Report - Shows availability and usage of vehicles
+// Vehicle Type Utilization Report - Shows usage by vehicle type
 exports.getVehicleUtilizationReport = async (req, res) => {
   try {
-    const vehicles = await Vehicle.find().populate('company_id', 'name');
     const loads = await Load.find();
+    const payments = await Payment.find();
 
-    const utilizationReport = vehicles.map((vehicle) => {
-      const vehicleLoads = loads.filter((load) => load.vehicle_id.toString() === vehicle._id.toString());
-      const completedLoads = vehicleLoads.filter((load) => load.status === 'completed');
-
-      return {
-        _id: vehicle._id,
-        plate_no: vehicle.plate_no,
-        vehicle_type: vehicle.vehicle_type,
-        company: vehicle.company_id.name,
-        status: vehicle.status,
-        total_loads: vehicleLoads.length,
-        completed_loads: completedLoads.length,
-        current_status: vehicle.status,
-        utilization_rate: vehicleLoads.length > 0
-          ? ((completedLoads.length / vehicleLoads.length) * 100).toFixed(2) + '%'
-          : '0%',
-      };
+    // Group loads by vehicle type
+    const vehicleTypeMap = {};
+    loads.forEach((load) => {
+      if (!vehicleTypeMap[load.vehicle_type]) {
+        vehicleTypeMap[load.vehicle_type] = {
+          total_loads: 0,
+          completed_loads: 0,
+          pending_loads: 0,
+        };
+      }
+      vehicleTypeMap[load.vehicle_type].total_loads++;
+      if (load.status === 'completed') {
+        vehicleTypeMap[load.vehicle_type].completed_loads++;
+      } else if (load.status === 'pending' || load.status === 'assigned') {
+        vehicleTypeMap[load.vehicle_type].pending_loads++;
+      }
     });
+
+    const utilizationReport = Object.entries(vehicleTypeMap).map(([vehicleType, data]) => ({
+      vehicle_type: vehicleType,
+      ...data,
+      utilization_rate: data.total_loads > 0
+        ? ((data.completed_loads / data.total_loads) * 100).toFixed(2) + '%'
+        : '0%',
+    }));
 
     res.status(200).json(utilizationReport);
   } catch (error) {

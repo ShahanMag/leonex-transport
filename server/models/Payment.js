@@ -75,11 +75,22 @@ const paymentSchema = new mongoose.Schema(
       default: Date.now,
     },
 
-    // References
-    vehicle_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Vehicle',
+    // Vehicle information (stored as descriptive fields, no Vehicle model reference)
+    vehicle_type: {
+      type: String,
+      required: true,
     },
+    plate_no: String,
+
+    // Location fields for rental payments
+    from_location: String,
+    to_location: String,
+
+    // Date fields for specific transaction types
+    acquisition_date: Date,
+    rental_date: Date,
+
+    // References
     load_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Load',
@@ -87,6 +98,10 @@ const paymentSchema = new mongoose.Schema(
     driver_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Driver',
+    },
+    company_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Company',
     },
 
     // Link related payments (e.g., acquisition payment linked to rental payment)

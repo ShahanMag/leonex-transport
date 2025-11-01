@@ -7,9 +7,8 @@ const loadSchema = new mongoose.Schema(
       unique: true,
       required: true,
     },
-    vehicle_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Vehicle',
+    vehicle_type: {
+      type: String,
       required: true,
     },
     driver_id: {
