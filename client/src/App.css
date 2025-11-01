@@ -54,21 +54,6 @@ main::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
-/* Page transitions */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-main > * {
-  animation: fadeIn 0.3s ease-in-out;
-}
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
@@ -101,18 +86,3 @@ main > div {
   min-height: 100%;
 }
 
-/* Fade transition for route changes */
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-main > div > div {
-  animation: slideIn 0.2s ease-in-out;
-}
