@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { companyAPI, vehicleAPI, driverAPI, loadAPI, paymentAPI } from '../services/api';
+import { companyAPI, driverAPI, loadAPI, paymentAPI } from '../services/api';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
     companies: 0,
-    vehicles: 0,
     drivers: 0,
     loads: 0,
     payments: 0,
@@ -18,9 +17,8 @@ export default function Dashboard() {
   const fetchStats = async () => {
     try {
       setIsLoading(true);
-      const [companies, vehicles, drivers, loads, payments] = await Promise.all([
+      const [companies, drivers, loads, payments] = await Promise.all([
         companyAPI.getAll(),
-        vehicleAPI.getAll(),
         driverAPI.getAll(),
         loadAPI.getAll(),
         paymentAPI.getAll(),
@@ -28,7 +26,6 @@ export default function Dashboard() {
 
       setStats({
         companies: companies.data.length,
-        vehicles: vehicles.data.length,
         drivers: drivers.data.length,
         loads: loads.data.length,
         payments: payments.data.length,
@@ -62,18 +59,12 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Companies"
           value={stats.companies}
           icon="🏢"
           color="border-blue-500"
-        />
-        <StatCard
-          title="Vehicles"
-          value={stats.vehicles}
-          icon="🚚"
-          color="border-green-500"
         />
         <StatCard
           title="Drivers"

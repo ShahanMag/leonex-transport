@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { paymentAPI, vehicleAPI, loadAPI } from '../services/api';
+import { paymentAPI, loadAPI } from '../services/api';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import Form from '../components/Form';
@@ -8,21 +8,11 @@ import { showSuccess, showError, showConfirm } from '../utils/toast';
 
 export default function Payments() {
   const [payments, setPayments] = useState([]);
-  const [vehicles, setVehicles] = useState([]);
   const [loads, setLoads] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('vehicle-acquisition');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-
-  // Payment creation modal
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [createFormValues, setCreateFormValues] = useState({
-    payment_type: 'vehicle-acquisition',
-    vehicle_id: '',
-    load_id: '',
-  });
-  const [createErrors, setCreateErrors] = useState({});
 
   // Installment registration modal
   const [isInstallmentOpen, setIsInstallmentOpen] = useState(false);
@@ -47,7 +37,6 @@ export default function Payments() {
 
   useEffect(() => {
     fetchPayments();
-    fetchVehicles();
     fetchLoads();
   }, []);
 
@@ -60,15 +49,6 @@ export default function Payments() {
       showError('Failed to fetch payments');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fetchVehicles = async () => {
-    try {
-      const response = await vehicleAPI.getAll();
-      setVehicles(response.data);
-    } catch (error) {
-      showError('Failed to fetch vehicles');
     }
   };
 
@@ -117,53 +97,7 @@ export default function Payments() {
     }
   };
 
-  const handleCreatePayment = async (values) => {
-    const { payment_type, vehicle_id, load_id } = values;
-
-    if (!payment_type) {
-      setCreateErrors({ payment_type: 'Payment type is required' });
-      return;
-    }
-
-    if (payment_type === 'vehicle-acquisition' && !vehicle_id) {
-      setCreateErrors({ vehicle_id: 'Vehicle is required' });
-      return;
-    }
-
-    if (payment_type === 'driver-rental' && !load_id) {
-      setCreateErrors({ load_id: 'Load is required' });
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const payload = {
-        payment_type,
-      };
-      if (payment_type === 'vehicle-acquisition') {
-        payload.vehicle_id = vehicle_id;
-      } else {
-        payload.load_id = load_id;
-      }
-
-      await paymentAPI.create(payload);
-      showSuccess('Payment created successfully');
-      setIsCreateOpen(false);
-      setCreateFormValues({
-        payment_type: 'vehicle-acquisition',
-        vehicle_id: '',
-        load_id: '',
-      });
-      setCreateErrors({});
-      fetchPayments();
-    } catch (error) {
-      showError(error.response?.data?.message || 'Failed to create payment');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) => {
+const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) => {
     if (!amount || amount <= 0) {
       setInstallmentErrors({ amount: 'Amount must be greater than 0' });
       return;
@@ -337,14 +271,9 @@ export default function Payments() {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Payments</h1>
-          <p className="text-gray-600 text-sm mt-1">Manage payment records and installments</p>
-        </div>
-        <Button variant="success" onClick={() => setIsCreateOpen(true)}>
-          + Create Payment
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Payments</h1>
+        <p className="text-gray-600 text-sm mt-1">Manage payment records and installments. Payments are automatically created when you create rental transactions.</p>
       </div>
 
       {/* Info Banner */}
@@ -473,92 +402,7 @@ export default function Payments() {
         </div>
       )}
 
-      {/* Create Payment Modal */}
-      <Modal
-        isOpen={isCreateOpen}
-        onClose={() => {
-          setIsCreateOpen(false);
-          setCreateFormValues({
-            payment_type: 'vehicle-acquisition',
-            vehicle_id: '',
-            load_id: '',
-          });
-          setCreateErrors({});
-        }}
-        title="Create Payment"
-        size="lg"
-        footer={
-          <div className="flex gap-3">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setIsCreateOpen(false);
-                setCreateFormValues({
-                  payment_type: 'vehicle-acquisition',
-                  vehicle_id: '',
-                  load_id: '',
-                });
-                setCreateErrors({});
-              }}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => handleCreatePayment(createFormValues)}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Creating...' : 'Create Payment'}
-            </Button>
-          </div>
-        }
-      >
-        <Form
-          fields={[
-            {
-              name: 'payment_type',
-              label: 'Payment Type',
-              type: 'select',
-              required: true,
-              options: [
-                { value: 'vehicle-acquisition', label: 'Vehicle Acquisition' },
-                { value: 'driver-rental', label: 'Driver Rental' },
-              ],
-            },
-            ...(createFormValues.payment_type === 'vehicle-acquisition' ? [
-              {
-                name: 'vehicle_id',
-                label: 'Vehicle',
-                type: 'select',
-                required: true,
-                options: vehicles.map((v) => ({
-                  value: v._id,
-                  label: `${v.plate_no} - ₹${v.acquisition_cost?.toLocaleString() || 0}`,
-                })),
-              },
-            ] : []),
-            ...(createFormValues.payment_type === 'driver-rental' ? [
-              {
-                name: 'load_id',
-                label: 'Load',
-                type: 'select',
-                required: true,
-                options: loads.filter(l => l.driver_id).map((l) => ({
-                  value: l._id,
-                  label: `${l.rental_code} - ₹${l.rental_amount?.toLocaleString() || 0}`,
-                })),
-              },
-            ] : []),
-          ]}
-          values={createFormValues}
-          errors={createErrors}
-          onChange={setCreateFormValues}
-          isLoading={isLoading}
-        />
-      </Modal>
-
-      {/* Register Installment Modal */}
+{/* Register Installment Modal */}
       <Modal
         isOpen={isInstallmentOpen}
         onClose={() => {
