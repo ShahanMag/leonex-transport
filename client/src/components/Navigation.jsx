@@ -10,8 +10,8 @@ export default function Navigation() {
 
   const navItems = [
     { path: '/', label: 'Dashboard' },
+    { path: '/rental-transaction', label: 'New Rental' },
     { path: '/companies', label: 'Companies' },
-    { path: '/vehicles', label: 'Vehicles' },
     { path: '/drivers', label: 'Drivers' },
     { path: '/loads', label: 'Rentals' },
     { path: '/payments', label: 'Payments' },

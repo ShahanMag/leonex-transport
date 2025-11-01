@@ -76,4 +76,9 @@ export const reportAPI = {
   getDriverPerformance: () => api.get('/reports/driver-performance'),
 };
 
+// Transaction Services - Unified rental transaction endpoint
+export const transactionAPI = {
+  createRentalTransaction: (data) => api.post('/transactions/rental', data),
+};
+
 export default api;

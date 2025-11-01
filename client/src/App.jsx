@@ -8,6 +8,7 @@ import Drivers from "./Pages/Drivers";
 import Loads from "./Pages/Loads";
 import Payments from "./Pages/Payments";
 import Reports from "./Pages/Reports";
+import RentalTransaction from "./Pages/RentalTransaction";
 import './App.css'
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Navigation />
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/rental-transaction" element={<RentalTransaction />} />
           <Route path="/companies" element={<Companies />} />
           <Route path="/vehicles" element={<Vehicles />} />
           <Route path="/drivers" element={<Drivers />} />

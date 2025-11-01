@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadAPI, vehicleAPI, driverAPI } from '../services/api';
+import { loadAPI, driverAPI } from '../services/api';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import Form from '../components/Form';
@@ -8,7 +8,6 @@ import { showSuccess, showError, showConfirm } from '../utils/toast';
 
 export default function Loads() {
   const [loads, setLoads] = useState([]);
-  const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -16,9 +15,9 @@ export default function Loads() {
   const [assigningLoadId, setAssigningLoadId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedVehicleFilter, setSelectedVehicleFilter] = useState('');
+  const [selectedVehicleTypeFilter, setSelectedVehicleTypeFilter] = useState('');
   const [formValues, setFormValues] = useState({
-    vehicle_id: '',
+    vehicle_type: '',
     from_location: '',
     to_location: '',
     load_description: '',
@@ -34,7 +33,6 @@ export default function Loads() {
 
   useEffect(() => {
     fetchLoads();
-    fetchVehicles();
     fetchDrivers();
   }, []);
 
@@ -47,15 +45,6 @@ export default function Loads() {
       showError('Failed to fetch loads');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fetchVehicles = async () => {
-    try {
-      const response = await vehicleAPI.getAll();
-      setVehicles(response.data);
-    } catch (error) {
-      showError('Failed to fetch vehicles');
     }
   };
 
@@ -88,18 +77,18 @@ export default function Loads() {
     }
   };
 
-  const handleVehicleFilter = async (e) => {
-    const vehicleId = e.target.value;
-    setSelectedVehicleFilter(vehicleId);
+  const handleVehicleTypeFilter = async (e) => {
+    const vehicleType = e.target.value;
+    setSelectedVehicleTypeFilter(vehicleType);
 
-    if (!vehicleId) {
+    if (!vehicleType) {
       fetchLoads();
       return;
     }
 
     try {
       setIsLoading(true);
-      const response = await loadAPI.filter(vehicleId);
+      const response = await loadAPI.filter(vehicleType);
       setLoads(response.data);
     } catch (error) {
       showError('Failed to filter loads');
@@ -108,23 +97,14 @@ export default function Loads() {
     }
   };
 
-  const handleVehicleSelect = (vehicleId) => {
-    const vehicle = vehicles.find(v => v._id === vehicleId);
-    setSelectedVehicle(vehicle);
-    setFormValues(prev => ({
-      ...prev,
-      vehicle_id: vehicleId,
-    }));
-  };
-
   const handleFormChange = (values) => {
     setFormValues(values);
   };
 
   const handleSubmit = async (values) => {
-    if (!values.vehicle_id || !values.from_location || !values.to_location || !values.rental_price_per_day) {
+    if (!values.vehicle_type || !values.from_location || !values.to_location || !values.rental_price_per_day) {
       setErrors({
-        vehicle_id: !values.vehicle_id ? 'Vehicle is required' : '',
+        vehicle_type: !values.vehicle_type ? 'Vehicle type is required' : '',
         from_location: !values.from_location ? 'From location is required' : '',
         to_location: !values.to_location ? 'To location is required' : '',
         rental_price_per_day: !values.rental_price_per_day ? 'Rental price per day is required' : '',
@@ -144,7 +124,7 @@ export default function Loads() {
       setIsFormOpen(false);
       setEditingId(null);
       setFormValues({
-        vehicle_id: '',
+        vehicle_type: '',
         from_location: '',
         to_location: '',
         load_description: '',
@@ -154,7 +134,6 @@ export default function Loads() {
         start_date: '',
         end_date: '',
       });
-      setSelectedVehicle(null);
       setErrors({});
       fetchLoads();
     } catch (error) {
@@ -231,7 +210,7 @@ export default function Loads() {
 
   const handleOpenForm = () => {
     setFormValues({
-      vehicle_id: '',
+      vehicle_type: '',
       from_location: '',
       to_location: '',
       load_description: '',
@@ -241,7 +220,6 @@ export default function Loads() {
       start_date: '',
       end_date: '',
     });
-    setSelectedVehicle(null);
     setEditingId(null);
     setErrors({});
     setIsFormOpen(true);
@@ -250,9 +228,8 @@ export default function Loads() {
   const columns = [
     { key: 'rental_code', label: 'Rental Code' },
     {
-      key: 'vehicle_id',
-      label: 'Vehicle',
-      render: (value) => value?.plate_no || 'N/A'
+      key: 'vehicle_type',
+      label: 'Vehicle Type',
     },
     { key: 'from_location', label: 'From' },
     { key: 'to_location', label: 'To' },
@@ -334,20 +311,20 @@ export default function Loads() {
       <div className="mb-6 flex gap-4">
         <input
           type="text"
-          placeholder="Search load by rental code or vehicle number..."
+          placeholder="Search load by rental code or vehicle type..."
           value={searchQuery}
           onChange={handleSearch}
           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <select
-          value={selectedVehicleFilter}
-          onChange={handleVehicleFilter}
+          value={selectedVehicleTypeFilter}
+          onChange={handleVehicleTypeFilter}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">All Vehicles</option>
-          {vehicles.map((v) => (
-            <option key={v._id} value={v._id}>
-              {v.plate_no} - {v.vehicle_type}
+          <option value="">All Vehicle Types</option>
+          {[...new Set(loads.map(l => l.vehicle_type))].map((type) => (
+            <option key={type} value={type}>
+              {type}
             </option>
           ))}
         </select>
@@ -369,9 +346,9 @@ export default function Loads() {
             <Button
               variant="primary"
               onClick={() => {
-                if (!formValues.vehicle_id || !formValues.from_location || !formValues.to_location || !formValues.rental_price_per_day) {
+                if (!formValues.vehicle_type || !formValues.from_location || !formValues.to_location || !formValues.rental_price_per_day) {
                   setErrors({
-                    vehicle_id: !formValues.vehicle_id ? 'Vehicle is required' : '',
+                    vehicle_type: !formValues.vehicle_type ? 'Vehicle type is required' : '',
                     from_location: !formValues.from_location ? 'From location is required' : '',
                     to_location: !formValues.to_location ? 'To location is required' : '',
                     rental_price_per_day: !formValues.rental_price_per_day ? 'Rental price is required' : '',
@@ -389,39 +366,31 @@ export default function Loads() {
       >
         <Form
           fields={[
+            { name: 'vehicle_type', label: 'Vehicle Type', placeholder: 'e.g., Truck, Van, Car', required: true },
             {
-              name: 'vehicle_id',
-              label: 'Vehicle',
-              type: 'select',
+              name: 'rental_price_per_day',
+              label: 'Rental Price',
+              type: 'number',
+              placeholder: 'Enter rental price',
               required: true,
-              options: vehicles.map((v) => ({ value: v._id, label: `${v.plate_no} (${v.vehicle_type})` })),
             },
-            ...(selectedVehicle ? [
+            {
+              name: 'rental_type',
+              label: 'Pricing Type',
+              type: 'select',
+              options: [
+                { value: 'per_day', label: 'Per Day' },
+                { value: 'per_job', label: 'Per Job (Fixed Price)' },
+                { value: 'per_km', label: 'Per KM' },
+              ],
+            },
+            ...(formValues.rental_type === 'per_km' ? [
               {
-                name: 'rental_price_per_day',
-                label: 'Rental Price Per Day',
+                name: 'distance_km',
+                label: 'Distance (KM)',
                 type: 'number',
-                placeholder: 'Enter rental price for this job',
-                required: true,
-              },
-              {
-                name: 'rental_type',
-                label: 'Pricing Type',
-                type: 'select',
-                options: [
-                  { value: 'per_day', label: 'Per Day' },
-                  { value: 'per_job', label: 'Per Job' },
-                  { value: 'per_km', label: 'Per KM' },
-                ],
-              },
-              ...(formValues.rental_type === 'per_km' ? [
-                {
-                  name: 'distance_km',
-                  label: 'Distance (KM)',
-                  type: 'number',
-                  placeholder: 'Enter distance in kilometers',
-                }
-              ] : [])
+                placeholder: 'Enter distance in kilometers',
+              }
             ] : []),
             { name: 'from_location', label: 'From Location', placeholder: 'Enter starting location', required: true },
             { name: 'to_location', label: 'To Location', placeholder: 'Enter destination', required: true },
@@ -431,12 +400,7 @@ export default function Loads() {
           ]}
           values={formValues}
           errors={errors}
-          onChange={(values) => {
-            handleFormChange(values);
-            if (values.vehicle_id && values.vehicle_id !== formValues.vehicle_id) {
-              handleVehicleSelect(values.vehicle_id);
-            }
-          }}
+          onChange={handleFormChange}
           onSubmit={handleSubmit}
           isLoading={isLoading}
           submitText={editingId ? 'Update Load' : 'Create Load'}
