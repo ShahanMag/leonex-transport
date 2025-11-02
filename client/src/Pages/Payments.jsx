@@ -216,7 +216,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
           onClick={() => setExpandedPaymentId(expandedPaymentId === payment._id ? null : payment._id)}
           className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors"
         >
-          {expandedPaymentId === payment._id ? '−' : '+'}
+          {expandedPaymentId === payment._id ? 'Hide' : 'Show'}
         </button>
       )
     },
