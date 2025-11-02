@@ -209,10 +209,16 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
   const columns = [
     { key: 'payer', label: 'Payer' },
     { key: 'payee', label: 'Payee' },
+    { key: 'vehicle_type', label: 'Vehicle' },
     {
       key: 'total_amount',
-      label: 'Total Amount',
+      label: 'Amount',
       render: (amount) => `₹${amount?.toLocaleString() || 0}`
+    },
+    {
+      key: 'transaction_date',
+      label: 'Transaction Date',
+      render: (date) => date ? new Date(date).toLocaleDateString() : 'N/A'
     },
     {
       key: 'total_paid',

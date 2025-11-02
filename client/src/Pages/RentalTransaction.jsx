@@ -63,8 +63,16 @@ export default function RentalTransaction() {
         const relatedPaymentId = rental.related_payment_id?.toString?.() || rental.related_payment_id;
 
         const acquisitionPayment = response.data.find(
-          p => p._id?.toString?.() === relatedPaymentId && p.payment_type === 'vehicle-acquisition'
+          p => {
+            const paymentId = p._id?.toString?.() || p._id;
+            return paymentId === relatedPaymentId && p.payment_type === 'vehicle-acquisition';
+          }
         );
+
+        // Debug logging
+        if (!acquisitionPayment && relatedPaymentId) {
+          console.warn(`Acquisition payment not found for rental ${rental._id}. Related ID: ${relatedPaymentId}`);
+        }
 
         return {
           ...rental,
@@ -76,6 +84,7 @@ export default function RentalTransaction() {
       setTransactions(enhancedPayments);
     } catch (error) {
       showError('Failed to fetch transactions');
+      console.error('Fetch error:', error);
     }
   };
 
