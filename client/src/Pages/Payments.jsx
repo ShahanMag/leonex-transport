@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { paymentAPI, loadAPI } from '../services/api';
 import Button from '../components/Button';
-import Table from '../components/Table';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
@@ -206,7 +205,21 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     return payments.find(p => p._id === selectedPaymentId);
   };
 
+  const [expandedPaymentId, setExpandedPaymentId] = useState(null);
+
   const columns = [
+    {
+      key: 'expand',
+      label: '',
+      render: (_, payment) => payment.installments?.length > 0 && (
+        <button
+          onClick={() => setExpandedPaymentId(expandedPaymentId === payment._id ? null : payment._id)}
+          className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors"
+        >
+          {expandedPaymentId === payment._id ? '−' : '+'}
+        </button>
+      )
+    },
     { key: 'payer', label: 'Payer' },
     { key: 'payee', label: 'Payee' },
     { key: 'vehicle_type', label: 'Vehicle' },
@@ -337,76 +350,120 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
         </button>
       </div>
 
-      {/* Payments Table */}
+      {/* Payments Table with Nested History */}
       <div className="mb-8">
-        <Table columns={columns} data={displayPayments} actions={actions} isLoading={isLoading} />
-      </div>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-100 border-b">
+                {columns.map((col) => (
+                  <th key={col.key} className="px-6 py-3 text-left text-sm font-semibold text-gray-800">
+                    {col.label}
+                  </th>
+                ))}
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayPayments.map((payment) => (
+                <React.Fragment key={payment._id}>
+                  {/* Main payment row */}
+                  <tr className="border-b hover:bg-gray-50">
+                    {columns.map((col) => (
+                      <td key={col.key} className="px-6 py-4 text-sm text-gray-700">
+                        {col.render ? col.render(payment[col.key], payment) : payment[col.key]}
+                      </td>
+                    ))}
+                    <td className="px-6 py-4 text-sm text-gray-700 flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedPaymentId(payment._id);
+                          setInstallmentValues({ amount: '', notes: '' });
+                          setInstallmentErrors({});
+                          setIsInstallmentOpen(true);
+                        }}
+                        className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-medium hover:bg-green-200 transition-colors"
+                      >
+                        Register
+                      </button>
+                      <button
+                        onClick={() => handleDeletePayment(payment)}
+                        className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-medium hover:bg-red-200 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
 
-      {/* Installment History Section */}
-      {displayPayments.length > 0 && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-gray-800">Installment History</h2>
-          {displayPayments.map((payment) => (
-            <div key={payment._id} className="border border-gray-200 rounded-lg p-4 bg-white">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="text-gray-600 text-sm">
-                    <strong>Payment:</strong> {payment.payer} → {payment.payee}
-                  </p>
-                  <p className="text-gray-600 text-sm">
-                    <strong>Progress:</strong> ₹{payment.total_paid?.toLocaleString() || 0} / ₹{payment.total_amount?.toLocaleString() || 0}
-                    ({payment.total_amount > 0 ? Math.round((payment.total_paid / payment.total_amount) * 100) : 0}%)
-                  </p>
-                </div>
-              </div>
+                  {/* Expanded history row */}
+                  {expandedPaymentId === payment._id && payment.installments && payment.installments.length > 0 && (
+                    <tr className="bg-blue-50 border-b">
+                      <td colSpan={columns.length + 1} className="px-6 py-4">
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">
+                              <strong>Progress:</strong> ₹{payment.total_paid?.toLocaleString() || 0} / ₹{payment.total_amount?.toLocaleString() || 0}
+                            </span>
+                            <span className="text-gray-600">
+                              <strong>{payment.total_amount > 0 ? Math.round((payment.total_paid / payment.total_amount) * 100) : 0}%</strong>
+                            </span>
+                          </div>
 
-              {payment.installments && payment.installments.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-gray-700">#</th>
-                        <th className="px-4 py-2 text-left text-gray-700">Amount</th>
-                        <th className="px-4 py-2 text-left text-gray-700">Date Paid</th>
-                        <th className="px-4 py-2 text-left text-gray-700">Notes</th>
-                        <th className="px-4 py-2 text-left text-gray-700">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {payment.installments.map((installment, idx) => (
-                        <tr key={installment._id} className="border-b border-gray-200 hover:bg-gray-50">
-                          <td className="px-4 py-2 text-gray-800">{idx + 1}</td>
-                          <td className="px-4 py-2 text-gray-800">₹{installment.amount?.toLocaleString() || 0}</td>
-                          <td className="px-4 py-2 text-gray-800">
-                            {installment.paid_date ? new Date(installment.paid_date).toLocaleDateString() : 'N/A'}
-                          </td>
-                          <td className="px-4 py-2 text-gray-800">{installment.notes || '-'}</td>
-                          <td className="px-4 py-2 text-gray-800 flex gap-2">
-                            <button
-                              onClick={() => handleEditInstallment(payment, installment)}
-                              className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteInstallment(payment, installment)}
-                              className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-medium hover:bg-red-200 transition-colors"
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="text-gray-500 text-sm italic">No installments recorded yet</p>
-              )}
-            </div>
-          ))}
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm bg-white border border-gray-200 rounded">
+                              <thead className="bg-gray-100 border-b border-gray-200">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-gray-700">#</th>
+                                  <th className="px-4 py-2 text-left text-gray-700">Amount</th>
+                                  <th className="px-4 py-2 text-left text-gray-700">Date Paid</th>
+                                  <th className="px-4 py-2 text-left text-gray-700">Notes</th>
+                                  <th className="px-4 py-2 text-left text-gray-700">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {payment.installments.map((installment, idx) => (
+                                  <tr key={installment._id} className="border-b border-gray-200 hover:bg-gray-50">
+                                    <td className="px-4 py-2 text-gray-800">{idx + 1}</td>
+                                    <td className="px-4 py-2 text-gray-800">₹{installment.amount?.toLocaleString() || 0}</td>
+                                    <td className="px-4 py-2 text-gray-800">
+                                      {installment.paid_date ? new Date(installment.paid_date).toLocaleDateString() : 'N/A'}
+                                    </td>
+                                    <td className="px-4 py-2 text-gray-800">{installment.notes || '-'}</td>
+                                    <td className="px-4 py-2 text-gray-800 flex gap-2">
+                                      <button
+                                        onClick={() => handleEditInstallment(payment, installment)}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteInstallment(payment, installment)}
+                                        className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-medium hover:bg-red-200 transition-colors"
+                                      >
+                                        Delete
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {displayPayments.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No payments found
+          </div>
+        )}
+      </div>
 
 {/* Register Installment Modal */}
       <Modal
