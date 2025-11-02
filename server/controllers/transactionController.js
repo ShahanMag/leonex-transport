@@ -11,9 +11,9 @@ const codeGenerator = require('../utils/codeGenerator');
  * This unified endpoint handles the complete rental transaction flow:
  * 1. Find or create Company
  * 2. Find or create Driver
- * 3. Create Acquisition Payment (Company → Supplier)
- * 4. Create Rental Payment (Driver → Company)
- * 5. Create Load record
+ * 3. Create Load record (to generate rental code)
+ * 4. Create Acquisition Payment (Company → Supplier)
+ * 5. Create Rental Payment (Driver → Company)
  *
  * Uses MongoDB transactions for atomicity
  */
@@ -124,29 +124,7 @@ exports.createRentalTransaction = async (req, res) => {
 
     // 3. Rental amount is provided directly, no calculation needed
 
-    // 4. Create Acquisition Payment (Company → Supplier)
-    const acquisitionPayment = new Payment({
-      payer: company.name,
-      payer_id: company._id,
-      payee: 'Supplier',
-      company_id: company._id,
-      total_amount: acquisition_cost,
-      total_paid: 0,
-      total_due: acquisition_cost,
-      vehicle_type,
-      plate_no,
-      acquisition_date: new Date(acquisition_date),
-      description: `Vehicle acquisition - ${vehicle_type} (${plate_no})`,
-      payment_type: 'vehicle-acquisition',
-      status: 'unpaid',
-      installments: [],
-      date: new Date(),
-      transaction_date: new Date(acquisition_date),
-    });
-
-    const savedAcquisitionPayment = await acquisitionPayment.save({ session: session || undefined });
-
-    // 5. Create Load record
+    // 5. Create Load record (needed first to get rental_code for acquisition payment)
     const rental_code = await codeGenerator.generateRentalCode();
     const load = new Load({
       rental_code,
@@ -162,7 +140,30 @@ exports.createRentalTransaction = async (req, res) => {
 
     const savedLoad = await load.save({ session: session || undefined });
 
-    // 6. Create Rental Payment (Driver → Company)
+    // 4. Create Acquisition Payment (Company → Supplier)
+    const acquisitionPayment = new Payment({
+      payer: company.name,
+      payer_id: company._id,
+      payee: 'Supplier',
+      company_id: company._id,
+      load_id: savedLoad._id,
+      total_amount: acquisition_cost,
+      total_paid: 0,
+      total_due: acquisition_cost,
+      vehicle_type,
+      plate_no,
+      acquisition_date: new Date(acquisition_date),
+      description: `Vehicle acquisition - ${vehicle_type} (${plate_no}) for ${rental_code}`,
+      payment_type: 'vehicle-acquisition',
+      status: 'unpaid',
+      installments: [],
+      date: new Date(),
+      transaction_date: new Date(acquisition_date),
+    });
+
+    const savedAcquisitionPayment = await acquisitionPayment.save({ session: session || undefined });
+
+    // 5. Create Rental Payment (Driver → Company)
     const rentalPayment = new Payment({
       payer: driver.name,
       payer_id: driver._id,

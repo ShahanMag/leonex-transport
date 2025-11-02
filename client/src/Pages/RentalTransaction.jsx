@@ -59,9 +59,13 @@ export default function RentalTransaction() {
 
       // Enhance with acquisition payment data
       const enhancedPayments = rentalPayments.map(rental => {
+        // Convert both IDs to strings for comparison
+        const relatedPaymentId = rental.related_payment_id?.toString?.() || rental.related_payment_id;
+
         const acquisitionPayment = response.data.find(
-          p => p._id === rental.related_payment_id && p.payment_type === 'vehicle-acquisition'
+          p => p._id?.toString?.() === relatedPaymentId && p.payment_type === 'vehicle-acquisition'
         );
+
         return {
           ...rental,
           acquisition_amount: acquisitionPayment?.total_amount,
