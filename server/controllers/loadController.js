@@ -4,32 +4,11 @@ const Driver = require('../models/Driver');
 const Company = require('../models/Company');
 const codeGenerator = require('../utils/codeGenerator');
 
-// Helper function to calculate days between dates
-const calculateDaysRented = (startDate, endDate) => {
-  if (!startDate || !endDate) return null;
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const diffTime = Math.abs(end - start);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
-};
-
-// Helper function to calculate rental amount based on pricing type
-const calculateRentalAmount = (rentalType, rentalPricePerDay, daysRented, distanceKm) => {
-  if (rentalType === 'per_day') {
-    return daysRented * rentalPricePerDay;
-  } else if (rentalType === 'per_job') {
-    return rentalPricePerDay; // Fixed price per job
-  } else if (rentalType === 'per_km') {
-    return distanceKm * rentalPricePerDay;
-  }
-  return null;
-};
-
 // Get all loads
 exports.getAllLoads = async (req, res) => {
   try {
     const loads = await Load.find()
+      .populate('company_id', 'name company_code')
       .populate('driver_id', 'name contact driver_code');
     res.status(200).json(loads);
   } catch (error) {
@@ -53,6 +32,7 @@ exports.searchLoads = async (req, res) => {
         { vehicle_type: { $regex: query, $options: 'i' } }
       ]
     })
+      .populate('company_id', 'name company_code')
       .populate('driver_id', 'name contact driver_code');
 
     res.status(200).json(loads);
@@ -71,6 +51,7 @@ exports.filterLoadsByVehicle = async (req, res) => {
     }
 
     const loads = await Load.find({ vehicle_type })
+      .populate('company_id', 'name company_code')
       .populate('driver_id', 'name contact driver_code');
 
     res.status(200).json(loads);
@@ -83,6 +64,7 @@ exports.filterLoadsByVehicle = async (req, res) => {
 exports.getLoadById = async (req, res) => {
   try {
     const load = await Load.findById(req.params.id)
+      .populate('company_id', 'name company_code')
       .populate('driver_id', 'name contact driver_code');
     if (!load) return res.status(404).json({ message: 'Load not found' });
     res.status(200).json(load);
@@ -97,38 +79,21 @@ exports.createLoad = async (req, res) => {
     vehicle_type,
     from_location,
     to_location,
-    load_description,
-    rental_price_per_day,
-    rental_type = 'per_day',
-    start_date,
-    end_date,
-    distance_km,
+    rental_amount,
+    rental_date,
   } = req.body;
 
   try {
     // Auto-generate rental code
     const rental_code = await codeGenerator.generateRentalCode();
 
-    // Calculate days_rented if dates are provided
-    const days_rented = calculateDaysRented(start_date, end_date);
-
-    // Calculate rental_amount based on pricing type
-    const rental_amount = calculateRentalAmount(rental_type, rental_price_per_day, days_rented, distance_km);
-
     const load = new Load({
       rental_code,
       vehicle_type,
       from_location,
       to_location,
-      load_description,
-      rental_price_per_day,
-      rental_type,
       rental_amount,
-      actual_rental_cost: rental_amount,
-      start_date,
-      end_date,
-      distance_km,
-      days_rented,
+      rental_date: new Date(rental_date),
     });
 
     const savedLoad = await load.save();
@@ -151,23 +116,14 @@ exports.updateLoad = async (req, res) => {
     const load = await Load.findById(req.params.id);
     if (!load) return res.status(404).json({ message: 'Load not found' });
 
-    // Prepare update data
-    const updateData = { ...req.body };
-
-    // Recalculate days_rented and rental_amount if dates or pricing changed
-    const startDate = updateData.start_date || load.start_date;
-    const endDate = updateData.end_date || load.end_date;
-    const rentalType = updateData.rental_type || load.rental_type;
-    const rentalPricePerDay = updateData.rental_price_per_day || load.rental_price_per_day;
-    const distanceKm = updateData.distance_km || load.distance_km;
-
-    const days_rented = calculateDaysRented(startDate, endDate);
-    if (days_rented) {
-      updateData.days_rented = days_rented;
-      const rentalAmount = calculateRentalAmount(rentalType, rentalPricePerDay, days_rented, distanceKm);
-      updateData.rental_amount = rentalAmount;
-      updateData.actual_rental_cost = rentalAmount;
-    }
+    // Only allow updating basic load info
+    const updateData = {
+      vehicle_type: req.body.vehicle_type || load.vehicle_type,
+      from_location: req.body.from_location || load.from_location,
+      to_location: req.body.to_location || load.to_location,
+      rental_amount: req.body.rental_amount || load.rental_amount,
+      rental_date: req.body.rental_date ? new Date(req.body.rental_date) : load.rental_date,
+    };
 
     const updatedLoad = await Load.findByIdAndUpdate(
       req.params.id,

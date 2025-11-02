@@ -38,14 +38,14 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed left-0 top-0 h-screen w-64 bg-blue-700 text-white shadow-xl
-          transform transition-transform duration-300 ease-in-out z-20
+          fixed left-0 top-0 h-screen w-64 bg-gray-800 text-white shadow-xl
+          transform transition-transform duration-300 ease-in-out z-40
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           md:relative md:translate-x-0
         `}
       >
         {/* Logo Section */}
-        <div className="p-6 border-b border-blue-600">
+        <div className="p-6 border-b border-gray-200">
           <Link to="/" className="flex items-center gap-3" onClick={() => setIsOpen(false)}>
             <img src="/leonex-logo.png" alt="Leonex" className="h-10 w-auto" />
             <span className="text-xl font-bold hidden sm:inline">Leonex</span>
@@ -63,25 +63,24 @@ export default function Sidebar() {
                 flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200
                 ${
                   isActive(item.path)
-                    ? 'bg-blue-900 text-white shadow-lg'
+                    ? 'bg-white text-black shadow-lg'
                     : 'text-blue-100 hover:bg-blue-600 hover:text-white'
                 }
-                ${item.highlight ? 'ring-2 ring-yellow-400' : ''}
               `}
             >
               <span className="text-xl">{item.icon}</span>
               <span>{item.label}</span>
-              {item.highlight && (
+              {/* {item.highlight && (
                 <span className="ml-auto text-xs bg-yellow-400 text-blue-700 px-2 py-1 rounded font-bold">
                   NEW
                 </span>
-              )}
+              )} */}
             </Link>
           ))}
         </nav>
 
         {/* Footer Info */}
-        <div className="px-4 py-4 border-t border-blue-600">
+        <div className="px-4 py-4 border-t border-white">
           <p className="text-xs text-blue-200 text-center">
             Vehicle Rental Management System
           </p>

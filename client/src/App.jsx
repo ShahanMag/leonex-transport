@@ -18,7 +18,7 @@ function App() {
         <Sidebar />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/rental-transaction" element={<RentalTransaction />} />

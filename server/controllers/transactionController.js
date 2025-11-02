@@ -18,8 +18,9 @@ const codeGenerator = require('../utils/codeGenerator');
  * Uses MongoDB transactions for atomicity
  */
 exports.createRentalTransaction = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  // Note: MongoDB transactions require a replica set
+  // For standalone MongoDB, we don't use sessions
+  let session = null;
 
   try {
     const {
@@ -48,34 +49,29 @@ exports.createRentalTransaction = async (req, res) => {
       // Load & Rental data
       from_location,
       to_location,
-      load_description,
-      rental_price_per_day,
-      rental_type = 'per_day',
+      rental_amount,
       rental_date,
-      start_date,
-      end_date,
-      distance_km,
     } = req.body;
 
     // Validation
-    if (!vehicle_type || !acquisition_cost || !from_location || !to_location || !rental_price_per_day) {
-      await session.abortTransaction();
+    if (!vehicle_type || !acquisition_cost || !from_location || !to_location || !rental_amount) {
+      if (session) await session.abortTransaction();
       return res.status(400).json({
-        message: 'Missing required fields: vehicle_type, acquisition_cost, from_location, to_location, rental_price_per_day'
+        message: 'Missing required fields: vehicle_type, acquisition_cost, from_location, to_location, rental_amount'
       });
     }
 
     // 1. Find or create Company
     let company;
     if (company_id) {
-      company = await Company.findById(company_id).session(session);
+      company = await Company.findById(company_id).session(session || undefined);
       if (!company) {
-        await session.abortTransaction();
+        if (session) await session.abortTransaction();
         return res.status(404).json({ message: 'Company not found' });
       }
     } else if (company_name) {
       // Check if company with this name exists
-      company = await Company.findOne({ name: company_name }).session(session);
+      company = await Company.findOne({ name: company_name }).session(session || undefined);
 
       if (!company) {
         // Create new company
@@ -89,24 +85,24 @@ exports.createRentalTransaction = async (req, res) => {
           phone_country_code: company_phone_country_code,
           phone_number: company_phone_number,
         });
-        company = await company.save({ session });
+        company = await company.save({ session: session || undefined });
       }
     } else {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
       return res.status(400).json({ message: 'Either company_id or company_name is required' });
     }
 
     // 2. Find or create Driver
     let driver;
     if (driver_id) {
-      driver = await Driver.findById(driver_id).session(session);
+      driver = await Driver.findById(driver_id).session(session || undefined);
       if (!driver) {
-        await session.abortTransaction();
+        if (session) await session.abortTransaction();
         return res.status(404).json({ message: 'Driver not found' });
       }
     } else if (driver_name && driver_iqama_id) {
       // Check if driver with this iqama_id exists
-      driver = await Driver.findOne({ iqama_id: driver_iqama_id }).session(session);
+      driver = await Driver.findOne({ iqama_id: driver_iqama_id }).session(session || undefined);
 
       if (!driver) {
         // Create new driver
@@ -119,36 +115,14 @@ exports.createRentalTransaction = async (req, res) => {
           phone_number: driver_phone_number,
           status: 'active',
         });
-        driver = await driver.save({ session });
+        driver = await driver.save({ session: session || undefined });
       }
     } else {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
       return res.status(400).json({ message: 'Either driver_id or (driver_name + driver_iqama_id) is required' });
     }
 
-    // 3. Calculate rental amount
-    const calculateDaysRented = (startDate, endDate) => {
-      if (!startDate || !endDate) return null;
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const diffTime = Math.abs(end - start);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays;
-    };
-
-    const calculateRentalAmount = (type, pricePerDay, daysRented, distKm) => {
-      if (type === 'per_day') {
-        return daysRented * pricePerDay;
-      } else if (type === 'per_job') {
-        return pricePerDay;
-      } else if (type === 'per_km') {
-        return distKm * pricePerDay;
-      }
-      return pricePerDay;
-    };
-
-    const days_rented = calculateDaysRented(start_date, end_date);
-    const rental_amount = calculateRentalAmount(rental_type, rental_price_per_day, days_rented, distance_km);
+    // 3. Rental amount is provided directly, no calculation needed
 
     // 4. Create Acquisition Payment (Company → Supplier)
     const acquisitionPayment = new Payment({
@@ -170,29 +144,23 @@ exports.createRentalTransaction = async (req, res) => {
       transaction_date: new Date(acquisition_date),
     });
 
-    const savedAcquisitionPayment = await acquisitionPayment.save({ session });
+    const savedAcquisitionPayment = await acquisitionPayment.save({ session: session || undefined });
 
     // 5. Create Load record
     const rental_code = await codeGenerator.generateRentalCode();
     const load = new Load({
       rental_code,
       vehicle_type,
+      company_id: company._id,
       driver_id: driver._id,
       from_location,
       to_location,
-      load_description,
-      rental_price_per_day,
-      rental_type,
       rental_amount,
-      actual_rental_cost: rental_amount,
-      start_date: new Date(start_date),
-      end_date: new Date(end_date),
-      distance_km,
-      days_rented,
+      rental_date: new Date(rental_date),
       status: 'pending',
     });
 
-    const savedLoad = await load.save({ session });
+    const savedLoad = await load.save({ session: session || undefined });
 
     // 6. Create Rental Payment (Driver → Company)
     const rentalPayment = new Payment({
@@ -209,26 +177,26 @@ exports.createRentalTransaction = async (req, res) => {
       vehicle_type,
       from_location,
       to_location,
-      rental_date: new Date(rental_date || start_date),
+      rental_date: new Date(rental_date),
       description: `Rental payment for ${rental_code} - ${from_location} to ${to_location}`,
       payment_type: 'driver-rental',
       status: 'unpaid',
       installments: [],
       date: new Date(),
-      transaction_date: new Date(rental_date || start_date),
+      transaction_date: new Date(rental_date),
       related_payment_id: savedAcquisitionPayment._id,
     });
 
-    const savedRentalPayment = await rentalPayment.save({ session });
+    const savedRentalPayment = await rentalPayment.save({ session: session || undefined });
 
     // Link the payments together
     await Payment.findByIdAndUpdate(
       savedAcquisitionPayment._id,
       { related_payment_id: savedRentalPayment._id },
-      { session }
+      { session: session || undefined }
     );
 
-    await session.commitTransaction();
+    if (session) await session.commitTransaction();
 
     res.status(201).json({
       message: 'Rental transaction created successfully',
@@ -259,10 +227,10 @@ exports.createRentalTransaction = async (req, res) => {
     });
 
   } catch (error) {
-    await session.abortTransaction();
+    if (session) await session.abortTransaction();
     console.error('Transaction error:', error);
     res.status(400).json({ message: error.message });
   } finally {
-    session.endSession();
+    if (session) session.endSession();
   }
 };

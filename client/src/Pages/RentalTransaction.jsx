@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { transactionAPI, companyAPI, driverAPI } from '../services/api';
+import { transactionAPI, companyAPI, driverAPI, paymentAPI } from '../services/api';
 import Button from '../components/Button';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
@@ -13,6 +13,7 @@ export default function RentalTransaction() {
   const [driverType, setDriverType] = useState('existing'); // 'existing' or 'new'
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errors, setErrors] = useState({});
+  const [transactions, setTransactions] = useState([]);
 
   const [formValues, setFormValues] = useState({
     // Company
@@ -40,19 +41,39 @@ export default function RentalTransaction() {
     // Load & Rental
     from_location: '',
     to_location: '',
-    load_description: '',
-    rental_price_per_day: '',
-    rental_type: 'per_day',
+    rental_amount: '',
     rental_date: '',
-    start_date: '',
-    end_date: '',
-    distance_km: '',
   });
 
   useEffect(() => {
     fetchCompanies();
     fetchDrivers();
+    fetchTransactions();
   }, []);
+
+  const fetchTransactions = async () => {
+    try {
+      // Fetch all payments and filter for rental payments (driver-rental type)
+      const response = await paymentAPI.getAll();
+      const rentalPayments = response.data.filter(p => p.payment_type === 'driver-rental');
+
+      // Enhance with acquisition payment data
+      const enhancedPayments = rentalPayments.map(rental => {
+        const acquisitionPayment = response.data.find(
+          p => p._id === rental.related_payment_id && p.payment_type === 'vehicle-acquisition'
+        );
+        return {
+          ...rental,
+          acquisition_amount: acquisitionPayment?.total_amount,
+          acquisition_date: acquisitionPayment?.transaction_date,
+        };
+      });
+
+      setTransactions(enhancedPayments);
+    } catch (error) {
+      showError('Failed to fetch transactions');
+    }
+  };
 
   const fetchCompanies = async () => {
     try {
@@ -112,17 +133,11 @@ export default function RentalTransaction() {
     // Load & Rental validation
     if (!formValues.from_location) newErrors.from_location = 'From location is required';
     if (!formValues.to_location) newErrors.to_location = 'To location is required';
-    if (!formValues.rental_price_per_day) newErrors.rental_price_per_day = 'Rental price is required';
-    if (formValues.rental_price_per_day && isNaN(formValues.rental_price_per_day)) {
-      newErrors.rental_price_per_day = 'Rental price must be a number';
+    if (!formValues.rental_amount) newErrors.rental_amount = 'Rental amount is required';
+    if (formValues.rental_amount && isNaN(formValues.rental_amount)) {
+      newErrors.rental_amount = 'Rental amount must be a number';
     }
-    if (!formValues.start_date) newErrors.start_date = 'Start date is required';
-    if (!formValues.end_date) newErrors.end_date = 'End date is required';
-
-    // Per KM validation
-    if (formValues.rental_type === 'per_km' && !formValues.distance_km) {
-      newErrors.distance_km = 'Distance is required for per-km pricing';
-    }
+    if (!formValues.rental_date) newErrors.rental_date = 'Rental date is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -168,18 +183,16 @@ export default function RentalTransaction() {
         // Load & Rental
         from_location: formValues.from_location,
         to_location: formValues.to_location,
-        load_description: formValues.load_description || undefined,
-        rental_price_per_day: parseFloat(formValues.rental_price_per_day),
-        rental_type: formValues.rental_type,
-        rental_date: formValues.rental_date || undefined,
-        start_date: formValues.start_date,
-        end_date: formValues.end_date,
-        distance_km: formValues.distance_km ? parseFloat(formValues.distance_km) : undefined,
+        rental_amount: parseFloat(formValues.rental_amount),
+        rental_date: formValues.rental_date,
       };
 
       const response = await transactionAPI.createRentalTransaction(payload);
 
       showSuccess('Rental transaction created successfully!');
+
+      // Refresh transactions list
+      fetchTransactions();
 
       // Reset form
       setFormValues({
@@ -201,13 +214,8 @@ export default function RentalTransaction() {
         acquisition_date: '',
         from_location: '',
         to_location: '',
-        load_description: '',
-        rental_price_per_day: '',
-        rental_type: 'per_day',
+        rental_amount: '',
         rental_date: '',
-        start_date: '',
-        end_date: '',
-        distance_km: '',
       });
       setCompanyType('existing');
       setDriverType('existing');
@@ -232,11 +240,6 @@ export default function RentalTransaction() {
     label: d.name
   }));
 
-  const rentalTypeOptions = [
-    { value: 'per_day', label: 'Per Day' },
-    { value: 'per_job', label: 'Per Job (Fixed Price)' },
-    { value: 'per_km', label: 'Per Kilometer' },
-  ];
 
   const countryCodeOptions = [
     { value: '+91', label: '+91 (India)' },
@@ -256,13 +259,13 @@ export default function RentalTransaction() {
           </Button>
         </div>
 
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-6">
+        {/* <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-6">
           <h2 className="font-semibold text-blue-900 mb-2">Complete Rental Setup in One Step</h2>
           <p className="text-blue-800 text-sm">
             This form creates a complete rental transaction including company, driver, vehicle acquisition,
             and rental payment in a single operation. You can select existing companies and drivers or create new ones on-the-fly.
           </p>
-        </div>
+        </div> */}
       </div>
 
       <Modal
@@ -456,20 +459,8 @@ export default function RentalTransaction() {
               fields={[
                 { name: 'from_location', label: 'From Location', placeholder: 'e.g., Riyadh', required: true },
                 { name: 'to_location', label: 'To Location', placeholder: 'e.g., Jeddah', required: true },
-                { name: 'load_description', label: 'Load Description', placeholder: 'e.g., Goods delivery' },
-                {
-                  name: 'rental_type',
-                  label: 'Rental Type',
-                  type: 'select',
-                  options: rentalTypeOptions,
-                },
-                { name: 'rental_price_per_day', label: 'Price Per Unit', type: 'number', placeholder: '0', required: true },
-                ...(formValues.rental_type === 'per_km' ? [
-                  { name: 'distance_km', label: 'Distance (KM)', type: 'number', placeholder: '0', required: true },
-                ] : []),
-                { name: 'rental_date', label: 'Rental Date', type: 'date' },
-                { name: 'start_date', label: 'Start Date', type: 'date', required: true },
-                { name: 'end_date', label: 'End Date', type: 'date', required: true },
+                { name: 'rental_amount', label: 'Rental Amount', type: 'number', placeholder: '0', required: true },
+                { name: 'rental_date', label: 'Rental Date', type: 'date', required: true },
               ]}
               values={formValues}
               errors={errors}
@@ -479,6 +470,51 @@ export default function RentalTransaction() {
           </div>
         </div>
       </Modal>
+
+      {/* Transactions Table */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Rental Transactions</h2>
+        {transactions.length === 0 ? (
+          <div className="bg-gray-50 p-8 rounded-lg text-center">
+            <p className="text-gray-600">No rental transactions yet. Click "New Rental Transaction" to create one.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-100 border-b">
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Rental Code</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Company</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Driver</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">From</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">To</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Vehicle Type</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Acquisition Amount</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Acquisition Date</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Rental Amount</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Rental Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((transaction) => (
+                  <tr key={transaction._id} className="border-b hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.load_id?.rental_code || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.payer || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.from_location || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.to_location || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.vehicle_type || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.acquisition_amount || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.acquisition_date ? new Date(transaction.acquisition_date).toLocaleDateString() : 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.total_amount || 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.rental_date ? new Date(transaction.rental_date).toLocaleDateString() : 'N/A'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

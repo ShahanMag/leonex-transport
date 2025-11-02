@@ -79,6 +79,7 @@ export const reportAPI = {
 // Transaction Services - Unified rental transaction endpoint
 export const transactionAPI = {
   createRentalTransaction: (data) => api.post('/transactions/rental', data),
+  getAll: () => api.get('/loads'),
 };
 
 export default api;
