@@ -59,19 +59,29 @@ export default function RentalTransaction() {
 
       // Enhance with acquisition payment data
       const enhancedPayments = rentalPayments.map(rental => {
-        // Convert both IDs to strings for comparison
-        const relatedPaymentId = rental.related_payment_id?.toString?.() || rental.related_payment_id;
+        // Handle both cases: related_payment_id can be a string ID or a populated object
+        let relatedPaymentId = rental.related_payment_id;
+        if (typeof relatedPaymentId === 'object' && relatedPaymentId?._id) {
+          // If it's a populated object, get the _id
+          relatedPaymentId = relatedPaymentId._id;
+        }
+        relatedPaymentId = relatedPaymentId?.toString?.() || relatedPaymentId;
 
-        const acquisitionPayment = response.data.find(
-          p => {
-            const paymentId = p._id?.toString?.() || p._id;
-            return paymentId === relatedPaymentId && p.payment_type === 'vehicle-acquisition';
+        const acquisitionPayment = response.data.find(p => {
+          let paymentId = p._id?.toString?.() || p._id;
+          return paymentId === relatedPaymentId && p.payment_type === 'vehicle-acquisition';
+        });
+
+        // If not found by ID, try to find by payment object (in case it's populated)
+        if (!acquisitionPayment && typeof rental.related_payment_id === 'object') {
+          const relatedPaymentFromObject = rental.related_payment_id;
+          if (relatedPaymentFromObject?.payment_type === 'vehicle-acquisition') {
+            return {
+              ...rental,
+              acquisition_amount: relatedPaymentFromObject.total_amount,
+              acquisition_date: relatedPaymentFromObject.transaction_date,
+            };
           }
-        );
-
-        // Debug logging
-        if (!acquisitionPayment && relatedPaymentId) {
-          console.warn(`Acquisition payment not found for rental ${rental._id}. Related ID: ${relatedPaymentId}`);
         }
 
         return {
