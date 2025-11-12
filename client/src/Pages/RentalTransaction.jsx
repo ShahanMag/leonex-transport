@@ -14,7 +14,7 @@ export default function RentalTransaction() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errors, setErrors] = useState({});
   const [transactions, setTransactions] = useState([]);
-const [editingId, setEditingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
   const [formValues, setFormValues] = useState({
     // Company
@@ -556,7 +556,6 @@ const [editingId, setEditingId] = useState(null);
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Vehicle Type</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Acquisition Amount</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Rental Amount</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -570,22 +569,7 @@ const [editingId, setEditingId] = useState(null);
                     <td className="px-6 py-4 text-sm text-gray-700">{transaction.vehicle_type || 'N/A'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{transaction.acquisition_amount || 'N/A'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{transaction.total_amount || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700 flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleView(transaction)}
-                      >
-                        View
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleEdit(transaction)}
-                      >
-                        Edit
-                      </Button>
-                    </td>
+
                   </tr>
                 ))}
               </tbody>

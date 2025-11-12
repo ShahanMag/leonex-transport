@@ -1,126 +1,208 @@
-const Payment = require('../models/Payment');
-const Load = require('../models/Load');
-const Driver = require('../models/Driver');
+const ExcelJS = require('exceljs');
+const moment = require('moment');
 const Company = require('../models/Company');
+const Driver = require('../models/Driver');
+const Vehicle = require('../models/Vehicle');
+const Load = require('../models/Load');
+const Payment = require('../models/Payment');
 
-// Balance Report - Displays pending payments per driver or company
-exports.getBalanceReport = async (req, res) => {
+/**
+ * Helper: Generate Excel file from data array
+ */
+const generateExcel = async (sheetName, columns, data, res) => {
   try {
-    const payments = await Payment.find()
-      .populate('payer_id')
-      .populate('payee_id');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(sheetName);
 
-    const balanceReport = {};
-    payments.forEach((payment) => {
-      const payee = payment.payee || 'Unknown';
-      if (!balanceReport[payee]) {
-        balanceReport[payee] = { total: 0, payments: [] };
-      }
-      balanceReport[payee].total += payment.amount;
-      balanceReport[payee].payments.push(payment);
+    worksheet.columns = columns;
+    worksheet.addRows(data);
+
+    // Add simple styling
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true };
+      cell.alignment = { horizontal: 'center' };
     });
 
-    res.status(200).json(balanceReport);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const fileName = `${sheetName}-${moment().format('YYYY-MM-DD-HHmmss')}.xlsx`;
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName}"`
+    );
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('Excel generation error:', err);
+    res.status(500).json({ message: 'Failed to generate Excel report' });
   }
 };
 
-// Payment History - Tracks all rental and driver-related transactions
-exports.getPaymentHistory = async (req, res) => {
+/**
+ * 🏢 Company Report
+ */
+exports.getCompanyReport = async (req, res) => {
   try {
-    const payments = await Payment.find()
-      .sort({ date: -1 })
-      .populate('payer_id')
-      .populate('payee_id')
-      .populate('load_id');
+    const companies = await Company.find().lean();
 
-    const history = payments.map((payment) => ({
-      _id: payment._id,
-      payer: payment.payer,
-      payee: payment.payee,
-      amount: payment.amount,
-      date: payment.date,
-      type: payment.type,
-      description: payment.description,
-      load: payment.load_id,
+    const data = companies.map(c => ({
+      Name: c.name,
+      Contact: c.contact,
+      Email: c.email,
+      Address: c.address,
+      Phone: `${c.phone_country_code || ''}${c.phone_number || ''}`,
+      CreatedAt: moment(c.createdAt).format('YYYY-MM-DD'),
     }));
 
-    res.status(200).json(history);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const columns = [
+      { header: 'Name', key: 'Name', width: 25 },
+      { header: 'Contact', key: 'Contact', width: 25 },
+      { header: 'Email', key: 'Email', width: 30 },
+      { header: 'Address', key: 'Address', width: 30 },
+      { header: 'Phone', key: 'Phone', width: 20 },
+      { header: 'Created At', key: 'CreatedAt', width: 15 },
+    ];
+
+    await generateExcel('Company Report', columns, data, res);
+  } catch (err) {
+    console.error('Company report error:', err);
+    res.status(500).json({ message: 'Failed to generate company report' });
   }
 };
 
-// Vehicle Type Utilization Report - Shows usage by vehicle type
-exports.getVehicleUtilizationReport = async (req, res) => {
+/**
+ * 👷 Driver Report
+ */
+exports.getDriverReport = async (req, res) => {
   try {
-    const loads = await Load.find();
-    const payments = await Payment.find();
+    const drivers = await Driver.find().lean();
 
-    // Group loads by vehicle type
-    const vehicleTypeMap = {};
-    loads.forEach((load) => {
-      if (!vehicleTypeMap[load.vehicle_type]) {
-        vehicleTypeMap[load.vehicle_type] = {
-          total_loads: 0,
-          completed_loads: 0,
-          pending_loads: 0,
-        };
-      }
-      vehicleTypeMap[load.vehicle_type].total_loads++;
-      if (load.status === 'completed') {
-        vehicleTypeMap[load.vehicle_type].completed_loads++;
-      } else if (load.status === 'pending' || load.status === 'assigned') {
-        vehicleTypeMap[load.vehicle_type].pending_loads++;
-      }
-    });
-
-    const utilizationReport = Object.entries(vehicleTypeMap).map(([vehicleType, data]) => ({
-      vehicle_type: vehicleType,
-      ...data,
-      utilization_rate: data.total_loads > 0
-        ? ((data.completed_loads / data.total_loads) * 100).toFixed(2) + '%'
-        : '0%',
+    const data = drivers.map(d => ({
+      Name: d.name,
+      IqamaID: d.iqama_id,
+      Phone: `${d.phone_country_code || ''}${d.phone_number || ''}`,
+      CreatedAt: moment(d.createdAt).format('YYYY-MM-DD'),
     }));
 
-    res.status(200).json(utilizationReport);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const columns = [
+      { header: 'Name', key: 'Name', width: 25 },
+      { header: 'Iqama ID', key: 'IqamaID', width: 20 },
+      { header: 'Phone', key: 'Phone', width: 20 },
+      { header: 'Created At', key: 'CreatedAt', width: 15 },
+    ];
+
+    await generateExcel('Driver Report', columns, data, res);
+  } catch (err) {
+    console.error('Driver report error:', err);
+    res.status(500).json({ message: 'Failed to generate driver report' });
   }
 };
 
-// Driver Performance Report - Monitors completed deliveries and earnings
-exports.getDriverPerformanceReport = async (req, res) => {
+/**
+ * 🚚 Vehicle Report
+ */
+exports.getVehicleReport = async (req, res) => {
   try {
-    const drivers = await Driver.find();
-    const loads = await Load.find();
-    const payments = await Payment.find();
+    const vehicles = await Vehicle.find().populate('company_id').lean();
 
-    const performanceReport = drivers.map((driver) => {
-      const driverLoads = loads.filter((load) => load.driver_id && load.driver_id.toString() === driver._id.toString());
-      const completedLoads = driverLoads.filter((load) => load.status === 'completed');
-      const driverPayments = payments.filter((payment) => payment.payee === driver.name);
+    const data = vehicles.map(v => ({
+      VehicleType: v.vehicle_type,
+      PlateNo: v.plate_no,
+      Company: v.company_id?.name || 'N/A',
+      AcquisitionCost: v.acquisition_cost || 0,
+      AcquisitionDate: moment(v.acquisition_date).format('YYYY-MM-DD'),
+    }));
 
-      const totalEarnings = driverPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    const columns = [
+      { header: 'Vehicle Type', key: 'VehicleType', width: 20 },
+      { header: 'Plate Number', key: 'PlateNo', width: 20 },
+      { header: 'Company', key: 'Company', width: 25 },
+      { header: 'Acquisition Cost', key: 'AcquisitionCost', width: 20 },
+      { header: 'Acquisition Date', key: 'AcquisitionDate', width: 20 },
+    ];
 
-      return {
-        _id: driver._id,
-        name: driver.name,
-        license_no: driver.license_no,
-        status: driver.status,
-        total_loads: driverLoads.length,
-        completed_loads: completedLoads.length,
-        pending_loads: driverLoads.filter((load) => load.status === 'in-transit').length,
-        total_earnings: totalEarnings,
-        performance_rate: driverLoads.length > 0
-          ? ((completedLoads.length / driverLoads.length) * 100).toFixed(2) + '%'
-          : '0%',
-      };
-    });
+    await generateExcel('Vehicle Report', columns, data, res);
+  } catch (err) {
+    console.error('Vehicle report error:', err);
+    res.status(500).json({ message: 'Failed to generate vehicle report' });
+  }
+};
 
-    res.status(200).json(performanceReport);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+/**
+ * 📦 Load Report
+ */
+exports.getLoadReport = async (req, res) => {
+  try {
+    const loads = await Load.find()
+      .populate('company_id')
+      .populate('driver_id')
+      .lean();
+
+    const data = loads.map(l => ({
+      RentalCode: l.rental_code,
+      Company: l.company_id?.name || 'N/A',
+      Driver: l.driver_id?.name || 'N/A',
+      From: l.from_location,
+      To: l.to_location,
+      VehicleType: l.vehicle_type,
+      CreatedAt: moment(l.createdAt).format('YYYY-MM-DD'),
+    }));
+
+    const columns = [
+      { header: 'Rental Code', key: 'RentalCode', width: 20 },
+      { header: 'Company', key: 'Company', width: 25 },
+      { header: 'Driver', key: 'Driver', width: 25 },
+      { header: 'From', key: 'From', width: 20 },
+      { header: 'To', key: 'To', width: 20 },
+      { header: 'Vehicle Type', key: 'VehicleType', width: 20 },
+      { header: 'Created At', key: 'CreatedAt', width: 15 },
+    ];
+
+    await generateExcel('Load Report', columns, data, res);
+  } catch (err) {
+    console.error('Load report error:', err);
+    res.status(500).json({ message: 'Failed to generate load report' });
+  }
+};
+
+/**
+ * 💰 Payment Report
+ */
+exports.getPaymentReport = async (req, res) => {
+  try {
+    const payments = await Payment.find()
+      .populate('company_id')
+      .populate('driver_id')
+      .populate('load_id')
+      .lean();
+
+    const data = payments.map(p => ({
+      PaymentType: p.payment_type,
+      Company: p.company_id?.name || 'N/A',
+      Driver: p.driver_id?.name || 'N/A',
+      LoadCode: p.load_id?.rental_code || 'N/A',
+      TotalAmount: p.total_amount,
+      Status: p.status,
+      TransactionDate: moment(p.transaction_date).format('YYYY-MM-DD'),
+    }));
+
+    const columns = [
+      { header: 'Payment Type', key: 'PaymentType', width: 20 },
+      { header: 'Company', key: 'Company', width: 25 },
+      { header: 'Driver', key: 'Driver', width: 25 },
+      { header: 'Load Code', key: 'LoadCode', width: 20 },
+      { header: 'Total Amount', key: 'TotalAmount', width: 20 },
+      { header: 'Status', key: 'Status', width: 15 },
+      { header: 'Transaction Date', key: 'TransactionDate', width: 20 },
+    ];
+
+    await generateExcel('Payment Report', columns, data, res);
+  } catch (err) {
+    console.error('Payment report error:', err);
+    res.status(500).json({ message: 'Failed to generate payment report' });
   }
 };
