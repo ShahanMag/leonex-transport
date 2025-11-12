@@ -79,7 +79,16 @@ export const reportAPI = {
 // Transaction Services - Unified rental transaction endpoint
 export const transactionAPI = {
   createRentalTransaction: (data) => api.post('/transactions/rental', data),
+
+  // ✅ Fetch all rental transactions (optional, if you add backend support)
   getAll: () => api.get('/loads'),
+
+  // ✅ Fetch a single rental transaction by ID or rental_code
+  getById: (id) => api.get(`/transactions/rental/${id}`),
+
+  // ✅ Update a single rental transaction (load + payments)
+  update: (id, data) => api.put(`/transactions/rental/${id}`, data),
 };
+
 
 export default api;

@@ -144,7 +144,7 @@ exports.createRentalTransaction = async (req, res) => {
     const acquisitionPayment = new Payment({
       payer: company.name,
       payer_id: company._id,
-      payee: 'Supplier',
+      payee: 'Leonix',
       company_id: company._id,
       load_id: savedLoad._id,
       total_amount: acquisition_cost,
@@ -233,5 +233,51 @@ exports.createRentalTransaction = async (req, res) => {
     res.status(400).json({ message: error.message });
   } finally {
     if (session) session.endSession();
+  }
+};
+exports.getRentalTransactionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1️⃣ Find Load (rental)
+    const load = await Load.findOne({
+      $or: [{ _id: id }, { rental_code: id }],
+    })
+      .populate('company_id', 'name company_code contact address email phone_country_code phone_number')
+      .populate('driver_id', 'name driver_code iqama_id phone_country_code phone_number status')
+      .lean();
+
+    if (!load) {
+      return res.status(404).json({ message: 'Rental transaction not found' });
+    }
+
+    // 2️⃣ Find related payments
+    const payments = await Payment.find({ load_id: load._id }).lean();
+
+    const rentalPayment = payments.find(p => p.payment_type === 'driver-rental');
+    const acquisitionPayment = payments.find(p => p.payment_type === 'vehicle-acquisition');
+
+    // 3️⃣ Combine into one structured response
+    res.status(200).json({
+      rental_code: load.rental_code,
+      vehicle_type: load.vehicle_type,
+      from_location: load.from_location,
+      to_location: load.to_location,
+      rental_amount: load.rental_amount,
+      rental_date: load.rental_date,
+      status: load.status,
+
+      company: load.company_id, // full populated company object
+      driver: load.driver_id,   // full populated driver object
+
+      payments: {
+        rental: rentalPayment || null,
+        acquisition: acquisitionPayment || null,
+      },
+    });
+
+  } catch (error) {
+    console.error('Error fetching rental transaction:', error);
+    res.status(500).json({ message: 'Failed to fetch rental transaction', error: error.message });
   }
 };

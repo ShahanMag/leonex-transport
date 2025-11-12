@@ -14,6 +14,7 @@ export default function RentalTransaction() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errors, setErrors] = useState({});
   const [transactions, setTransactions] = useState([]);
+const [editingId, setEditingId] = useState(null);
 
   const [formValues, setFormValues] = useState({
     // Company
@@ -252,8 +253,9 @@ export default function RentalTransaction() {
       setIsLoading(false);
     }
   };
+  console.log(companies);
 
-  const companyOptions = companies.map(c => ({
+  const companyOptions = companies?.map(c => ({
     value: c._id,
     label: c.name
   }));
@@ -271,6 +273,46 @@ export default function RentalTransaction() {
     { value: '+966', label: '+966 (Saudi Arabia)' },
     { value: '+971', label: '+971 (UAE)' },
   ];
+  // View transaction
+  const handleView = async (transaction) => {
+    try {
+      const id = transaction.load_id?._id || transaction.load_id;
+      const response = await transactionAPI.getById(id);
+      console.log('Transaction details:', response.data);
+      showSuccess('Transaction data loaded in console (you can expand this to a View modal)');
+    } catch (error) {
+      console.error('View error:', error);
+      showError('Failed to fetch transaction details');
+    }
+  };
+
+  // Edit transaction
+  const handleEdit = async (transaction) => {
+    try {
+      const id = transaction.load_id?._id || transaction.load_id;
+      const response = await transactionAPI.getById(id);
+
+      const t = response.data;
+
+      setFormValues({
+        company_id: t.company?._id || '',
+        driver_id: t.driver?._id || '',
+        vehicle_type: t.vehicle_type || '',
+        plate_no: t.payments?.acquisition?.plate_no || '',
+        acquisition_cost: t.payments?.acquisition?.total_amount || '',
+        acquisition_date: t.payments?.acquisition?.acquisition_date?.split('T')[0] || '',
+        from_location: t.from_location || '',
+        to_location: t.to_location || '',
+        rental_amount: t.payments?.rental?.total_amount || '',
+        rental_date: t.payments?.rental?.rental_date?.split('T')[0] || '',
+      });
+
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error('Edit fetch error:', error);
+      showError('Failed to load transaction for editing');
+    }
+  };
 
   return (
     <div className="p-6">
@@ -513,9 +555,8 @@ export default function RentalTransaction() {
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">To</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Vehicle Type</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Acquisition Amount</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Acquisition Date</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Rental Amount</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Rental Date</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -528,9 +569,23 @@ export default function RentalTransaction() {
                     <td className="px-6 py-4 text-sm text-gray-700">{transaction.to_location || 'N/A'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{transaction.vehicle_type || 'N/A'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{transaction.acquisition_amount || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.acquisition_date ? new Date(transaction.acquisition_date).toLocaleDateString() : 'N/A'}</td>
                     <td className="px-6 py-4 text-sm text-gray-700">{transaction.total_amount || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.rental_date ? new Date(transaction.rental_date).toLocaleDateString() : 'N/A'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700 flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleView(transaction)}
+                      >
+                        View
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleEdit(transaction)}
+                      >
+                        Edit
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -538,6 +593,7 @@ export default function RentalTransaction() {
           </div>
         )}
       </div>
+
     </div>
   );
 }
