@@ -9,7 +9,9 @@ const api = axios.create({
   },
 });
 
-// Company Services
+// ==========================
+// 🏢 Company Services
+// ==========================
 export const companyAPI = {
   getAll: () => api.get('/companies'),
   getById: (id) => api.get(`/companies/${id}`),
@@ -19,7 +21,9 @@ export const companyAPI = {
   delete: (id) => api.delete(`/companies/${id}`),
 };
 
-// Vehicle Services
+// ==========================
+// 🚚 Vehicle Services
+// ==========================
 export const vehicleAPI = {
   getAll: () => api.get('/vehicles'),
   getById: (id) => api.get(`/vehicles/${id}`),
@@ -31,7 +35,9 @@ export const vehicleAPI = {
   delete: (id) => api.delete(`/vehicles/${id}`),
 };
 
-// Driver Services
+// ==========================
+// 👷 Driver Services
+// ==========================
 export const driverAPI = {
   getAll: () => api.get('/drivers'),
   getById: (id) => api.get(`/drivers/${id}`),
@@ -41,7 +47,9 @@ export const driverAPI = {
   delete: (id) => api.delete(`/drivers/${id}`),
 };
 
-// Load Services
+// ==========================
+// 📦 Load Services
+// ==========================
 export const loadAPI = {
   getAll: () => api.get('/loads'),
   getById: (id) => api.get(`/loads/${id}`),
@@ -54,7 +62,9 @@ export const loadAPI = {
   delete: (id) => api.delete(`/loads/${id}`),
 };
 
-// Payment Services
+// ==========================
+// 💰 Payment Services
+// ==========================
 export const paymentAPI = {
   getAll: () => api.get('/payments'),
   getById: (id) => api.get(`/payments/${id}`),
@@ -68,27 +78,45 @@ export const paymentAPI = {
   delete: (id) => api.delete(`/payments/${id}`),
 };
 
-// Report Services
+// ==========================
+// 📊 Report Services
+// ==========================
 export const reportAPI = {
-  getBalanceReport: () => api.get('/reports/balance'),
-  getPaymentHistory: () => api.get('/reports/payment-history'),
+  // --- 📄 JSON Reports ---
+  // These endpoints return JSON data to display in tables
+  getCompanyPayments: () => api.get('/reports/company-payments'),
+  getRentalPayments: () => api.get('/reports/rental-payments'),
   getVehicleUtilization: () => api.get('/reports/vehicle-utilization'),
   getDriverPerformance: () => api.get('/reports/driver-performance'),
+
+  // --- 📥 Excel Download Reports ---
+  // These endpoints return Excel files (blob)
+  downloadCompanies: () => api.get('/reports/companies', { responseType: 'blob' }),
+  downloadDrivers: () => api.get('/reports/drivers', { responseType: 'blob' }),
+  downloadVehicles: () => api.get('/reports/vehicles', { responseType: 'blob' }),
+  downloadLoads: () => api.get('/reports/loads', { responseType: 'blob' }),
+
+  // --- 💰 Split Payment Reports (Excel) ---
+  downloadCompanyPayments: () => api.get('/reports/payments/company', { responseType: 'blob' }),
+  downloadRentalPayments: () => api.get('/reports/payments/rental', { responseType: 'blob' }),
 };
 
-// Transaction Services - Unified rental transaction endpoint
+
+
+// ==========================
+// 🔄 Transaction Services
+// ==========================
 export const transactionAPI = {
   createRentalTransaction: (data) => api.post('/transactions/rental', data),
 
-  // ✅ Fetch all rental transactions (optional, if you add backend support)
+  // ✅ Fetch all rental transactions
   getAll: () => api.get('/loads'),
 
-  // ✅ Fetch a single rental transaction by ID or rental_code
+  // ✅ Fetch a single rental transaction by ID
   getById: (id) => api.get(`/transactions/rental/${id}`),
 
-  // ✅ Update a single rental transaction (load + payments)
+  // ✅ Update a rental transaction
   update: (id, data) => api.put(`/transactions/rental/${id}`, data),
 };
-
 
 export default api;
