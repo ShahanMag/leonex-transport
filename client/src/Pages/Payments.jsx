@@ -5,6 +5,31 @@ import Form from '../components/Form';
 import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
 
+// 📊 Summary Card Component
+const StatCard = ({ title, value, icon, color = 'blue' }) => {
+  const colorClasses = {
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    red: 'bg-red-500',
+    yellow: 'bg-yellow-500',
+    purple: 'bg-purple-500',
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium mb-1">{title}</p>
+          <p className="text-2xl font-bold text-gray-800">{value}</p>
+        </div>
+        <div className={`${colorClasses[color]} p-3 rounded-lg`}>
+          <span className="text-white text-2xl">{icon}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Payments() {
   const [payments, setPayments] = useState([]);
   const [loads, setLoads] = useState([]);
@@ -288,11 +313,25 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
 
   const selectedPayment = getSelectedPayment();
 
+  // 📊 Calculate Summary Statistics
+  const calculateSummary = () => {
+    if (!displayPayments || displayPayments.length === 0) {
+      return { totalAmount: 0, totalPaid: 0, totalDue: 0, count: 0 };
+    }
+
+    const totalAmount = displayPayments.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+    const totalPaid = displayPayments.reduce((sum, p) => sum + (p.total_paid || 0), 0);
+    const totalDue = displayPayments.reduce((sum, p) => sum + (p.total_due || 0), 0);
+    const count = displayPayments.length;
+
+    return { totalAmount, totalPaid, totalDue, count };
+  };
+
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Payments</h1>
-        <p className="text-gray-600 text-sm mt-1">Manage payment records and installments. Payments are automatically created when you create rental transactions.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Payments</h1>
+        <p className="text-gray-600 text-xs md:text-sm mt-1">Manage payment records and installments. Payments are automatically created when you create rental transactions.</p>
       </div>
 
       {/* Info Banner */}
@@ -350,18 +389,51 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
         </button>
       </div>
 
+      {/* Summary Cards */}
+      {displayPayments.length > 0 && (() => {
+        const summary = calculateSummary();
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <StatCard
+              title="Total Amount"
+              value={`SAR ${summary.totalAmount.toLocaleString()}`}
+              icon="💰"
+              color="blue"
+            />
+            <StatCard
+              title="Total Paid"
+              value={`SAR ${summary.totalPaid.toLocaleString()}`}
+              icon="✅"
+              color="green"
+            />
+            <StatCard
+              title="Total Due"
+              value={`SAR ${summary.totalDue.toLocaleString()}`}
+              icon="⏳"
+              color="red"
+            />
+            <StatCard
+              title="Total Payments"
+              value={summary.count}
+              icon="📋"
+              color="purple"
+            />
+          </div>
+        );
+      })()}
+
       {/* Payments Table with Nested History */}
       <div className="mb-8">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+        <div className="overflow-x-auto bg-white rounded-lg shadow">
+          <table className="w-full border-collapse min-w-max">
             <thead>
               <tr className="bg-gray-100 border-b">
                 {columns.map((col) => (
-                  <th key={col.key} className="px-6 py-3 text-left text-sm font-semibold text-gray-800">
+                  <th key={col.key} className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">
                     {col.label}
                   </th>
                 ))}
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Actions</th>
+                <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -370,28 +442,30 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                   {/* Main payment row */}
                   <tr className="border-b hover:bg-gray-50">
                     {columns.map((col) => (
-                      <td key={col.key} className="px-6 py-4 text-sm text-gray-700">
+                      <td key={col.key} className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">
                         {col.render ? col.render(payment[col.key], payment) : payment[col.key]}
                       </td>
                     ))}
-                    <td className="px-6 py-4 text-sm text-gray-700 flex gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedPaymentId(payment._id);
-                          setInstallmentValues({ amount: '', notes: '' });
-                          setInstallmentErrors({});
-                          setIsInstallmentOpen(true);
-                        }}
-                        className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-medium hover:bg-green-200 transition-colors"
-                      >
-                        Register
-                      </button>
-                      <button
-                        onClick={() => handleDeletePayment(payment)}
-                        className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-medium hover:bg-red-200 transition-colors"
-                      >
-                        Delete
-                      </button>
+                    <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">
+                      <div className="flex gap-1 md:gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedPaymentId(payment._id);
+                            setInstallmentValues({ amount: '', notes: '' });
+                            setInstallmentErrors({});
+                            setIsInstallmentOpen(true);
+                          }}
+                          className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-medium hover:bg-green-200 transition-colors"
+                        >
+                          Register
+                        </button>
+                        <button
+                          onClick={() => handleDeletePayment(payment)}
+                          className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-medium hover:bg-red-200 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
 

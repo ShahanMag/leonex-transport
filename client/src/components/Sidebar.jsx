@@ -19,12 +19,10 @@ export default function Sidebar() {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
     { path: '/rental-transaction', label: 'New Rental', icon: '🚚', highlight: true },
-    { path: '/companies', label: 'Companies', icon: '🏢' },
-    { path: '/drivers', label: 'Drivers', icon: '👤' },
     { path: '/loads', label: 'Rentals', icon: '📦' },
     { path: '/payments', label: 'Payments', icon: '💰' },
     { path: '/reports', label: 'Reports', icon: '📈' },
-    { path: '/users', label: 'Users', icon: '👥' },
+    { path: '/settings', label: 'Settings', icon: '⚙️' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -59,63 +57,59 @@ export default function Sidebar() {
         className={`
           fixed left-0 top-0 h-screen w-64 bg-gray-800 text-white shadow-xl
           transform transition-transform duration-300 ease-in-out z-40
+          flex flex-col
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           md:relative md:translate-x-0
         `}
       >
         {/* Logo Section */}
-        <div className=" border-b border-gray-200 bg-white">
+        <div className="border-b border-gray-700 bg-white py-4">
           <Link to="/" className="flex items-center justify-center" onClick={() => setIsOpen(false)}>
-            <img src={Logo} alt="Leonex" className="w-24 object-contain" />
+            <img src={Logo} alt="Leonex" className="w-24 h-auto object-contain" />
           </Link>
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 px-4 py-6 space-y-2">
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto min-h-0">
           {navItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
               onClick={() => setIsOpen(false)}
               className={`
-                flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200
+                flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all duration-200 text-sm
                 ${
                   isActive(item.path)
-                    ? 'bg-white text-black shadow-lg'
+                    ? 'bg-white text-gray-800 shadow-lg'
                     : 'text-blue-100 hover:bg-blue-600 hover:text-white'
                 }
               `}
             >
-              <span className="text-xl">{item.icon}</span>
+              <span className="text-lg">{item.icon}</span>
               <span>{item.label}</span>
-              {/* {item.highlight && (
-                <span className="ml-auto text-xs bg-yellow-400 text-blue-700 px-2 py-1 rounded font-bold">
-                  NEW
-                </span>
-              )} */}
             </Link>
           ))}
         </nav>
 
         {/* Footer Info */}
-        <div className="px-4 py-4 border-t border-gray-700">
+        <div className="px-4 py-3 border-t border-gray-700 flex-shrink-0">
           {username && (
-            <div className="mb-3">
-              <p className="text-sm text-gray-300 text-center mb-2">
+            <div className="mb-2">
+              <p className="text-xs text-gray-300 text-center mb-2">
                 👤 {username}
               </p>
               <button
                 onClick={handleLogout}
-                className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="w-full bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
               >
                 Logout
               </button>
             </div>
           )}
           <p className="text-xs text-gray-400 text-center">
-            Vehicle Rental Management System
+            Vehicle Rental Management
           </p>
-          <p className="text-xs text-gray-500 text-center mt-1">v2.1.0</p>
+          <p className="text-xs text-gray-500 text-center mt-0.5">v2.1.0</p>
         </div>
       </aside>
 

@@ -3,6 +3,31 @@ import { reportAPI } from '../services/api';
 import Button from '../components/Button';
 import { showError, showSuccess } from '../utils/toast';
 
+// 📊 Summary Card Component
+const StatCard = ({ title, value, icon, color = 'blue' }) => {
+  const colorClasses = {
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    red: 'bg-red-500',
+    yellow: 'bg-yellow-500',
+    purple: 'bg-purple-500',
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium mb-1">{title}</p>
+          <p className="text-2xl font-bold text-gray-800">{value}</p>
+        </div>
+        <div className={`${colorClasses[color]} p-3 rounded-lg`}>
+          <span className="text-white text-2xl">{icon}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Reports() {
   const [activeReport, setActiveReport] = useState('company-payments');
   const [reportData, setReportData] = useState(null);
@@ -66,6 +91,146 @@ export default function Reports() {
     } catch (err) {
       console.error('Download failed', err);
       showError('Failed to download report');
+    }
+  };
+
+  // 📊 Calculate Summary Statistics
+  const calculateSummary = () => {
+    if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
+      return null;
+    }
+
+    switch (activeReport) {
+      case 'company-payments':
+      case 'rental-payments': {
+        const totalAmount = reportData.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+        const totalPaid = reportData.reduce((sum, p) => sum + (p.total_paid || 0), 0);
+        const totalDue = reportData.reduce((sum, p) => sum + (p.total_due || 0), 0);
+        const count = reportData.length;
+        return { totalAmount, totalPaid, totalDue, count };
+      }
+
+      case 'combined-report': {
+        const totalRevenue = reportData.reduce((sum, item) => sum + (item.revenue || 0), 0);
+        const totalCost = reportData.reduce((sum, item) => sum + (item.cost || 0), 0);
+        const netProfit = reportData.reduce((sum, item) => sum + (item.net_profit || 0), 0);
+        const count = reportData.length;
+        return { totalRevenue, totalCost, netProfit, count };
+      }
+
+      case 'profit-loss': {
+        const totalRevenue = reportData.reduce((sum, item) => sum + (item.revenue || 0), 0);
+        const totalCost = reportData.reduce((sum, item) => sum + (item.cost || 0), 0);
+        const netProfit = reportData.reduce((sum, item) => sum + (item.net_profit || 0), 0);
+        const avgMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(2) : 0;
+        const count = reportData.length;
+        return { totalRevenue, totalCost, netProfit, avgMargin, count };
+      }
+
+      default:
+        return null;
+    }
+  };
+
+  // 🎴 Render Summary Cards
+  const SummaryCards = () => {
+    const summary = calculateSummary();
+    if (!summary) return null;
+
+    switch (activeReport) {
+      case 'company-payments':
+      case 'rental-payments':
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <StatCard
+              title="Total Amount"
+              value={`SAR ${summary.totalAmount.toLocaleString()}`}
+              icon="💰"
+              color="blue"
+            />
+            <StatCard
+              title="Total Paid"
+              value={`SAR ${summary.totalPaid.toLocaleString()}`}
+              icon="✅"
+              color="green"
+            />
+            <StatCard
+              title="Total Due"
+              value={`SAR ${summary.totalDue.toLocaleString()}`}
+              icon="⏳"
+              color="red"
+            />
+            <StatCard
+              title="Total Payments"
+              value={summary.count}
+              icon="📋"
+              color="purple"
+            />
+          </div>
+        );
+
+      case 'combined-report':
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <StatCard
+              title="Total Revenue"
+              value={`SAR ${summary.totalRevenue.toLocaleString()}`}
+              icon="💵"
+              color="green"
+            />
+            <StatCard
+              title="Total Cost"
+              value={`SAR ${summary.totalCost.toLocaleString()}`}
+              icon="💸"
+              color="red"
+            />
+            <StatCard
+              title="Net Profit/Loss"
+              value={`SAR ${summary.netProfit.toLocaleString()}`}
+              icon={summary.netProfit >= 0 ? '📈' : '📉'}
+              color={summary.netProfit >= 0 ? 'green' : 'red'}
+            />
+            <StatCard
+              title="Total Transactions"
+              value={summary.count}
+              icon="🔄"
+              color="purple"
+            />
+          </div>
+        );
+
+      case 'profit-loss':
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <StatCard
+              title="Total Revenue"
+              value={`SAR ${summary.totalRevenue.toLocaleString()}`}
+              icon="💵"
+              color="green"
+            />
+            <StatCard
+              title="Total Cost"
+              value={`SAR ${summary.totalCost.toLocaleString()}`}
+              icon="💸"
+              color="red"
+            />
+            <StatCard
+              title="Net Profit/Loss"
+              value={`SAR ${summary.netProfit.toLocaleString()}`}
+              icon={summary.netProfit >= 0 ? '📈' : '📉'}
+              color={summary.netProfit >= 0 ? 'green' : 'red'}
+            />
+            <StatCard
+              title="Avg Profit Margin"
+              value={`${summary.avgMargin}%`}
+              icon="📊"
+              color={summary.netProfit >= 0 ? 'blue' : 'yellow'}
+            />
+          </div>
+        );
+
+      default:
+        return null;
     }
   };
 
@@ -139,30 +304,30 @@ export default function Reports() {
   // =============================
 
   const PaymentsReport = ({ data }) => (
-    <div className="overflow-x-auto border rounded-lg">
-      <table className="w-full">
+    <div className="overflow-x-auto border rounded-lg bg-white">
+      <table className="w-full min-w-max">
         <thead>
           <tr className="bg-gray-100 border-b">
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Type</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Company</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Driver</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Total</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Paid</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Due</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Type</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Company</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Driver</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Total</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Paid</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Due</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Status</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Date</th>
           </tr>
         </thead>
         <tbody>
           {(Array.isArray(data) ? data : []).map((p, i) => (
             <tr key={i} className="border-b hover:bg-gray-50">
-              <td className="px-4 py-3 text-sm text-gray-800">{p.payment_type}</td>
-              <td className="px-4 py-3 text-sm text-gray-800">{p.company}</td>
-              <td className="px-4 py-3 text-sm text-gray-800">{p.driver || '-'}</td>
-              <td className="px-4 py-3 text-sm text-gray-800">₹{p.total_amount?.toLocaleString()}</td>
-              <td className="px-4 py-3 text-sm text-green-700 font-medium">₹{p.total_paid?.toLocaleString()}</td>
-              <td className="px-4 py-3 text-sm text-red-700 font-medium">₹{p.total_due?.toLocaleString()}</td>
-              <td className="px-4 py-3 text-sm">
+              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.payment_type}</td>
+              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.company}</td>
+              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.driver || '-'}</td>
+              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">₹{p.total_amount?.toLocaleString()}</td>
+              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-green-700 font-medium whitespace-nowrap">₹{p.total_paid?.toLocaleString()}</td>
+              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-red-700 font-medium whitespace-nowrap">₹{p.total_due?.toLocaleString()}</td>
+              <td className="px-2 md:px-4 py-3 text-xs md:text-sm">
                 <span
                   className={`px-2 py-1 rounded text-xs font-medium ${
                     p.status === 'paid'
@@ -175,7 +340,7 @@ export default function Reports() {
                   {p.status}
                 </span>
               </td>
-              <td className="px-4 py-3 text-sm text-gray-800">
+              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">
                 {p.transaction_date ? new Date(p.transaction_date).toLocaleDateString() : '-'}
               </td>
             </tr>
@@ -186,22 +351,22 @@ export default function Reports() {
   );
 
   const CombinedReport = ({ data }) => (
-    <div className="overflow-x-auto border rounded-lg">
-      <table className="w-full">
+    <div className="overflow-x-auto border rounded-lg bg-white">
+      <table className="w-full min-w-max">
         <thead>
           <tr className="bg-gray-100 border-b">
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Rental Code</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Company</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Driver</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">From</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">To</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Revenue</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Rev. Paid</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Rev. Due</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cost</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cost Paid</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cost Due</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Net Profit/Loss</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Rental Code</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Company</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Driver</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">From</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">To</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Revenue</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Rev. Paid</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Rev. Due</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Cost</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Cost Paid</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Cost Due</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Net Profit/Loss</th>
           </tr>
         </thead>
         <tbody>
@@ -209,18 +374,18 @@ export default function Reports() {
             const isProfitable = item.net_profit >= 0;
             return (
               <tr key={i} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm text-gray-800">{item.rental_code || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-800">{item.company || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-800">{item.driver || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-800">{item.from_location || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-800">{item.to_location || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-800">SAR {item.revenue?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-sm text-green-700">SAR {item.revenue_paid?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-sm text-red-700">SAR {item.revenue_due?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-sm text-gray-800">SAR {item.cost?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-sm text-green-700">SAR {item.cost_paid?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-sm text-red-700">SAR {item.cost_due?.toLocaleString() || 0}</td>
-                <td className={`px-4 py-3 text-sm font-bold ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">{item.rental_code || '-'}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{item.company || '-'}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{item.driver || '-'}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{item.from_location || '-'}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{item.to_location || '-'}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">SAR {item.revenue?.toLocaleString() || 0}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-green-700 whitespace-nowrap">SAR {item.revenue_paid?.toLocaleString() || 0}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-red-700 whitespace-nowrap">SAR {item.revenue_due?.toLocaleString() || 0}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">SAR {item.cost?.toLocaleString() || 0}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-green-700 whitespace-nowrap">SAR {item.cost_paid?.toLocaleString() || 0}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-red-700 whitespace-nowrap">SAR {item.cost_due?.toLocaleString() || 0}</td>
+                <td className={`px-2 md:px-4 py-3 text-xs md:text-sm font-bold whitespace-nowrap ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
                   SAR {item.net_profit?.toLocaleString() || 0}
                 </td>
               </tr>
@@ -232,18 +397,18 @@ export default function Reports() {
   );
 
   const ProfitLossReport = ({ data }) => (
-    <div className="overflow-x-auto border rounded-lg">
-      <table className="w-full">
+    <div className="overflow-x-auto border rounded-lg bg-white">
+      <table className="w-full min-w-max">
         <thead>
           <tr className="bg-gray-100 border-b">
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Rental Code</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Company</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Driver</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Revenue</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cost</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Net Profit/Loss</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Profit Margin</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Rental Code</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Company</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Driver</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Revenue</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Cost</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Net Profit/Loss</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Profit Margin</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Date</th>
           </tr>
         </thead>
         <tbody>
@@ -251,18 +416,18 @@ export default function Reports() {
             const isProfitable = item.net_profit >= 0;
             return (
               <tr key={i} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm text-gray-800">{item.rental_code || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-800">{item.company || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-800">{item.driver || '-'}</td>
-                <td className="px-4 py-3 text-sm text-green-700 font-medium">SAR {item.revenue?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-sm text-red-700 font-medium">SAR {item.cost?.toLocaleString() || 0}</td>
-                <td className={`px-4 py-3 text-sm font-bold ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">{item.rental_code || '-'}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{item.company || '-'}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{item.driver || '-'}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-green-700 font-medium whitespace-nowrap">SAR {item.revenue?.toLocaleString() || 0}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-red-700 font-medium whitespace-nowrap">SAR {item.cost?.toLocaleString() || 0}</td>
+                <td className={`px-2 md:px-4 py-3 text-xs md:text-sm font-bold whitespace-nowrap ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
                   SAR {item.net_profit?.toLocaleString() || 0}
                 </td>
-                <td className={`px-4 py-3 text-sm font-medium ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                <td className={`px-2 md:px-4 py-3 text-xs md:text-sm font-medium whitespace-nowrap ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
                   {item.profit_margin || '0%'}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-800">
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">
                   {item.rental_date ? new Date(item.rental_date).toLocaleDateString() : '-'}
                 </td>
               </tr>
@@ -352,15 +517,16 @@ export default function Reports() {
   // 🔹 Page Layout
   // =============================
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Reports</h1>
-        <p className="text-gray-600 mt-2">View detailed reports and download Excel files</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Reports</h1>
+        <p className="text-sm md:text-base text-gray-600 mt-2">View detailed reports and download Excel files</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
         <ReportTabs />
         <DownloadButton reportType={activeReport} />
+        <SummaryCards />
         {renderReport()}
       </div>
     </div>

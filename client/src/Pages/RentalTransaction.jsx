@@ -5,6 +5,31 @@ import Form from '../components/Form';
 import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
 
+// 📊 Summary Card Component
+const StatCard = ({ title, value, icon, color = 'blue' }) => {
+  const colorClasses = {
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    red: 'bg-red-500',
+    yellow: 'bg-yellow-500',
+    purple: 'bg-purple-500',
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium mb-1">{title}</p>
+          <p className="text-2xl font-bold text-gray-800">{value}</p>
+        </div>
+        <div className={`${colorClasses[color]} p-3 rounded-lg`}>
+          <span className="text-white text-2xl">{icon}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function RentalTransaction() {
   const [isLoading, setIsLoading] = useState(false);
   const [companies, setCompanies] = useState([]);
@@ -327,11 +352,25 @@ export default function RentalTransaction() {
     }
   };
 
+  // 📊 Calculate Summary Statistics
+  const calculateSummary = () => {
+    if (!transactions || transactions.length === 0) {
+      return { totalRevenue: 0, totalCost: 0, netProfit: 0, count: 0 };
+    }
+
+    const totalRevenue = transactions.reduce((sum, t) => sum + (t.acquisition_amount || 0), 0);
+    const totalCost = transactions.reduce((sum, t) => sum + (t.total_amount || 0), 0);
+    const netProfit = totalRevenue - totalCost;
+    const count = transactions.length;
+
+    return { totalRevenue, totalCost, netProfit, count };
+  };
+
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Create Rental Transaction</h1>
+    <div className="p-4 md:p-6">
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Rental Transactions</h1>
           <Button variant="success" onClick={() => setIsModalOpen(true)}>
             + New Rental Transaction
           </Button>
@@ -562,25 +601,59 @@ export default function RentalTransaction() {
       {/* Transactions Table */}
       <div className="mt-12">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Rental Transactions</h2>
+
+        {/* Summary Cards */}
+        {transactions.length > 0 && (() => {
+          const summary = calculateSummary();
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+              <StatCard
+                title="Total Revenue"
+                value={`SAR ${summary.totalRevenue.toLocaleString()}`}
+                icon="💵"
+                color="green"
+              />
+              <StatCard
+                title="Total Cost"
+                value={`SAR ${summary.totalCost.toLocaleString()}`}
+                icon="💸"
+                color="red"
+              />
+              <StatCard
+                title="Net Profit/Loss"
+                value={`SAR ${summary.netProfit.toLocaleString()}`}
+                icon={summary.netProfit >= 0 ? '📈' : '📉'}
+                color={summary.netProfit >= 0 ? 'green' : 'red'}
+              />
+              <StatCard
+                title="Total Transactions"
+                value={summary.count}
+                icon="🔄"
+                color="purple"
+              />
+            </div>
+          );
+        })()}
+
         {transactions.length === 0 ? (
           <div className="bg-gray-50 p-8 rounded-lg text-center">
             <p className="text-gray-600">No rental transactions yet. Click "New Rental Transaction" to create one.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
+          <div className="overflow-x-auto bg-white rounded-lg shadow">
+            <table className="w-full border-collapse min-w-max">
               <thead>
                 <tr className="bg-gray-100 border-b">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Rental Code</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Company</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Driver</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">From</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">To</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Vehicle Type</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Revenue</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Cost</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Net Profit/Loss</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Actions</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Rental Code</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Company</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Driver</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">From</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">To</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Vehicle Type</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Revenue</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Cost</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Net Profit/Loss</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -592,19 +665,19 @@ export default function RentalTransaction() {
 
                   return (
                     <tr key={transaction._id} className="border-b hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.load_id?.rental_code || 'N/A'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.payer || 'N/A'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.from_location || 'N/A'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.to_location || 'N/A'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.vehicle_type || 'N/A'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{revenue ? `${revenue.toLocaleString()} SAR` : 'N/A'}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{cost ? `${cost.toLocaleString()} SAR` : 'N/A'}</td>
-                      <td className={`px-6 py-4 text-sm font-semibold ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.load_id?.rental_code || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.payer || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.from_location || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.to_location || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.vehicle_type || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{revenue ? `${revenue.toLocaleString()} SAR` : 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{cost ? `${cost.toLocaleString()} SAR` : 'N/A'}</td>
+                      <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm font-semibold whitespace-nowrap ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
                         {revenue && cost ? `${netProfit.toLocaleString()} SAR` : 'N/A'}
                       </td>
-                      <td className="px-6 py-4 text-sm">
-                        <div className="flex gap-2">
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm">
+                        <div className="flex gap-1 md:gap-2">
                           <Button
                             variant="primary"
                             onClick={() => handleView(transaction)}

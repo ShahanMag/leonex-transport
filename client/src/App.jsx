@@ -11,6 +11,7 @@ import Reports from "./Pages/Reports";
 import RentalTransaction from "./Pages/RentalTransaction";
 import Login from "./Pages/Login";
 import Users from "./Pages/Users";
+import Settings from "./Pages/Settings";
 import './App.css';
 
 // Protected Route Component
@@ -135,6 +136,16 @@ function App() {
             <ProtectedRoute>
               <AppLayout>
                 <Users />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Settings />
               </AppLayout>
             </ProtectedRoute>
           }
