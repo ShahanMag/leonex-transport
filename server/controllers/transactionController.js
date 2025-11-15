@@ -146,6 +146,7 @@ exports.createRentalTransaction = async (req, res) => {
       payer_id: company._id,
       payee: 'Leonix',
       company_id: company._id,
+      driver_id: driver._id,
       load_id: savedLoad._id,
       total_amount: acquisition_cost,
       total_paid: 0,
@@ -279,5 +280,96 @@ exports.getRentalTransactionById = async (req, res) => {
   } catch (error) {
     console.error('Error fetching rental transaction:', error);
     res.status(500).json({ message: 'Failed to fetch rental transaction', error: error.message });
+  }
+};
+
+/**
+ * Update Rental Transaction
+ *
+ * Updates Load and related Payment records
+ */
+exports.updateRentalTransaction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      vehicle_type,
+      plate_no,
+      from_location,
+      to_location,
+      acquisition_cost,
+      acquisition_date,
+      rental_amount,
+      rental_date,
+    } = req.body;
+
+    // 1️⃣ Find and update Load
+    const load = await Load.findOne({
+      $or: [{ _id: id }, { rental_code: id }],
+    });
+
+    if (!load) {
+      return res.status(404).json({ message: 'Rental transaction not found' });
+    }
+
+    // Update load fields
+    if (vehicle_type) load.vehicle_type = vehicle_type;
+    if (from_location) load.from_location = from_location;
+    if (to_location) load.to_location = to_location;
+    if (rental_amount) load.rental_amount = rental_amount;
+    if (rental_date) load.rental_date = new Date(rental_date);
+
+    await load.save();
+
+    // 2️⃣ Find and update related payments
+    const payments = await Payment.find({ load_id: load._id });
+
+    const acquisitionPayment = payments.find(p => p.payment_type === 'vehicle-acquisition');
+    const rentalPayment = payments.find(p => p.payment_type === 'driver-rental');
+
+    // Update acquisition payment
+    if (acquisitionPayment) {
+      if (vehicle_type) acquisitionPayment.vehicle_type = vehicle_type;
+      if (plate_no !== undefined) acquisitionPayment.plate_no = plate_no;
+      if (acquisition_cost) {
+        acquisitionPayment.total_amount = acquisition_cost;
+        acquisitionPayment.total_due = acquisition_cost - acquisitionPayment.total_paid;
+      }
+      if (acquisition_date) {
+        acquisitionPayment.acquisition_date = new Date(acquisition_date);
+        acquisitionPayment.transaction_date = new Date(acquisition_date);
+      }
+      await acquisitionPayment.save();
+    }
+
+    // Update rental payment
+    if (rentalPayment) {
+      if (vehicle_type) rentalPayment.vehicle_type = vehicle_type;
+      if (from_location) rentalPayment.from_location = from_location;
+      if (to_location) rentalPayment.to_location = to_location;
+      if (rental_amount) {
+        rentalPayment.total_amount = rental_amount;
+        rentalPayment.total_due = rental_amount - rentalPayment.total_paid;
+      }
+      if (rental_date) {
+        rentalPayment.rental_date = new Date(rental_date);
+        rentalPayment.transaction_date = new Date(rental_date);
+      }
+      await rentalPayment.save();
+    }
+
+    res.status(200).json({
+      message: 'Rental transaction updated successfully',
+      data: {
+        load,
+        payments: {
+          acquisition: acquisitionPayment,
+          rental: rentalPayment,
+        },
+      },
+    });
+
+  } catch (error) {
+    console.error('Error updating rental transaction:', error);
+    res.status(500).json({ message: 'Failed to update rental transaction', error: error.message });
   }
 };

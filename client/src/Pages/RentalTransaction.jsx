@@ -12,6 +12,8 @@ export default function RentalTransaction() {
   const [companyType, setCompanyType] = useState('existing'); // 'existing' or 'new'
   const [driverType, setDriverType] = useState('existing'); // 'existing' or 'new'
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewData, setViewData] = useState(null);
   const [errors, setErrors] = useState({});
   const [transactions, setTransactions] = useState([]);
   const [editingId, setEditingId] = useState(null);
@@ -211,9 +213,16 @@ export default function RentalTransaction() {
         rental_date: formValues.rental_date,
       };
 
-      const response = await transactionAPI.createRentalTransaction(payload);
-
-      showSuccess('Rental transaction created successfully!');
+      let response;
+      if (editingId) {
+        // Update existing transaction
+        response = await transactionAPI.update(editingId, payload);
+        showSuccess('Rental transaction updated successfully!');
+      } else {
+        // Create new transaction
+        response = await transactionAPI.createRentalTransaction(payload);
+        showSuccess('Rental transaction created successfully!');
+      }
 
       // Refresh transactions list
       fetchTransactions();
@@ -243,6 +252,7 @@ export default function RentalTransaction() {
       });
       setCompanyType('existing');
       setDriverType('existing');
+      setEditingId(null);
       setIsModalOpen(false);
 
       console.log('Transaction created:', response.data);
@@ -278,8 +288,8 @@ export default function RentalTransaction() {
     try {
       const id = transaction.load_id?._id || transaction.load_id;
       const response = await transactionAPI.getById(id);
-      console.log('Transaction details:', response.data);
-      showSuccess('Transaction data loaded in console (you can expand this to a View modal)');
+      setViewData(response.data);
+      setIsViewModalOpen(true);
     } catch (error) {
       console.error('View error:', error);
       showError('Failed to fetch transaction details');
@@ -307,6 +317,9 @@ export default function RentalTransaction() {
         rental_date: t.payments?.rental?.rental_date?.split('T')[0] || '',
       });
 
+      setEditingId(id);
+      setCompanyType('existing');
+      setDriverType('existing');
       setIsModalOpen(true);
     } catch (error) {
       console.error('Edit fetch error:', error);
@@ -335,12 +348,22 @@ export default function RentalTransaction() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="New Rental Transaction"
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingId(null);
+        }}
+        title={editingId ? "Edit Rental Transaction" : "New Rental Transaction"}
         size="xl"
         footer={
           <div className="flex gap-3">
-            <Button variant="secondary" onClick={() => setIsModalOpen(false)} disabled={isLoading}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setIsModalOpen(false);
+                setEditingId(null);
+              }}
+              disabled={isLoading}
+            >
               Cancel
             </Button>
             <Button
@@ -348,7 +371,7 @@ export default function RentalTransaction() {
               onClick={handleSubmit}
               disabled={isLoading}
             >
-              {isLoading ? 'Processing...' : 'Create Transaction'}
+              {isLoading ? 'Processing...' : (editingId ? 'Update Transaction' : 'Create Transaction')}
             </Button>
           </div>
         }
@@ -554,29 +577,197 @@ export default function RentalTransaction() {
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">From</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">To</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Vehicle Type</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Acquisition Amount</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Rental Amount</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Revenue</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Cost</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Net Profit/Loss</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-800">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((transaction) => (
-                  <tr key={transaction._id} className="border-b hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.load_id?.rental_code || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.payer || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.from_location || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.to_location || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.vehicle_type || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.acquisition_amount || 'N/A'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{transaction.total_amount || 'N/A'}</td>
+                {transactions.map((transaction) => {
+                  const revenue = transaction.acquisition_amount || 0;
+                  const cost = transaction.total_amount || 0;
+                  const netProfit = revenue - cost;
+                  const isProfitable = netProfit >= 0;
 
-                  </tr>
-                ))}
+                  return (
+                    <tr key={transaction._id} className="border-b hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.load_id?.rental_code || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.payer || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.from_location || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.to_location || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{transaction.vehicle_type || 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{revenue ? `${revenue.toLocaleString()} SAR` : 'N/A'}</td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{cost ? `${cost.toLocaleString()} SAR` : 'N/A'}</td>
+                      <td className={`px-6 py-4 text-sm font-semibold ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                        {revenue && cost ? `${netProfit.toLocaleString()} SAR` : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="primary"
+                            onClick={() => handleView(transaction)}
+                            size="sm"
+                          >
+                            View
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            onClick={() => handleEdit(transaction)}
+                            size="sm"
+                          >
+                            Edit
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* View Transaction Modal */}
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        title="Transaction Details"
+        size="lg"
+        footer={
+          <Button variant="secondary" onClick={() => setIsViewModalOpen(false)}>
+            Close
+          </Button>
+        }
+      >
+        {viewData && (
+          <div className="space-y-6">
+            {/* General Info */}
+            <div className="border-b pb-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">General Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Rental Code</p>
+                  <p className="text-base font-medium text-gray-900">{viewData.rental_code || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Vehicle Type</p>
+                  <p className="text-base font-medium text-gray-900">{viewData.vehicle_type || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">From Location</p>
+                  <p className="text-base font-medium text-gray-900">{viewData.from_location || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">To Location</p>
+                  <p className="text-base font-medium text-gray-900">{viewData.to_location || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Status</p>
+                  <p className="text-base font-medium text-gray-900">{viewData.status || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Company Info */}
+            <div className="border-b pb-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Company Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Company Name</p>
+                  <p className="text-base font-medium text-gray-900">{viewData.company?.name || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Company Code</p>
+                  <p className="text-base font-medium text-gray-900">{viewData.company?.company_code || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Contact</p>
+                  <p className="text-base font-medium text-gray-900">{viewData.company?.contact || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Phone</p>
+                  <p className="text-base font-medium text-gray-900">
+                    {viewData.company?.phone_country_code && viewData.company?.phone_number
+                      ? `${viewData.company.phone_country_code} ${viewData.company.phone_number}`
+                      : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Driver Info */}
+            <div className="border-b pb-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Driver Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Driver Name</p>
+                  <p className="text-base font-medium text-gray-900">{viewData.driver?.name || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Driver Code</p>
+                  <p className="text-base font-medium text-gray-900">{viewData.driver?.driver_code || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Iqama ID</p>
+                  <p className="text-base font-medium text-gray-900">{viewData.driver?.iqama_id || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Phone</p>
+                  <p className="text-base font-medium text-gray-900">
+                    {viewData.driver?.phone_country_code && viewData.driver?.phone_number
+                      ? `${viewData.driver.phone_country_code} ${viewData.driver.phone_number}`
+                      : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Financial Info */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Financial Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-gray-600">Revenue (Acquisition Payment)</p>
+                  <p className="text-base font-medium text-green-600">
+                    {viewData.payments?.acquisition?.total_amount
+                      ? `${viewData.payments.acquisition.total_amount.toLocaleString()} SAR`
+                      : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Cost (Rental Payment)</p>
+                  <p className="text-base font-medium text-red-600">
+                    {viewData.payments?.rental?.total_amount
+                      ? `${viewData.payments.rental.total_amount.toLocaleString()} SAR`
+                      : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Net Profit/Loss</p>
+                  <p className={`text-base font-bold ${
+                    (viewData.payments?.acquisition?.total_amount || 0) - (viewData.payments?.rental?.total_amount || 0) >= 0
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                  }`}>
+                    {viewData.payments?.acquisition && viewData.payments?.rental
+                      ? `${((viewData.payments.acquisition.total_amount || 0) - (viewData.payments.rental.total_amount || 0)).toLocaleString()} SAR`
+                      : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Rental Date</p>
+                  <p className="text-base font-medium text-gray-900">
+                    {viewData.rental_date ? new Date(viewData.rental_date).toLocaleDateString() : 'N/A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
 
     </div>
   );

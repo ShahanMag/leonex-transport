@@ -311,11 +311,13 @@ exports.getCompanyPaymentsJSON = async (req, res) => {
       payment_type: { $in: ['vehicle-acquisition', 'company-expense'] },
     })
       .populate('company_id', 'name')
+      .populate('driver_id', 'name')
       .lean();
 
     const data = payments.map((p) => ({
       payment_type: p.payment_type,
       company: p.company_id?.name || 'N/A',
+      driver: p.driver_id?.name || 'N/A',
       total_amount: p.total_amount || 0,
       total_paid: p.total_paid || 0,
       total_due: p.total_due || 0,
@@ -357,5 +359,215 @@ exports.getRentalPaymentsJSON = async (req, res) => {
   } catch (err) {
     console.error('Rental payments JSON error:', err);
     res.status(500).json({ message: 'Failed to load rental payments report' });
+  }
+};
+
+/* ===========================
+ * 🏢🚛 COMBINED REPORT (JSON)
+ * Company + Rental with Net Profit/Loss
+ * =========================== */
+exports.getCombinedReportJSON = async (req, res) => {
+  try {
+    const loads = await Load.find()
+      .populate('company_id', 'name')
+      .populate('driver_id', 'name')
+      .lean();
+
+    const data = await Promise.all(
+      loads.map(async (load) => {
+        // Find related payments
+        const payments = await Payment.find({ load_id: load._id }).lean();
+        const acquisitionPayment = payments.find(p => p.payment_type === 'vehicle-acquisition');
+        const rentalPayment = payments.find(p => p.payment_type === 'driver-rental');
+
+        const revenue = acquisitionPayment?.total_amount || 0;
+        const cost = rentalPayment?.total_amount || 0;
+        const revenuePaid = acquisitionPayment?.total_paid || 0;
+        const costPaid = rentalPayment?.total_paid || 0;
+        const revenueDue = acquisitionPayment?.total_due || 0;
+        const costDue = rentalPayment?.total_due || 0;
+        const netProfit = revenue - cost;
+
+        return {
+          rental_code: load.rental_code,
+          company: load.company_id?.name || 'N/A',
+          driver: load.driver_id?.name || 'N/A',
+          from_location: load.from_location,
+          to_location: load.to_location,
+          vehicle_type: load.vehicle_type,
+          revenue: revenue,
+          revenue_paid: revenuePaid,
+          revenue_due: revenueDue,
+          cost: cost,
+          cost_paid: costPaid,
+          cost_due: costDue,
+          net_profit: netProfit,
+          rental_date: load.rental_date,
+        };
+      })
+    );
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error('Combined report JSON error:', err);
+    res.status(500).json({ message: 'Failed to load combined report' });
+  }
+};
+
+/* ===========================
+ * 📊 PROFIT/LOSS ONLY REPORT (JSON)
+ * =========================== */
+exports.getProfitLossReportJSON = async (req, res) => {
+  try {
+    const loads = await Load.find()
+      .populate('company_id', 'name')
+      .populate('driver_id', 'name')
+      .lean();
+
+    const data = await Promise.all(
+      loads.map(async (load) => {
+        const payments = await Payment.find({ load_id: load._id }).lean();
+        const acquisitionPayment = payments.find(p => p.payment_type === 'vehicle-acquisition');
+        const rentalPayment = payments.find(p => p.payment_type === 'driver-rental');
+
+        const revenue = acquisitionPayment?.total_amount || 0;
+        const cost = rentalPayment?.total_amount || 0;
+        const netProfit = revenue - cost;
+
+        return {
+          rental_code: load.rental_code,
+          company: load.company_id?.name || 'N/A',
+          driver: load.driver_id?.name || 'N/A',
+          revenue: revenue,
+          cost: cost,
+          net_profit: netProfit,
+          profit_margin: revenue > 0 ? ((netProfit / revenue) * 100).toFixed(2) + '%' : '0%',
+          rental_date: load.rental_date,
+        };
+      })
+    );
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error('Profit/Loss report JSON error:', err);
+    res.status(500).json({ message: 'Failed to load profit/loss report' });
+  }
+};
+
+/* ===========================
+ * 🏢🚛 COMBINED REPORT (Excel)
+ * =========================== */
+exports.getCombinedReportExcel = async (req, res) => {
+  try {
+    const loads = await Load.find()
+      .populate('company_id', 'name')
+      .populate('driver_id', 'name')
+      .lean();
+
+    const data = await Promise.all(
+      loads.map(async (load) => {
+        const payments = await Payment.find({ load_id: load._id }).lean();
+        const acquisitionPayment = payments.find(p => p.payment_type === 'vehicle-acquisition');
+        const rentalPayment = payments.find(p => p.payment_type === 'driver-rental');
+
+        const revenue = acquisitionPayment?.total_amount || 0;
+        const cost = rentalPayment?.total_amount || 0;
+        const revenuePaid = acquisitionPayment?.total_paid || 0;
+        const costPaid = rentalPayment?.total_paid || 0;
+        const revenueDue = acquisitionPayment?.total_due || 0;
+        const costDue = rentalPayment?.total_due || 0;
+        const netProfit = revenue - cost;
+
+        return {
+          RentalCode: load.rental_code,
+          Company: load.company_id?.name || 'N/A',
+          Driver: load.driver_id?.name || 'N/A',
+          From: load.from_location,
+          To: load.to_location,
+          VehicleType: load.vehicle_type,
+          Revenue: revenue,
+          RevenuePaid: revenuePaid,
+          RevenueDue: revenueDue,
+          Cost: cost,
+          CostPaid: costPaid,
+          CostDue: costDue,
+          NetProfit: netProfit,
+          RentalDate: load.rental_date ? moment(load.rental_date).format('YYYY-MM-DD') : 'N/A',
+        };
+      })
+    );
+
+    const columns = [
+      { header: 'Rental Code', key: 'RentalCode', width: 20 },
+      { header: 'Company', key: 'Company', width: 25 },
+      { header: 'Driver', key: 'Driver', width: 25 },
+      { header: 'From', key: 'From', width: 20 },
+      { header: 'To', key: 'To', width: 20 },
+      { header: 'Vehicle Type', key: 'VehicleType', width: 20 },
+      { header: 'Revenue', key: 'Revenue', width: 15 },
+      { header: 'Revenue Paid', key: 'RevenuePaid', width: 15 },
+      { header: 'Revenue Due', key: 'RevenueDue', width: 15 },
+      { header: 'Cost', key: 'Cost', width: 15 },
+      { header: 'Cost Paid', key: 'CostPaid', width: 15 },
+      { header: 'Cost Due', key: 'CostDue', width: 15 },
+      { header: 'Net Profit/Loss', key: 'NetProfit', width: 18 },
+      { header: 'Rental Date', key: 'RentalDate', width: 15 },
+    ];
+
+    await generateExcel('Combined Report', columns, data, res);
+  } catch (err) {
+    console.error('Combined report Excel error:', err);
+    res.status(500).json({ message: 'Failed to generate combined report' });
+  }
+};
+
+/* ===========================
+ * 📊 PROFIT/LOSS REPORT (Excel)
+ * =========================== */
+exports.getProfitLossReportExcel = async (req, res) => {
+  try {
+    const loads = await Load.find()
+      .populate('company_id', 'name')
+      .populate('driver_id', 'name')
+      .lean();
+
+    const data = await Promise.all(
+      loads.map(async (load) => {
+        const payments = await Payment.find({ load_id: load._id }).lean();
+        const acquisitionPayment = payments.find(p => p.payment_type === 'vehicle-acquisition');
+        const rentalPayment = payments.find(p => p.payment_type === 'driver-rental');
+
+        const revenue = acquisitionPayment?.total_amount || 0;
+        const cost = rentalPayment?.total_amount || 0;
+        const netProfit = revenue - cost;
+
+        return {
+          RentalCode: load.rental_code,
+          Company: load.company_id?.name || 'N/A',
+          Driver: load.driver_id?.name || 'N/A',
+          Revenue: revenue,
+          Cost: cost,
+          NetProfit: netProfit,
+          ProfitMargin: revenue > 0 ? ((netProfit / revenue) * 100).toFixed(2) + '%' : '0%',
+          RentalDate: load.rental_date ? moment(load.rental_date).format('YYYY-MM-DD') : 'N/A',
+        };
+      })
+    );
+
+    const columns = [
+      { header: 'Rental Code', key: 'RentalCode', width: 20 },
+      { header: 'Company', key: 'Company', width: 25 },
+      { header: 'Driver', key: 'Driver', width: 25 },
+      { header: 'Revenue', key: 'Revenue', width: 15 },
+      { header: 'Cost', key: 'Cost', width: 15 },
+      { header: 'Net Profit/Loss', key: 'NetProfit', width: 18 },
+      { header: 'Profit Margin', key: 'ProfitMargin', width: 15 },
+      { header: 'Rental Date', key: 'RentalDate', width: 15 },
+    ];
+
+    await generateExcel('Profit Loss Report', columns, data, res);
+  } catch (err) {
+    console.error('Profit/Loss report Excel error:', err);
+    res.status(500).json({ message: 'Failed to generate profit/loss report' });
   }
 };

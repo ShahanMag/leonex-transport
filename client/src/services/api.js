@@ -86,6 +86,8 @@ export const reportAPI = {
   // These endpoints return JSON data to display in tables
   getCompanyPayments: () => api.get('/reports/company-payments'),
   getRentalPayments: () => api.get('/reports/rental-payments'),
+  getCombinedReport: () => api.get('/reports/combined-report'),
+  getProfitLoss: () => api.get('/reports/profit-loss'),
   getVehicleUtilization: () => api.get('/reports/vehicle-utilization'),
   getDriverPerformance: () => api.get('/reports/driver-performance'),
 
@@ -99,6 +101,8 @@ export const reportAPI = {
   // --- 💰 Split Payment Reports (Excel) ---
   downloadCompanyPayments: () => api.get('/reports/payments/company', { responseType: 'blob' }),
   downloadRentalPayments: () => api.get('/reports/payments/rental', { responseType: 'blob' }),
+  downloadCombinedReport: () => api.get('/reports/combined-report/excel', { responseType: 'blob' }),
+  downloadProfitLoss: () => api.get('/reports/profit-loss/excel', { responseType: 'blob' }),
 };
 
 
@@ -117,6 +121,25 @@ export const transactionAPI = {
 
   // ✅ Update a rental transaction
   update: (id, data) => api.put(`/transactions/rental/${id}`, data),
+};
+
+// ==========================
+// 📊 Dashboard Services
+// ==========================
+export const dashboardAPI = {
+  getMonthlyRentalAnalytics: (year) => api.get('/dashboard/monthly-rental-analytics', { params: { year } }),
+};
+
+// ==========================
+// 👥 User Services
+// ==========================
+export const userAPI = {
+  getAll: () => api.get('/users'),
+  getById: (id) => api.get(`/users/${id}`),
+  create: (data) => api.post('/users', data),
+  update: (id, data) => api.put(`/users/${id}`, data),
+  delete: (id) => api.delete(`/users/${id}`),
+  login: (data) => api.post('/users/login', data),
 };
 
 export default api;

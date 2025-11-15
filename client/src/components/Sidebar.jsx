@@ -1,9 +1,20 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import Logo from '../assets/image.png';
+import { showSuccess } from '../utils/toast';
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [username, setUsername] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, []);
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: '📊' },
@@ -13,9 +24,17 @@ export default function Sidebar() {
     { path: '/loads', label: 'Rentals', icon: '📦' },
     { path: '/payments', label: 'Payments', icon: '💰' },
     { path: '/reports', label: 'Reports', icon: '📈' },
+    { path: '/users', label: 'Users', icon: '👥' },
   ];
 
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
+    showSuccess('Logged out successfully');
+    navigate('/login');
+  };
 
   return (
     <>
@@ -45,10 +64,9 @@ export default function Sidebar() {
         `}
       >
         {/* Logo Section */}
-        <div className="p-6 border-b border-gray-200">
-          <Link to="/" className="flex items-center gap-3" onClick={() => setIsOpen(false)}>
-            <img src="/leonex-logo.png" alt="Leonex" className="h-10 w-auto" />
-            <span className="text-xl font-bold hidden sm:inline">Leonex</span>
+        <div className=" border-b border-gray-200 bg-white">
+          <Link to="/" className="flex items-center justify-center" onClick={() => setIsOpen(false)}>
+            <img src={Logo} alt="Leonex" className="w-24 object-contain" />
           </Link>
         </div>
 
@@ -80,11 +98,24 @@ export default function Sidebar() {
         </nav>
 
         {/* Footer Info */}
-        <div className="px-4 py-4 border-t border-white">
-          <p className="text-xs text-blue-200 text-center">
+        <div className="px-4 py-4 border-t border-gray-700">
+          {username && (
+            <div className="mb-3">
+              <p className="text-sm text-gray-300 text-center mb-2">
+                👤 {username}
+              </p>
+              <button
+                onClick={handleLogout}
+                className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          )}
+          <p className="text-xs text-gray-400 text-center">
             Vehicle Rental Management System
           </p>
-          <p className="text-xs text-blue-300 text-center mt-1">v2.1.0</p>
+          <p className="text-xs text-gray-500 text-center mt-1">v2.1.0</p>
         </div>
       </aside>
 

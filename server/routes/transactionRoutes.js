@@ -47,5 +47,6 @@ const transactionController = require('../controllers/transactionController');
  */
 router.post('/rental', transactionController.createRentalTransaction);
 router.get('/rental/:id', transactionController.getRentalTransactionById);
+router.put('/rental/:id', transactionController.updateRentalTransaction);
 
 module.exports = router;

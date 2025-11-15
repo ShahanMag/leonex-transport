@@ -257,15 +257,6 @@ export default function Loads() {
   const getActions = (load) => {
     const baseActions = [];
 
-    // Show Assign button only for pending loads
-    if (load.status === 'pending') {
-      baseActions.push({
-        label: 'Assign',
-        onClick: () => handleOpenAssign(load),
-        variant: 'primary',
-      });
-    }
-
     // Show Edit button for pending and assigned loads (not for completed)
     if (load.status !== 'completed') {
       baseActions.push({

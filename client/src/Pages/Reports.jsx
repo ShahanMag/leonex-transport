@@ -25,6 +25,12 @@ export default function Reports() {
         case 'rental-payments':
           response = await reportAPI.getRentalPayments();
           break;
+        case 'combined-report':
+          response = await reportAPI.getCombinedReport();
+          break;
+        case 'profit-loss':
+          response = await reportAPI.getProfitLoss();
+          break;
         case 'vehicle-utilization':
           response = await reportAPI.getVehicleUtilization();
           break;
@@ -69,8 +75,8 @@ export default function Reports() {
       {[
         { id: 'company-payments', label: 'Company Payments' },
         { id: 'rental-payments', label: 'Rental Payments' },
-        // { id: 'vehicle-utilization', label: 'Vehicle Utilization' },
-        // { id: 'driver-performance', label: 'Driver Performance' },
+        { id: 'combined-report', label: 'Combined Report' },
+        { id: 'profit-loss', label: 'Profit & Loss' },
       ].map((tab) => (
         <button
           key={tab.id}
@@ -97,6 +103,14 @@ export default function Reports() {
       'rental-payments': {
         fn: () => handleDownload('downloadRentalPayments', 'RentalPaymentsReport.xlsx'),
         label: 'Download Rental Payments Report',
+      },
+      'combined-report': {
+        fn: () => handleDownload('downloadCombinedReport', 'CombinedReport.xlsx'),
+        label: 'Download Combined Report',
+      },
+      'profit-loss': {
+        fn: () => handleDownload('downloadProfitLoss', 'ProfitLossReport.xlsx'),
+        label: 'Download Profit & Loss Report',
       },
       'vehicle-utilization': {
         fn: () => handleDownload('downloadVehicles', 'VehicleReport.xlsx'),
@@ -171,6 +185,94 @@ export default function Reports() {
     </div>
   );
 
+  const CombinedReport = ({ data }) => (
+    <div className="overflow-x-auto border rounded-lg">
+      <table className="w-full">
+        <thead>
+          <tr className="bg-gray-100 border-b">
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Rental Code</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Company</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Driver</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">From</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">To</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Revenue</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Rev. Paid</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Rev. Due</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cost</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cost Paid</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cost Due</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Net Profit/Loss</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(Array.isArray(data) ? data : []).map((item, i) => {
+            const isProfitable = item.net_profit >= 0;
+            return (
+              <tr key={i} className="border-b hover:bg-gray-50">
+                <td className="px-4 py-3 text-sm text-gray-800">{item.rental_code || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-800">{item.company || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-800">{item.driver || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-800">{item.from_location || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-800">{item.to_location || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-800">SAR {item.revenue?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-sm text-green-700">SAR {item.revenue_paid?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-sm text-red-700">SAR {item.revenue_due?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-sm text-gray-800">SAR {item.cost?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-sm text-green-700">SAR {item.cost_paid?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-sm text-red-700">SAR {item.cost_due?.toLocaleString() || 0}</td>
+                <td className={`px-4 py-3 text-sm font-bold ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                  SAR {item.net_profit?.toLocaleString() || 0}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  const ProfitLossReport = ({ data }) => (
+    <div className="overflow-x-auto border rounded-lg">
+      <table className="w-full">
+        <thead>
+          <tr className="bg-gray-100 border-b">
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Rental Code</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Company</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Driver</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Revenue</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cost</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Net Profit/Loss</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Profit Margin</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(Array.isArray(data) ? data : []).map((item, i) => {
+            const isProfitable = item.net_profit >= 0;
+            return (
+              <tr key={i} className="border-b hover:bg-gray-50">
+                <td className="px-4 py-3 text-sm text-gray-800">{item.rental_code || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-800">{item.company || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-800">{item.driver || '-'}</td>
+                <td className="px-4 py-3 text-sm text-green-700 font-medium">SAR {item.revenue?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-sm text-red-700 font-medium">SAR {item.cost?.toLocaleString() || 0}</td>
+                <td className={`px-4 py-3 text-sm font-bold ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                  SAR {item.net_profit?.toLocaleString() || 0}
+                </td>
+                <td className={`px-4 py-3 text-sm font-medium ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
+                  {item.profit_margin || '0%'}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-800">
+                  {item.rental_date ? new Date(item.rental_date).toLocaleDateString() : '-'}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
   const VehicleUtilizationReport = ({ data }) => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {(Array.isArray(data) ? data : []).map((vehicle, i) => (
@@ -233,6 +335,10 @@ export default function Reports() {
       case 'company-payments':
       case 'rental-payments':
         return <PaymentsReport data={reportData} />;
+      case 'combined-report':
+        return <CombinedReport data={reportData} />;
+      case 'profit-loss':
+        return <ProfitLossReport data={reportData} />;
       case 'vehicle-utilization':
         return <VehicleUtilizationReport data={reportData} />;
       case 'driver-performance':

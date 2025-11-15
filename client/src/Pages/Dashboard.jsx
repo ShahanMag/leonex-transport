@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { companyAPI, driverAPI, loadAPI, paymentAPI } from '../services/api';
+import { companyAPI, driverAPI, loadAPI, paymentAPI, dashboardAPI } from '../services/api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -8,11 +9,14 @@ export default function Dashboard() {
     loads: 0,
     payments: 0,
   });
+  const [monthlyData, setMonthlyData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
     fetchStats();
-  }, []);
+    fetchMonthlyAnalytics();
+  }, [selectedYear]);
 
   const fetchStats = async () => {
     try {
@@ -34,6 +38,15 @@ export default function Dashboard() {
       console.error('Failed to fetch stats');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchMonthlyAnalytics = async () => {
+    try {
+      const response = await dashboardAPI.getMonthlyRentalAnalytics(selectedYear);
+      setMonthlyData(response.data.data);
+    } catch (error) {
+      console.error('Failed to fetch monthly analytics');
     }
   };
 
@@ -86,28 +99,38 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Welcome Section */}
-      <div className="bg-white rounded-lg shadow-md p-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Quick Start</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="font-bold text-blue-800 mb-2">Add Company</h3>
-            <p className="text-sm text-blue-600">Register a new company to manage vehicles</p>
-          </div>
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h3 className="font-bold text-green-800 mb-2">Add Vehicle</h3>
-            <p className="text-sm text-green-600">Add vehicles to your fleet with pricing</p>
-          </div>
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <h3 className="font-bold text-yellow-800 mb-2">Register Driver</h3>
-            <p className="text-sm text-yellow-600">Register drivers for rental assignments</p>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <h3 className="font-bold text-purple-800 mb-2">Create Load</h3>
-            <p className="text-sm text-purple-600">Create rental requests and assign drivers</p>
-          </div>
+      {/* Monthly Rental Analytics Chart */}
+      <div className="bg-white rounded-lg shadow-md p-8 mb-8">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">Monthly Rental Analytics</h2>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {[2023, 2024, 2025].map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
         </div>
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip
+              formatter={(value) => `${value.toLocaleString()} SAR`}
+              contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }}
+            />
+            <Legend />
+            <Bar dataKey="revenue" fill="#3b82f6" name="Revenue (Company Payments)" />
+            <Bar dataKey="cost" fill="#ef4444" name="Cost (Driver Payments)" />
+            <Bar dataKey="profit" fill="#10b981" name="Profit" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
+
+     
     </div>
   );
 }

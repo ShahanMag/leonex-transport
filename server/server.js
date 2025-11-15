@@ -13,12 +13,18 @@ const loadRoutes = require("./routes/loads");
 const paymentRoutes = require("./routes/payments");
 const reportRoutes = require("./routes/reports");
 const transactionRoutes = require("./routes/transactionRoutes");
+const dashboardRoutes = require("./routes/dashboard");
+const userRoutes = require("./routes/users");
 
 // Initialize Express app
 const app = express();
 
 // Connect to database
 connectDB();
+
+// Initialize default users
+const userController = require("./controllers/userController");
+userController.initializeDefaultUsers();
 
 // ===== CRITICAL: CORS MUST BE FIRST =====
 app.use(
@@ -60,6 +66,8 @@ app.use("/api/loads", loadRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/users", userRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
