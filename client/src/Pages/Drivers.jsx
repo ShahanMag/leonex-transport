@@ -12,6 +12,8 @@ export default function Drivers() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [nameFilter, setNameFilter] = useState('');
+  const [iqamaFilter, setIqamaFilter] = useState('');
   const [formValues, setFormValues] = useState({
     name: '',
     iqama_id: '',
@@ -55,6 +57,25 @@ export default function Drivers() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Client-side filter function
+  const getFilteredDrivers = () => {
+    let filtered = drivers;
+
+    if (nameFilter) {
+      filtered = filtered.filter(driver =>
+        driver.name?.toLowerCase().includes(nameFilter.toLowerCase())
+      );
+    }
+
+    if (iqamaFilter) {
+      filtered = filtered.filter(driver =>
+        driver.iqama_id?.toLowerCase().includes(iqamaFilter.toLowerCase())
+      );
+    }
+
+    return filtered;
   };
 
   const handleFormChange = (values) => {
@@ -170,17 +191,31 @@ export default function Drivers() {
         </Button>
       </div>
 
-      <div className="mb-6 flex gap-4">
+      <div className="mb-6 flex flex-wrap gap-4">
         <input
           type="text"
           placeholder="Search driver by name..."
           value={searchQuery}
           onChange={handleSearch}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          type="text"
+          placeholder="Filter by name..."
+          value={nameFilter}
+          onChange={(e) => setNameFilter(e.target.value)}
+          className="w-48 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          type="text"
+          placeholder="Filter by Iqama ID..."
+          value={iqamaFilter}
+          onChange={(e) => setIqamaFilter(e.target.value)}
+          className="w-48 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
-      <Table columns={columns} data={drivers} actions={actions} isLoading={isLoading} />
+      <Table columns={columns} data={getFilteredDrivers()} actions={actions} isLoading={isLoading} />
 
       <Modal
         isOpen={isFormOpen}

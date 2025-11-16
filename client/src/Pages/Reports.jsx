@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { reportAPI } from '../services/api';
 import Button from '../components/Button';
 import { showError, showSuccess } from '../utils/toast';
@@ -28,13 +28,94 @@ const StatCard = ({ title, value, icon, color = 'blue' }) => {
   );
 };
 
+// 🔍 Additional Filters Component (Date, Company, Driver, Iqama) - Moved outside to prevent recreation
+const AdditionalFilters = ({
+  activeReport,
+  startDateFilter,
+  setStartDateFilter,
+  endDateFilter,
+  setEndDateFilter,
+  companyNameFilter,
+  setCompanyNameFilter,
+  driverNameFilter,
+  setDriverNameFilter,
+  iqamaFilter,
+  setIqamaFilter
+}) => {
+  return (
+    <div className="mb-4 flex flex-wrap gap-3">
+      {/* Date Filters - Show for all reports */}
+      <input
+        type="date"
+        placeholder="Start Date"
+        value={startDateFilter}
+        onChange={(e) => setStartDateFilter(e.target.value)}
+        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+      />
+      <input
+        type="date"
+        placeholder="End Date"
+        value={endDateFilter}
+        onChange={(e) => setEndDateFilter(e.target.value)}
+        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+      />
+
+      {/* Company Name Filter - Only for company-payments */}
+      {activeReport === 'company-payments' && (
+        <input
+          type="text"
+          placeholder="Filter by company name..."
+          value={companyNameFilter}
+          onChange={(e) => setCompanyNameFilter(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-48"
+        />
+      )}
+
+      {/* Driver Name and Iqama Filters - Only for rental-payments */}
+      {activeReport === 'rental-payments' && (
+        <>
+          <input
+            type="text"
+            placeholder="Filter by driver name..."
+            value={driverNameFilter}
+            onChange={(e) => setDriverNameFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-48"
+          />
+          <input
+            type="text"
+            placeholder="Filter by Iqama ID..."
+            value={iqamaFilter}
+            onChange={(e) => setIqamaFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-48"
+          />
+        </>
+      )}
+    </div>
+  );
+};
+
 export default function Reports() {
   const [activeReport, setActiveReport] = useState('company-payments');
   const [reportData, setReportData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [paymentFilter, setPaymentFilter] = useState('all');
+
+  // Additional filters
+  const [companyNameFilter, setCompanyNameFilter] = useState('');
+  const [driverNameFilter, setDriverNameFilter] = useState('');
+  const [iqamaFilter, setIqamaFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
 
   useEffect(() => {
     fetchReport(activeReport);
+    // Reset filters when changing report tabs
+    setPaymentFilter('all');
+    setCompanyNameFilter('');
+    setDriverNameFilter('');
+    setIqamaFilter('');
+    setStartDateFilter('');
+    setEndDateFilter('');
   }, [activeReport]);
 
   // 🔹 Fetch JSON Data for each report
@@ -94,36 +175,92 @@ export default function Reports() {
     }
   };
 
+  // 🔍 Filter Report Data by Payment Status and other filters (Memoized for performance)
+  const filteredData = useMemo(() => {
+    if (!reportData || !Array.isArray(reportData)) {
+      return [];
+    }
+
+    let filtered = reportData;
+
+    // Apply payment status filter for payment reports
+    if (activeReport === 'company-payments' || activeReport === 'rental-payments') {
+      if (paymentFilter !== 'all') {
+        filtered = filtered.filter(item => item.status === paymentFilter);
+      }
+    }
+
+    // Apply company name filter for company-payments
+    if (activeReport === 'company-payments' && companyNameFilter) {
+      filtered = filtered.filter(item =>
+        item.company?.toLowerCase().includes(companyNameFilter.toLowerCase())
+      );
+    }
+
+    // Apply driver name and iqama filters for rental-payments
+    if (activeReport === 'rental-payments') {
+      if (driverNameFilter) {
+        filtered = filtered.filter(item =>
+          item.driver?.toLowerCase().includes(driverNameFilter.toLowerCase())
+        );
+      }
+      if (iqamaFilter) {
+        filtered = filtered.filter(item =>
+          item.iqama_id?.toLowerCase().includes(iqamaFilter.toLowerCase())
+        );
+      }
+    }
+
+    // Apply date filters for all reports with transaction_date or rental_date
+    if (startDateFilter) {
+      filtered = filtered.filter(item => {
+        const itemDate = item.transaction_date || item.rental_date;
+        if (!itemDate) return false;
+        return new Date(itemDate) >= new Date(startDateFilter);
+      });
+    }
+
+    if (endDateFilter) {
+      filtered = filtered.filter(item => {
+        const itemDate = item.transaction_date || item.rental_date;
+        if (!itemDate) return false;
+        return new Date(itemDate) <= new Date(endDateFilter);
+      });
+    }
+
+    return filtered;
+  }, [reportData, activeReport, paymentFilter, companyNameFilter, driverNameFilter, iqamaFilter, startDateFilter, endDateFilter]);
+
   // 📊 Calculate Summary Statistics
   const calculateSummary = () => {
-    if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
+    if (!filteredData || filteredData.length === 0) {
       return null;
     }
 
     switch (activeReport) {
       case 'company-payments':
       case 'rental-payments': {
-        const totalAmount = reportData.reduce((sum, p) => sum + (p.total_amount || 0), 0);
-        const totalPaid = reportData.reduce((sum, p) => sum + (p.total_paid || 0), 0);
-        const totalDue = reportData.reduce((sum, p) => sum + (p.total_due || 0), 0);
-        const count = reportData.length;
+        const totalAmount = filteredData.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+        const totalPaid = filteredData.reduce((sum, p) => sum + (p.total_paid || 0), 0);
+        const totalDue = filteredData.reduce((sum, p) => sum + (p.total_due || 0), 0);
+        const count = filteredData.length;
         return { totalAmount, totalPaid, totalDue, count };
       }
 
       case 'combined-report': {
-        const totalRevenue = reportData.reduce((sum, item) => sum + (item.revenue || 0), 0);
-        const totalCost = reportData.reduce((sum, item) => sum + (item.cost || 0), 0);
-        const netProfit = reportData.reduce((sum, item) => sum + (item.net_profit || 0), 0);
-        const count = reportData.length;
+        const totalRevenue = filteredData.reduce((sum, item) => sum + (item.revenue || 0), 0);
+        const totalCost = filteredData.reduce((sum, item) => sum + (item.cost || 0), 0);
+        const netProfit = filteredData.reduce((sum, item) => sum + (item.net_profit || 0), 0);
+        const count = filteredData.length;
         return { totalRevenue, totalCost, netProfit, count };
       }
 
       case 'profit-loss': {
-        const totalRevenue = reportData.reduce((sum, item) => sum + (item.revenue || 0), 0);
-        const totalCost = reportData.reduce((sum, item) => sum + (item.cost || 0), 0);
-        const netProfit = reportData.reduce((sum, item) => sum + (item.net_profit || 0), 0);
+        const totalRevenue = filteredData.reduce((sum, item) => sum + (item.revenue || 0), 0);
+        const totalCost = filteredData.reduce((sum, item) => sum + (item.cost || 0), 0);
+        const netProfit = filteredData.reduce((sum, item) => sum + (item.net_profit || 0), 0);
         const avgMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(2) : 0;
-        const count = reportData.length;
+        const count = filteredData.length;
         return { totalRevenue, totalCost, netProfit, avgMargin, count };
       }
 
@@ -258,6 +395,59 @@ export default function Reports() {
     </div>
   );
 
+  // 🔍 Payment Status Filter Component
+  const PaymentFilter = () => {
+    // Only show filter for payment reports
+    if (activeReport !== 'company-payments' && activeReport !== 'rental-payments') {
+      return null;
+    }
+
+    return (
+      <div className="flex gap-2">
+        <button
+          onClick={() => setPaymentFilter('all')}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+            paymentFilter === 'all'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setPaymentFilter('paid')}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+            paymentFilter === 'paid'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Paid
+        </button>
+        <button
+          onClick={() => setPaymentFilter('partial')}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+            paymentFilter === 'partial'
+              ? 'bg-yellow-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Partial
+        </button>
+        <button
+          onClick={() => setPaymentFilter('unpaid')}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+            paymentFilter === 'unpaid'
+              ? 'bg-red-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Unpaid
+        </button>
+      </div>
+    );
+  };
+
   // 🧾 Download Buttons (Excel)
   const DownloadButton = ({ reportType }) => {
     const buttons = {
@@ -291,7 +481,8 @@ export default function Reports() {
     if (!current) return null;
 
     return (
-      <div className="mb-6 flex justify-end">
+      <div className="mb-6 flex flex-wrap justify-between items-center gap-4">
+        <PaymentFilter />
         <Button variant="primary" onClick={current.fn}>
           📥 {current.label}
         </Button>
@@ -303,52 +494,62 @@ export default function Reports() {
   // 🔹 Report Table Layouts
   // =============================
 
-  const PaymentsReport = ({ data }) => (
-    <div className="overflow-x-auto border rounded-lg bg-white">
-      <table className="w-full min-w-max">
-        <thead>
-          <tr className="bg-gray-100 border-b">
-            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Type</th>
-            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Company</th>
-            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Driver</th>
-            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Total</th>
-            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Paid</th>
-            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Due</th>
-            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Status</th>
-            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(Array.isArray(data) ? data : []).map((p, i) => (
-            <tr key={i} className="border-b hover:bg-gray-50">
-              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.payment_type}</td>
-              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.company}</td>
-              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.driver || '-'}</td>
-              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">₹{p.total_amount?.toLocaleString()}</td>
-              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-green-700 font-medium whitespace-nowrap">₹{p.total_paid?.toLocaleString()}</td>
-              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-red-700 font-medium whitespace-nowrap">₹{p.total_due?.toLocaleString()}</td>
-              <td className="px-2 md:px-4 py-3 text-xs md:text-sm">
-                <span
-                  className={`px-2 py-1 rounded text-xs font-medium ${
-                    p.status === 'paid'
-                      ? 'bg-green-100 text-green-800'
-                      : p.status === 'partial'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}
-                >
-                  {p.status}
-                </span>
-              </td>
-              <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">
-                {p.transaction_date ? new Date(p.transaction_date).toLocaleDateString() : '-'}
-              </td>
+  const PaymentsReport = ({ data }) => {
+    const isRentalPayments = activeReport === 'rental-payments';
+
+    return (
+      <div className="overflow-x-auto border rounded-lg bg-white">
+        <table className="w-full min-w-max">
+          <thead>
+            <tr className="bg-gray-100 border-b">
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Type</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Company</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Driver</th>
+              {isRentalPayments && (
+                <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Iqama ID</th>
+              )}
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Total</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Paid</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Due</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Status</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Date</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+          </thead>
+          <tbody>
+            {(Array.isArray(data) ? data : []).map((p, i) => (
+              <tr key={i} className="border-b hover:bg-gray-50">
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.payment_type}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.company}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.driver || '-'}</td>
+                {isRentalPayments && (
+                  <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.iqama_id || '-'}</td>
+                )}
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">₹{p.total_amount?.toLocaleString()}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-green-700 font-medium whitespace-nowrap">₹{p.total_paid?.toLocaleString()}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-red-700 font-medium whitespace-nowrap">₹{p.total_due?.toLocaleString()}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm">
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      p.status === 'paid'
+                        ? 'bg-green-100 text-green-800'
+                        : p.status === 'partial'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {p.status}
+                  </span>
+                </td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">
+                  {p.transaction_date ? new Date(p.transaction_date).toLocaleDateString() : '-'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   const CombinedReport = ({ data }) => (
     <div className="overflow-x-auto border rounded-lg bg-white">
@@ -499,11 +700,14 @@ export default function Reports() {
     switch (activeReport) {
       case 'company-payments':
       case 'rental-payments':
-        return <PaymentsReport data={reportData} />;
       case 'combined-report':
-        return <CombinedReport data={reportData} />;
       case 'profit-loss':
-        return <ProfitLossReport data={reportData} />;
+        return {
+          'company-payments': <PaymentsReport data={filteredData} />,
+          'rental-payments': <PaymentsReport data={filteredData} />,
+          'combined-report': <CombinedReport data={filteredData} />,
+          'profit-loss': <ProfitLossReport data={filteredData} />,
+        }[activeReport];
       case 'vehicle-utilization':
         return <VehicleUtilizationReport data={reportData} />;
       case 'driver-performance':
@@ -526,6 +730,19 @@ export default function Reports() {
       <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
         <ReportTabs />
         <DownloadButton reportType={activeReport} />
+        <AdditionalFilters
+          activeReport={activeReport}
+          startDateFilter={startDateFilter}
+          setStartDateFilter={setStartDateFilter}
+          endDateFilter={endDateFilter}
+          setEndDateFilter={setEndDateFilter}
+          companyNameFilter={companyNameFilter}
+          setCompanyNameFilter={setCompanyNameFilter}
+          driverNameFilter={driverNameFilter}
+          setDriverNameFilter={setDriverNameFilter}
+          iqamaFilter={iqamaFilter}
+          setIqamaFilter={setIqamaFilter}
+        />
         <SummaryCards />
         {renderReport()}
       </div>

@@ -38,6 +38,11 @@ export default function Payments() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  // Additional filters
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
+  const [companyDriverFilter, setCompanyDriverFilter] = useState('');
+
   // Installment registration modal
   const [isInstallmentOpen, setIsInstallmentOpen] = useState(false);
   const [selectedPaymentId, setSelectedPaymentId] = useState(null);
@@ -304,9 +309,33 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     { label: 'Delete', onClick: handleDeletePayment, variant: 'danger' },
   ];
 
-  // Filter payments based on tab
+  // Filter payments based on tab and additional filters
   // Search is already handled by backend API (searches by vehicle number)
   let displayPayments = payments.filter(p => p.payment_type === activeTab);
+
+  // Apply additional client-side filters
+  if (startDateFilter) {
+    displayPayments = displayPayments.filter(p => {
+      if (!p.transaction_date) return false;
+      return new Date(p.transaction_date) >= new Date(startDateFilter);
+    });
+  }
+
+  if (endDateFilter) {
+    displayPayments = displayPayments.filter(p => {
+      if (!p.transaction_date) return false;
+      return new Date(p.transaction_date) <= new Date(endDateFilter);
+    });
+  }
+
+  if (companyDriverFilter) {
+    displayPayments = displayPayments.filter(p => {
+      const payee = p.payee?.toLowerCase() || '';
+      const payer = p.payer?.toLowerCase() || '';
+      const filter = companyDriverFilter.toLowerCase();
+      return payee.includes(filter) || payer.includes(filter);
+    });
+  }
 
   const vehicleAcqCount = payments.filter(p => p.payment_type === 'vehicle-acquisition').length;
   const driverRentalCount = payments.filter(p => p.payment_type === 'driver-rental').length;
@@ -343,26 +372,53 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
       </div> */}
 
       {/* Search and Filter */}
-      <div className="mb-6 flex gap-4">
-        <div className="flex-1">
+      <div className="mb-6 space-y-4">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex-1 min-w-[200px]">
+            <input
+              type="text"
+              placeholder="Search by vehicle number..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => handleFilterByStatus(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="partial">Partially Paid</option>
+            <option value="paid">Paid</option>
+          </select>
+        </div>
+
+        {/* Additional Filters */}
+        <div className="flex flex-wrap gap-3">
+          <input
+            type="date"
+            placeholder="Start Date"
+            value={startDateFilter}
+            onChange={(e) => setStartDateFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          />
+          <input
+            type="date"
+            placeholder="End Date"
+            value={endDateFilter}
+            onChange={(e) => setEndDateFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          />
           <input
             type="text"
-            placeholder="Search by vehicle number..."
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Filter by company/driver name..."
+            value={companyDriverFilter}
+            onChange={(e) => setCompanyDriverFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-64"
           />
         </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => handleFilterByStatus(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="all">All Status</option>
-          <option value="unpaid">Unpaid</option>
-          <option value="partial">Partially Paid</option>
-          <option value="paid">Paid</option>
-        </select>
       </div>
 
       {/* Tabs */}

@@ -341,13 +341,14 @@ exports.getRentalPaymentsJSON = async (req, res) => {
       payment_type: { $in: ['driver-rental', 'rental-payment'] },
     })
       .populate('company_id', 'name')
-      .populate('driver_id', 'name')
+      .populate('driver_id', 'name iqama_id')
       .lean();
 
     const data = payments.map((p) => ({
       payment_type: p.payment_type,
       company: p.company_id?.name || 'N/A',
       driver: p.driver_id?.name || 'N/A',
+      iqama_id: p.driver_id?.iqama_id || 'N/A',
       total_amount: p.total_amount || 0,
       total_paid: p.total_paid || 0,
       total_due: p.total_due || 0,
@@ -416,6 +417,7 @@ exports.getCombinedReportJSON = async (req, res) => {
 
 /* ===========================
  * 📊 PROFIT/LOSS ONLY REPORT (JSON)
+ * Only shows transactions where BOTH company and rental payments are fully paid
  * =========================== */
 exports.getProfitLossReportJSON = async (req, res) => {
   try {
@@ -424,28 +426,39 @@ exports.getProfitLossReportJSON = async (req, res) => {
       .populate('driver_id', 'name')
       .lean();
 
-    const data = await Promise.all(
-      loads.map(async (load) => {
-        const payments = await Payment.find({ load_id: load._id }).lean();
-        const acquisitionPayment = payments.find(p => p.payment_type === 'vehicle-acquisition');
-        const rentalPayment = payments.find(p => p.payment_type === 'driver-rental');
+    const dataPromises = loads.map(async (load) => {
+      const payments = await Payment.find({ load_id: load._id }).lean();
+      const acquisitionPayment = payments.find(p => p.payment_type === 'vehicle-acquisition');
+      const rentalPayment = payments.find(p => p.payment_type === 'driver-rental');
 
-        const revenue = acquisitionPayment?.total_amount || 0;
-        const cost = rentalPayment?.total_amount || 0;
-        const netProfit = revenue - cost;
+      // Only include if BOTH payments exist and are fully paid
+      if (!acquisitionPayment || !rentalPayment) {
+        return null; // Skip if either payment is missing
+      }
 
-        return {
-          rental_code: load.rental_code,
-          company: load.company_id?.name || 'N/A',
-          driver: load.driver_id?.name || 'N/A',
-          revenue: revenue,
-          cost: cost,
-          net_profit: netProfit,
-          profit_margin: revenue > 0 ? ((netProfit / revenue) * 100).toFixed(2) + '%' : '0%',
-          rental_date: load.rental_date,
-        };
-      })
-    );
+      if (acquisitionPayment.status !== 'paid' || rentalPayment.status !== 'paid') {
+        return null; // Skip if either payment is not fully paid
+      }
+
+      const revenue = acquisitionPayment.total_amount || 0;
+      const cost = rentalPayment.total_amount || 0;
+      const netProfit = revenue - cost;
+
+      return {
+        rental_code: load.rental_code,
+        company: load.company_id?.name || 'N/A',
+        driver: load.driver_id?.name || 'N/A',
+        revenue: revenue,
+        cost: cost,
+        net_profit: netProfit,
+        profit_margin: revenue > 0 ? ((netProfit / revenue) * 100).toFixed(2) + '%' : '0%',
+        rental_date: load.rental_date,
+      };
+    });
+
+    const allData = await Promise.all(dataPromises);
+    // Filter out null values (transactions that were skipped)
+    const data = allData.filter(item => item !== null);
 
     res.status(200).json(data);
   } catch (err) {
@@ -523,6 +536,7 @@ exports.getCombinedReportExcel = async (req, res) => {
 
 /* ===========================
  * 📊 PROFIT/LOSS REPORT (Excel)
+ * Only shows transactions where BOTH company and rental payments are fully paid
  * =========================== */
 exports.getProfitLossReportExcel = async (req, res) => {
   try {
@@ -531,28 +545,39 @@ exports.getProfitLossReportExcel = async (req, res) => {
       .populate('driver_id', 'name')
       .lean();
 
-    const data = await Promise.all(
-      loads.map(async (load) => {
-        const payments = await Payment.find({ load_id: load._id }).lean();
-        const acquisitionPayment = payments.find(p => p.payment_type === 'vehicle-acquisition');
-        const rentalPayment = payments.find(p => p.payment_type === 'driver-rental');
+    const dataPromises = loads.map(async (load) => {
+      const payments = await Payment.find({ load_id: load._id }).lean();
+      const acquisitionPayment = payments.find(p => p.payment_type === 'vehicle-acquisition');
+      const rentalPayment = payments.find(p => p.payment_type === 'driver-rental');
 
-        const revenue = acquisitionPayment?.total_amount || 0;
-        const cost = rentalPayment?.total_amount || 0;
-        const netProfit = revenue - cost;
+      // Only include if BOTH payments exist and are fully paid
+      if (!acquisitionPayment || !rentalPayment) {
+        return null; // Skip if either payment is missing
+      }
 
-        return {
-          RentalCode: load.rental_code,
-          Company: load.company_id?.name || 'N/A',
-          Driver: load.driver_id?.name || 'N/A',
-          Revenue: revenue,
-          Cost: cost,
-          NetProfit: netProfit,
-          ProfitMargin: revenue > 0 ? ((netProfit / revenue) * 100).toFixed(2) + '%' : '0%',
-          RentalDate: load.rental_date ? moment(load.rental_date).format('YYYY-MM-DD') : 'N/A',
-        };
-      })
-    );
+      if (acquisitionPayment.status !== 'paid' || rentalPayment.status !== 'paid') {
+        return null; // Skip if either payment is not fully paid
+      }
+
+      const revenue = acquisitionPayment.total_amount || 0;
+      const cost = rentalPayment.total_amount || 0;
+      const netProfit = revenue - cost;
+
+      return {
+        RentalCode: load.rental_code,
+        Company: load.company_id?.name || 'N/A',
+        Driver: load.driver_id?.name || 'N/A',
+        Revenue: revenue,
+        Cost: cost,
+        NetProfit: netProfit,
+        ProfitMargin: revenue > 0 ? ((netProfit / revenue) * 100).toFixed(2) + '%' : '0%',
+        RentalDate: load.rental_date ? moment(load.rental_date).format('YYYY-MM-DD') : 'N/A',
+      };
+    });
+
+    const allData = await Promise.all(dataPromises);
+    // Filter out null values (transactions that were skipped)
+    const data = allData.filter(item => item !== null);
 
     const columns = [
       { header: 'Rental Code', key: 'RentalCode', width: 20 },

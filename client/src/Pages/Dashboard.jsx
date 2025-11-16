@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { companyAPI, driverAPI, loadAPI, paymentAPI, dashboardAPI } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     companies: 0,
     drivers: 0,
@@ -50,8 +52,11 @@ export default function Dashboard() {
     }
   };
 
-  const StatCard = ({ title, value, icon, color }) => (
-    <div className={`bg-white rounded-lg shadow-md p-4 md:p-6 border-l-4 ${color}`}>
+  const StatCard = ({ title, value, icon, color, onClick }) => (
+    <div
+      className={`bg-white rounded-lg shadow-md p-4 md:p-6 border-l-4 ${color} ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between">
         <div>
           <p className="text-gray-600 text-xs md:text-sm font-medium">{title}</p>
@@ -78,24 +83,28 @@ export default function Dashboard() {
           value={stats.companies}
           icon="🏢"
           color="border-blue-500"
+          onClick={() => navigate('/companies')}
         />
         <StatCard
           title="Drivers"
           value={stats.drivers}
           icon="👤"
           color="border-yellow-500"
+          onClick={() => navigate('/drivers')}
         />
         <StatCard
           title="Rental Requests"
           value={stats.loads}
           icon="📦"
           color="border-purple-500"
+          onClick={() => navigate('/loads')}
         />
         <StatCard
           title="Payments"
           value={stats.payments}
           icon="💰"
           color="border-red-500"
+          onClick={() => navigate('/payments')}
         />
       </div>
 

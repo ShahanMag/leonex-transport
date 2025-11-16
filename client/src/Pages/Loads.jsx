@@ -16,6 +16,8 @@ export default function Loads() {
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVehicleTypeFilter, setSelectedVehicleTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [driverFilter, setDriverFilter] = useState('');
   const [formValues, setFormValues] = useState({
     vehicle_type: '',
     from_location: '',
@@ -91,6 +93,23 @@ export default function Loads() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Client-side filter function for status and driver
+  const getFilteredLoads = () => {
+    let filtered = loads;
+
+    if (statusFilter) {
+      filtered = filtered.filter(load => load.status === statusFilter);
+    }
+
+    if (driverFilter) {
+      filtered = filtered.filter(load =>
+        load.driver_id?._id === driverFilter || load.driver_id === driverFilter
+      );
+    }
+
+    return filtered;
   };
 
   const handleFormChange = (values) => {
@@ -285,13 +304,13 @@ export default function Loads() {
         </Button>
       </div>
 
-      <div className="mb-6 flex gap-4">
+      <div className="mb-6 flex flex-wrap gap-4">
         <input
           type="text"
           placeholder="Search load by rental code or vehicle type..."
           value={searchQuery}
           onChange={handleSearch}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 min-w-[250px] px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <select
           value={selectedVehicleTypeFilter}
@@ -305,9 +324,32 @@ export default function Loads() {
             </option>
           ))}
         </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="assigned">Assigned</option>
+          <option value="in-transit">In Transit</option>
+          <option value="completed">Completed</option>
+        </select>
+        <select
+          value={driverFilter}
+          onChange={(e) => setDriverFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Drivers</option>
+          {drivers.map((driver) => (
+            <option key={driver._id} value={driver._id}>
+              {driver.name}
+            </option>
+          ))}
+        </select>
       </div>
 
-      <Table columns={columns} data={loads} actions={getActions} isLoading={isLoading} />
+      <Table columns={columns} data={getFilteredLoads()} actions={getActions} isLoading={isLoading} />
 
       {/* Create/Edit Load Modal */}
       <Modal
