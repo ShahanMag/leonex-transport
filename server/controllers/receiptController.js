@@ -1,10 +1,34 @@
-const puppeteer = require('puppeteer-core');
 const chromium = require('@sparticuz/chromium');
 const Payment = require('../models/Payment');
 const Company = require('../models/Company');
 const Driver = require('../models/Driver');
 const generateCompanyReceiptHTML = require('../templates/companyReceiptTemplate');
 const generateDriverReceiptHTML = require('../templates/driverReceiptTemplate');
+
+// Detect environment and use appropriate puppeteer configuration
+const isProduction = process.env.VERCEL || process.env.NODE_ENV === 'production';
+const puppeteer = isProduction
+  ? require('puppeteer-core')
+  : require('puppeteer');
+
+// Get browser launch options based on environment
+const getBrowserOptions = async () => {
+  if (isProduction) {
+    // Use @sparticuz/chromium for Vercel/serverless
+    return {
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    };
+  } else {
+    // Use local Chrome for development
+    return {
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    };
+  }
+};
 
 // Generate Company Receipt PDF
 exports.generateCompanyReceipt = async (req, res) => {
@@ -36,12 +60,8 @@ exports.generateCompanyReceipt = async (req, res) => {
     const html = generateCompanyReceiptHTML(payment, company, driver, { showInstallments: false });
 
     // Launch Puppeteer and generate PDF
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+    const browserOptions = await getBrowserOptions();
+    const browser = await puppeteer.launch(browserOptions);
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
@@ -100,12 +120,8 @@ exports.generateDriverReceipt = async (req, res) => {
     const html = generateDriverReceiptHTML(payment, company, driver, { showInstallments: false });
 
     // Launch Puppeteer and generate PDF
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+    const browserOptions = await getBrowserOptions();
+    const browser = await puppeteer.launch(browserOptions);
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
@@ -170,12 +186,8 @@ exports.generateCompanyInstallmentReceipt = async (req, res) => {
     const html = generateCompanyReceiptHTML(payment, company, driver, { installment });
 
     // Launch Puppeteer and generate PDF
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+    const browserOptions = await getBrowserOptions();
+    const browser = await puppeteer.launch(browserOptions);
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
@@ -240,12 +252,8 @@ exports.generateDriverInstallmentReceipt = async (req, res) => {
     const html = generateDriverReceiptHTML(payment, company, driver, { installment });
 
     // Launch Puppeteer and generate PDF
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+    const browserOptions = await getBrowserOptions();
+    const browser = await puppeteer.launch(browserOptions);
 
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
