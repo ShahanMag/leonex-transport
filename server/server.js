@@ -15,6 +15,7 @@ const reportRoutes = require("./routes/reports");
 const transactionRoutes = require("./routes/transactionRoutes");
 const dashboardRoutes = require("./routes/dashboard");
 const userRoutes = require("./routes/users");
+const receiptRoutes = require("./routes/receipts");
 
 // Initialize Express app
 const app = express();
@@ -68,6 +69,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/transactions", transactionRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/receipts", receiptRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

@@ -142,4 +142,23 @@ export const userAPI = {
   login: (data) => api.post('/users/login', data),
 };
 
+// ==========================
+// 🧾 Receipt Services
+// ==========================
+export const receiptAPI = {
+  // Generate company payment summary receipt (returns PDF)
+  generateCompanyReceipt: (paymentId) => `${API_BASE_URL}/receipts/company/${paymentId}`,
+
+  // Generate driver rental payment summary receipt (returns PDF)
+  generateDriverReceipt: (paymentId) => `${API_BASE_URL}/receipts/driver/${paymentId}`,
+
+  // Generate company payment installment receipt (returns PDF)
+  generateCompanyInstallmentReceipt: (paymentId, installmentId) =>
+    `${API_BASE_URL}/receipts/company/${paymentId}/installment/${installmentId}`,
+
+  // Generate driver rental payment installment receipt (returns PDF)
+  generateDriverInstallmentReceipt: (paymentId, installmentId) =>
+    `${API_BASE_URL}/receipts/driver/${paymentId}/installment/${installmentId}`,
+};
+
 export default api;

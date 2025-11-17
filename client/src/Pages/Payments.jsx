@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { paymentAPI, loadAPI } from '../services/api';
+import { paymentAPI, loadAPI, receiptAPI } from '../services/api';
 import Button from '../components/Button';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
@@ -229,6 +229,48 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
         setIsLoading(false);
       }
     });
+  };
+
+  const handlePrintReceipt = (payment) => {
+    try {
+      let receiptUrl;
+
+      // Determine which receipt to generate based on payment type
+      if (payment.payment_type === 'vehicle-acquisition') {
+        receiptUrl = receiptAPI.generateCompanyReceipt(payment._id);
+      } else if (payment.payment_type === 'driver-rental') {
+        receiptUrl = receiptAPI.generateDriverReceipt(payment._id);
+      } else {
+        showError('Invalid payment type for receipt generation');
+        return;
+      }
+
+      // Open receipt in new tab
+      window.open(receiptUrl, '_blank');
+    } catch (error) {
+      showError('Failed to generate receipt');
+    }
+  };
+
+  const handlePrintInstallmentReceipt = (payment, installment) => {
+    try {
+      let receiptUrl;
+
+      // Determine which installment receipt to generate based on payment type
+      if (payment.payment_type === 'vehicle-acquisition') {
+        receiptUrl = receiptAPI.generateCompanyInstallmentReceipt(payment._id, installment._id);
+      } else if (payment.payment_type === 'driver-rental') {
+        receiptUrl = receiptAPI.generateDriverInstallmentReceipt(payment._id, installment._id);
+      } else {
+        showError('Invalid payment type for receipt generation');
+        return;
+      }
+
+      // Open installment receipt in new tab
+      window.open(receiptUrl, '_blank');
+    } catch (error) {
+      showError('Failed to generate installment receipt');
+    }
   };
 
   const getSelectedPayment = () => {
@@ -503,7 +545,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                       </td>
                     ))}
                     <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">
-                      <div className="flex gap-1 md:gap-2">
+                      <div className="flex gap-1 md:gap-2 flex-wrap">
                         <button
                           onClick={() => {
                             setSelectedPaymentId(payment._id);
@@ -514,6 +556,12 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                           className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-medium hover:bg-green-200 transition-colors"
                         >
                           Register
+                        </button>
+                        <button
+                          onClick={() => handlePrintReceipt(payment)}
+                          className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors"
+                        >
+                          Print Receipt
                         </button>
                         <button
                           onClick={() => handleDeletePayment(payment)}
@@ -559,19 +607,27 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                                       {installment.paid_date ? new Date(installment.paid_date).toLocaleDateString() : 'N/A'}
                                     </td>
                                     <td className="px-4 py-2 text-gray-800">{installment.notes || '-'}</td>
-                                    <td className="px-4 py-2 text-gray-800 flex gap-2">
-                                      <button
-                                        onClick={() => handleEditInstallment(payment, installment)}
-                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors"
-                                      >
-                                        Edit
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteInstallment(payment, installment)}
-                                        className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-medium hover:bg-red-200 transition-colors"
-                                      >
-                                        Delete
-                                      </button>
+                                    <td className="px-4 py-2 text-gray-800">
+                                      <div className="flex gap-2 flex-wrap">
+                                        <button
+                                          onClick={() => handlePrintInstallmentReceipt(payment, installment)}
+                                          className="px-3 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium hover:bg-purple-200 transition-colors"
+                                        >
+                                          Print
+                                        </button>
+                                        <button
+                                          onClick={() => handleEditInstallment(payment, installment)}
+                                          className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors"
+                                        >
+                                          Edit
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteInstallment(payment, installment)}
+                                          className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-medium hover:bg-red-200 transition-colors"
+                                        >
+                                          Delete
+                                        </button>
+                                      </div>
                                     </td>
                                   </tr>
                                 ))}

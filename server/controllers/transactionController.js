@@ -333,6 +333,15 @@ exports.updateRentalTransaction = async (req, res) => {
       if (acquisition_cost) {
         acquisitionPayment.total_amount = acquisition_cost;
         acquisitionPayment.total_due = acquisition_cost - acquisitionPayment.total_paid;
+
+        // Recalculate status based on new amount
+        if (acquisitionPayment.total_paid >= acquisition_cost) {
+          acquisitionPayment.status = 'paid';
+        } else if (acquisitionPayment.total_paid > 0) {
+          acquisitionPayment.status = 'partial';
+        } else {
+          acquisitionPayment.status = 'unpaid';
+        }
       }
       if (acquisition_date) {
         acquisitionPayment.acquisition_date = new Date(acquisition_date);
@@ -349,6 +358,15 @@ exports.updateRentalTransaction = async (req, res) => {
       if (rental_amount) {
         rentalPayment.total_amount = rental_amount;
         rentalPayment.total_due = rental_amount - rentalPayment.total_paid;
+
+        // Recalculate status based on new amount
+        if (rentalPayment.total_paid >= rental_amount) {
+          rentalPayment.status = 'paid';
+        } else if (rentalPayment.total_paid > 0) {
+          rentalPayment.status = 'partial';
+        } else {
+          rentalPayment.status = 'unpaid';
+        }
       }
       if (rental_date) {
         rentalPayment.rental_date = new Date(rental_date);
