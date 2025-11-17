@@ -1,19 +1,6 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "server/server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "server/server.js"
-    }
-  ],
   "functions": {
-    "server/server.js": {
+    "**/*.js": {
       "memory": 1024,
       "maxDuration": 30
     }
