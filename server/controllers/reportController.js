@@ -267,34 +267,78 @@ exports.getRentalPaymentsReport = async (req, res) => {
       payment_type: { $in: ['driver-rental', 'rental-payment'] },
     })
       .populate('company_id', 'name')
-      .populate('driver_id', 'name')
+      .populate('driver_id', 'name iqama_id')
       .populate('load_id', 'rental_code')
       .lean();
 
-    const data = rentalPayments.map((p) => ({
-      PaymentType: p.payment_type,
-      Company: p.company_id?.name || 'N/A',
-      Driver: p.driver_id?.name || 'N/A',
-      TotalAmount: p.total_amount,
-      Paid: p.total_paid,
-      Due: p.total_due,
-      Status: p.status,
-      TransactionDate: p.transaction_date
-        ? moment(p.transaction_date).format('YYYY-MM-DD')
-        : 'N/A',
+    if (!rentalPayments.length) {
+      return res.status(404).json({ message: 'No rental payments found' });
+    }
+
+    // 🔹 Find the maximum number of installments
+    let maxInstallments = 0;
+    rentalPayments.forEach((p) => {
+      if (Array.isArray(p.installments)) {
+        maxInstallments = Math.max(maxInstallments, p.installments.length);
+      }
+    });
+
+    // 🔹 Define dynamic columns for installments
+    const installmentColumns = Array.from({ length: maxInstallments }).map((_, i) => ({
+      header: `Installment ${i + 1}`,
+      key: `Installment_${i + 1}`,
+      width: 22,
     }));
 
+    // 🔹 Standard columns
     const columns = [
       { header: 'Payment Type', key: 'PaymentType', width: 20 },
       { header: 'Company', key: 'Company', width: 25 },
       { header: 'Driver', key: 'Driver', width: 25 },
+      { header: 'Iqama ID', key: 'IqamaID', width: 20 },
+      { header: 'Load Code', key: 'LoadCode', width: 20 },
       { header: 'Total Amount', key: 'TotalAmount', width: 15 },
       { header: 'Paid', key: 'Paid', width: 15 },
       { header: 'Due', key: 'Due', width: 15 },
       { header: 'Status', key: 'Status', width: 15 },
       { header: 'Transaction Date', key: 'TransactionDate', width: 20 },
+      ...installmentColumns,
     ];
 
+    // 🔹 Prepare Excel rows
+    const data = rentalPayments.map((p) => {
+      const row = {
+        PaymentType: p.payment_type,
+        Company: p.company_id?.name || 'N/A',
+        Driver: p.driver_id?.name || 'N/A',
+        IqamaID: p.driver_id?.iqama_id || 'N/A',
+        LoadCode: p.load_id?.rental_code || 'N/A',
+        TotalAmount: p.total_amount,
+        Paid: p.total_paid,
+        Due: p.total_due,
+        Status: p.status,
+        TransactionDate: p.transaction_date
+          ? moment(p.transaction_date).format('YYYY-MM-DD')
+          : 'N/A',
+      };
+
+      // ✅ Add each installment as "amount (date)"
+      if (Array.isArray(p.installments)) {
+        p.installments.forEach((inst, idx) => {
+          const key = `Installment_${idx + 1}`;
+          const amount = inst.amount || 0;
+          const date =
+            inst.paid_date || inst.date
+              ? moment(inst.paid_date || inst.date).format('YYYY-MM-DD')
+              : 'N/A';
+          row[key] = `${amount} (${date})`;
+        });
+      }
+
+      return row;
+    });
+
+    // 🔹 Generate Excel
     await generateExcel('Rental Payments Report', columns, data, res);
   } catch (err) {
     console.error('Rental Payments report error:', err);

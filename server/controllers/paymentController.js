@@ -102,6 +102,37 @@ exports.createPayment = async (req, res) => {
 // Update payment
 exports.updatePayment = async (req, res) => {
   try {
+    // Get the existing payment first
+    const existingPayment = await Payment.findById(req.params.id);
+    if (!existingPayment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+
+    // If total_amount is being updated, validate and recalculate
+    if (req.body.total_amount !== undefined) {
+      const newTotalAmount = parseFloat(req.body.total_amount);
+
+      // Validate: new amount cannot be less than what's already paid
+      if (newTotalAmount < existingPayment.total_paid) {
+        return res.status(400).json({
+          message: `Cannot set total amount (${newTotalAmount}) lower than already paid amount (${existingPayment.total_paid}). Please adjust or delete installments first.`
+        });
+      }
+
+      // Recalculate total_due
+      req.body.total_due = newTotalAmount - existingPayment.total_paid;
+
+      // Update status based on new amounts
+      if (existingPayment.total_paid >= newTotalAmount) {
+        req.body.status = 'paid';
+      } else if (existingPayment.total_paid > 0) {
+        req.body.status = 'partial';
+      } else {
+        req.body.status = 'unpaid';
+      }
+    }
+
+    // Update the payment
     const payment = await Payment.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -112,7 +143,7 @@ exports.updatePayment = async (req, res) => {
       'load_id',
       'related_payment_id'
     ]);
-    if (!payment) return res.status(404).json({ message: 'Payment not found' });
+
     res.status(200).json(payment);
   } catch (error) {
     res.status(400).json({ message: error.message });

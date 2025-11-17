@@ -255,21 +255,6 @@ export default function Loads() {
       label: 'Driver',
       render: (value) => value?.name || 'Unassigned'
     },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (status) => (
-        <span className={`px-3 py-1 rounded text-sm font-medium ${
-          status === 'pending' ? 'bg-gray-100 text-gray-800' :
-          status === 'assigned' ? 'bg-blue-100 text-blue-800' :
-          status === 'in-transit' ? 'bg-yellow-100 text-yellow-800' :
-          status === 'completed' ? 'bg-green-100 text-green-800' :
-          'bg-red-100 text-red-800'
-        }`}>
-          {status}
-        </span>
-      )
-    },
   ];
 
   // Dynamic actions based on load status
