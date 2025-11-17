@@ -16,8 +16,6 @@ export default function Loads() {
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVehicleTypeFilter, setSelectedVehicleTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [driverFilter, setDriverFilter] = useState('');
   const [formValues, setFormValues] = useState({
     vehicle_type: '',
     from_location: '',
@@ -75,38 +73,17 @@ export default function Loads() {
     }
   };
 
-  const handleVehicleTypeFilter = async (e) => {
+  const handleVehicleTypeFilter = (e) => {
     const vehicleType = e.target.value;
     setSelectedVehicleTypeFilter(vehicleType);
-
-    if (!vehicleType) {
-      fetchLoads();
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const response = await loadAPI.filter(vehicleType);
-      setLoads(response.data);
-    } catch (error) {
-      showError('Failed to filter loads');
-    } finally {
-      setIsLoading(false);
-    }
   };
 
-  // Client-side filter function for status and driver
+  // Client-side filter function
   const getFilteredLoads = () => {
     let filtered = loads;
 
-    if (statusFilter) {
-      filtered = filtered.filter(load => load.status === statusFilter);
-    }
-
-    if (driverFilter) {
-      filtered = filtered.filter(load =>
-        load.driver_id?._id === driverFilter || load.driver_id === driverFilter
-      );
+    if (selectedVehicleTypeFilter) {
+      filtered = filtered.filter(load => load.vehicle_type === selectedVehicleTypeFilter);
     }
 
     return filtered;
@@ -309,29 +286,6 @@ export default function Loads() {
             </option>
           ))}
         </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="assigned">Assigned</option>
-          <option value="in-transit">In Transit</option>
-          <option value="completed">Completed</option>
-        </select>
-        <select
-          value={driverFilter}
-          onChange={(e) => setDriverFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Drivers</option>
-          {drivers.map((driver) => (
-            <option key={driver._id} value={driver._id}>
-              {driver.name}
-            </option>
-          ))}
-        </select>
       </div>
 
       <Table columns={columns} data={getFilteredLoads()} actions={getActions} isLoading={isLoading} />
@@ -350,12 +304,13 @@ export default function Loads() {
             <Button
               variant="primary"
               onClick={() => {
-                if (!formValues.vehicle_type || !formValues.from_location || !formValues.to_location || !formValues.rental_price_per_day) {
+                if (!formValues.vehicle_type || !formValues.from_location || !formValues.to_location || !formValues.rental_amount || !formValues.rental_date) {
                   setErrors({
                     vehicle_type: !formValues.vehicle_type ? 'Vehicle type is required' : '',
                     from_location: !formValues.from_location ? 'From location is required' : '',
                     to_location: !formValues.to_location ? 'To location is required' : '',
-                    rental_price_per_day: !formValues.rental_price_per_day ? 'Rental price is required' : '',
+                    rental_amount: !formValues.rental_amount ? 'Rental amount is required' : '',
+                    rental_date: !formValues.rental_date ? 'Rental date is required' : '',
                   });
                   return;
                 }

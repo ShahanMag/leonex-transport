@@ -60,8 +60,8 @@ const AdditionalFilters = ({
         className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
       />
 
-      {/* Company Name Filter - Only for company-payments */}
-      {activeReport === 'company-payments' && (
+      {/* Company Name Filter - For company-payments and combined-report */}
+      {(activeReport === 'company-payments' || activeReport === 'combined-report') && (
         <input
           type="text"
           placeholder="Filter by company name..."
@@ -71,24 +71,26 @@ const AdditionalFilters = ({
         />
       )}
 
-      {/* Driver Name and Iqama Filters - Only for rental-payments */}
+      {/* Driver Name Filter - For rental-payments and combined-report */}
+      {(activeReport === 'rental-payments' || activeReport === 'combined-report') && (
+        <input
+          type="text"
+          placeholder="Filter by driver name..."
+          value={driverNameFilter}
+          onChange={(e) => setDriverNameFilter(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-48"
+        />
+      )}
+
+      {/* Iqama Filter - Only for rental-payments */}
       {activeReport === 'rental-payments' && (
-        <>
-          <input
-            type="text"
-            placeholder="Filter by driver name..."
-            value={driverNameFilter}
-            onChange={(e) => setDriverNameFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-48"
-          />
-          <input
-            type="text"
-            placeholder="Filter by Iqama ID..."
-            value={iqamaFilter}
-            onChange={(e) => setIqamaFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-48"
-          />
-        </>
+        <input
+          type="text"
+          placeholder="Filter by Iqama ID..."
+          value={iqamaFilter}
+          onChange={(e) => setIqamaFilter(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-48"
+        />
       )}
     </div>
   );
@@ -106,6 +108,7 @@ export default function Reports() {
   const [iqamaFilter, setIqamaFilter] = useState('');
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
+  const [combinedStatusFilter, setCombinedStatusFilter] = useState('all');
 
   useEffect(() => {
     fetchReport(activeReport);
@@ -116,6 +119,7 @@ export default function Reports() {
     setIqamaFilter('');
     setStartDateFilter('');
     setEndDateFilter('');
+    setCombinedStatusFilter('all');
   }, [activeReport]);
 
   // 🔹 Fetch JSON Data for each report
@@ -190,25 +194,45 @@ export default function Reports() {
       }
     }
 
-    // Apply company name filter for company-payments
-    if (activeReport === 'company-payments' && companyNameFilter) {
+    // Apply company name filter for company-payments and combined-report
+    if ((activeReport === 'company-payments' || activeReport === 'combined-report') && companyNameFilter) {
       filtered = filtered.filter(item =>
         item.company?.toLowerCase().includes(companyNameFilter.toLowerCase())
       );
     }
 
-    // Apply driver name and iqama filters for rental-payments
-    if (activeReport === 'rental-payments') {
-      if (driverNameFilter) {
-        filtered = filtered.filter(item =>
-          item.driver?.toLowerCase().includes(driverNameFilter.toLowerCase())
-        );
-      }
-      if (iqamaFilter) {
-        filtered = filtered.filter(item =>
-          item.iqama_id?.toLowerCase().includes(iqamaFilter.toLowerCase())
-        );
-      }
+    // Apply driver name filter for rental-payments and combined-report
+    if ((activeReport === 'rental-payments' || activeReport === 'combined-report') && driverNameFilter) {
+      filtered = filtered.filter(item =>
+        item.driver?.toLowerCase().includes(driverNameFilter.toLowerCase())
+      );
+    }
+
+    // Apply iqama filter only for rental-payments
+    if (activeReport === 'rental-payments' && iqamaFilter) {
+      filtered = filtered.filter(item =>
+        item.iqama_id?.toLowerCase().includes(iqamaFilter.toLowerCase())
+      );
+    }
+
+    // Apply status filter for combined report
+    if (activeReport === 'combined-report' && combinedStatusFilter !== 'all') {
+      filtered = filtered.filter(item => {
+        // Filter based on acquisition payment status or rental payment status
+        const revStatus = item.revenue_status || 'unpaid';
+        const costStatus = item.cost_status || 'unpaid';
+
+        if (combinedStatusFilter === 'paid') {
+          return revStatus === 'paid' && costStatus === 'paid';
+        } else if (combinedStatusFilter === 'partial') {
+          return revStatus === 'partial' || costStatus === 'partial' ||
+                 (revStatus === 'paid' && costStatus !== 'paid') ||
+                 (revStatus !== 'paid' && costStatus === 'paid');
+        } else if (combinedStatusFilter === 'unpaid') {
+          return revStatus === 'unpaid' && costStatus === 'unpaid';
+        }
+        return true;
+      });
     }
 
     // Apply date filters for all reports with transaction_date or rental_date
@@ -229,7 +253,7 @@ export default function Reports() {
     }
 
     return filtered;
-  }, [reportData, activeReport, paymentFilter, companyNameFilter, driverNameFilter, iqamaFilter, startDateFilter, endDateFilter]);
+  }, [reportData, activeReport, paymentFilter, companyNameFilter, driverNameFilter, iqamaFilter, startDateFilter, endDateFilter, combinedStatusFilter]);
 
   // 📊 Calculate Summary Statistics
   const calculateSummary = () => {
@@ -397,7 +421,7 @@ export default function Reports() {
 
   // 🔍 Payment Status Filter Component
   const PaymentFilter = () => {
-    // Only show filter for payment reports
+    // Show filter for payment reports
     if (activeReport !== 'company-payments' && activeReport !== 'rental-payments') {
       return null;
     }
@@ -448,6 +472,59 @@ export default function Reports() {
     );
   };
 
+  // 🔍 Combined Report Status Filter Component
+  const CombinedStatusFilter = () => {
+    // Only show filter for combined report
+    if (activeReport !== 'combined-report') {
+      return null;
+    }
+
+    return (
+      <div className="flex gap-2">
+        <button
+          onClick={() => setCombinedStatusFilter('all')}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+            combinedStatusFilter === 'all'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setCombinedStatusFilter('paid')}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+            combinedStatusFilter === 'paid'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Paid
+        </button>
+        <button
+          onClick={() => setCombinedStatusFilter('partial')}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+            combinedStatusFilter === 'partial'
+              ? 'bg-yellow-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Partial
+        </button>
+        <button
+          onClick={() => setCombinedStatusFilter('unpaid')}
+          className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+            combinedStatusFilter === 'unpaid'
+              ? 'bg-red-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Unpaid
+        </button>
+      </div>
+    );
+  };
+
   // 🧾 Download Buttons (Excel)
   const DownloadButton = ({ reportType }) => {
     const buttons = {
@@ -483,6 +560,7 @@ export default function Reports() {
     return (
       <div className="mb-6 flex flex-wrap justify-between items-center gap-4">
         <PaymentFilter />
+        <CombinedStatusFilter />
         <Button variant="primary" onClick={current.fn}>
           📥 {current.label}
         </Button>
@@ -508,6 +586,7 @@ export default function Reports() {
               {isRentalPayments && (
                 <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Iqama ID</th>
               )}
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Vehicle Number</th>
               <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Total</th>
               <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Paid</th>
               <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Due</th>
@@ -524,6 +603,7 @@ export default function Reports() {
                 {isRentalPayments && (
                   <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.iqama_id || '-'}</td>
                 )}
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{p.plate_no || '-'}</td>
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">₹{p.total_amount?.toLocaleString()}</td>
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-green-700 font-medium whitespace-nowrap">₹{p.total_paid?.toLocaleString()}</td>
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-red-700 font-medium whitespace-nowrap">₹{p.total_due?.toLocaleString()}</td>
@@ -564,15 +644,19 @@ export default function Reports() {
             <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Revenue</th>
             <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Rev. Paid</th>
             <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Rev. Due</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Rev. Status</th>
             <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Cost</th>
             <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Cost Paid</th>
             <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Cost Due</th>
+            <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Cost Status</th>
             <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Net Profit/Loss</th>
           </tr>
         </thead>
         <tbody>
           {(Array.isArray(data) ? data : []).map((item, i) => {
             const isProfitable = item.net_profit >= 0;
+            const revStatus = item.revenue_status || 'unpaid';
+            const costStatus = item.cost_status || 'unpaid';
             return (
               <tr key={i} className="border-b hover:bg-gray-50">
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">{item.rental_code || '-'}</td>
@@ -583,9 +667,27 @@ export default function Reports() {
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">SAR {item.revenue?.toLocaleString() || 0}</td>
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-green-700 whitespace-nowrap">SAR {item.revenue_paid?.toLocaleString() || 0}</td>
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-red-700 whitespace-nowrap">SAR {item.revenue_due?.toLocaleString() || 0}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm">
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    revStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                    revStatus === 'partial' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {revStatus}
+                  </span>
+                </td>
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">SAR {item.cost?.toLocaleString() || 0}</td>
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-green-700 whitespace-nowrap">SAR {item.cost_paid?.toLocaleString() || 0}</td>
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-red-700 whitespace-nowrap">SAR {item.cost_due?.toLocaleString() || 0}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm">
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    costStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                    costStatus === 'partial' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {costStatus}
+                  </span>
+                </td>
                 <td className={`px-2 md:px-4 py-3 text-xs md:text-sm font-bold whitespace-nowrap ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
                   SAR {item.net_profit?.toLocaleString() || 0}
                 </td>

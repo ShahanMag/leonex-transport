@@ -177,6 +177,7 @@ exports.createRentalTransaction = async (req, res) => {
       total_paid: 0,
       total_due: rental_amount,
       vehicle_type,
+      plate_no,
       from_location,
       to_location,
       rental_date: new Date(rental_date),
@@ -353,6 +354,7 @@ exports.updateRentalTransaction = async (req, res) => {
     // Update rental payment
     if (rentalPayment) {
       if (vehicle_type) rentalPayment.vehicle_type = vehicle_type;
+      if (plate_no !== undefined) rentalPayment.plate_no = plate_no;
       if (from_location) rentalPayment.from_location = from_location;
       if (to_location) rentalPayment.to_location = to_location;
       if (rental_amount) {

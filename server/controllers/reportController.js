@@ -443,9 +443,11 @@ exports.getCombinedReportJSON = async (req, res) => {
           revenue: revenue,
           revenue_paid: revenuePaid,
           revenue_due: revenueDue,
+          revenue_status: acquisitionPayment?.status || 'unpaid',
           cost: cost,
           cost_paid: costPaid,
           cost_due: costDue,
+          cost_status: rentalPayment?.status || 'unpaid',
           net_profit: netProfit,
           rental_date: load.rental_date,
         };

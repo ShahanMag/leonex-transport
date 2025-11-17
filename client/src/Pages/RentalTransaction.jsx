@@ -42,6 +42,7 @@ export default function RentalTransaction() {
   const [errors, setErrors] = useState({});
   const [transactions, setTransactions] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [formValues, setFormValues] = useState({
     // Company
@@ -352,16 +353,34 @@ export default function RentalTransaction() {
     }
   };
 
+  // Filter transactions based on search query
+  const getFilteredTransactions = () => {
+    if (!searchQuery.trim()) {
+      return transactions;
+    }
+
+    const query = searchQuery.toLowerCase();
+    return transactions.filter((transaction) => {
+      const rentalCode = transaction.load_id?.rental_code?.toLowerCase() || '';
+      const companyName = (transaction.company_id?.name || transaction.payee || '').toLowerCase();
+      const driverName = (transaction.payer || '').toLowerCase();
+      const vehicleNumber = (transaction.plate_no || '').toLowerCase();
+
+      return rentalCode.includes(query) || companyName.includes(query) || driverName.includes(query) || vehicleNumber.includes(query);
+    });
+  };
+
   // 📊 Calculate Summary Statistics
   const calculateSummary = () => {
-    if (!transactions || transactions.length === 0) {
+    const filteredTransactions = getFilteredTransactions();
+    if (!filteredTransactions || filteredTransactions.length === 0) {
       return { totalRevenue: 0, totalCost: 0, netProfit: 0, count: 0 };
     }
 
-    const totalRevenue = transactions.reduce((sum, t) => sum + (t.acquisition_amount || 0), 0);
-    const totalCost = transactions.reduce((sum, t) => sum + (t.total_amount || 0), 0);
+    const totalRevenue = filteredTransactions.reduce((sum, t) => sum + (t.acquisition_amount || 0), 0);
+    const totalCost = filteredTransactions.reduce((sum, t) => sum + (t.total_amount || 0), 0);
     const netProfit = totalRevenue - totalCost;
-    const count = transactions.length;
+    const count = filteredTransactions.length;
 
     return { totalRevenue, totalCost, netProfit, count };
   };
@@ -602,6 +621,19 @@ export default function RentalTransaction() {
       <div className="mt-12">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Rental Transactions</h2>
 
+        {/* Search Bar */}
+        {transactions.length > 0 && (
+          <div className="mb-6">
+            <input
+              type="text"
+              placeholder="Search by rental code, company name, driver name, or vehicle number..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+
         {/* Summary Cards */}
         {transactions.length > 0 && (() => {
           const summary = calculateSummary();
@@ -639,6 +671,10 @@ export default function RentalTransaction() {
           <div className="bg-gray-50 p-8 rounded-lg text-center">
             <p className="text-gray-600">No rental transactions yet. Click "New Rental Transaction" to create one.</p>
           </div>
+        ) : getFilteredTransactions().length === 0 ? (
+          <div className="bg-gray-50 p-8 rounded-lg text-center">
+            <p className="text-gray-600">No transactions match your search criteria.</p>
+          </div>
         ) : (
           <div className="overflow-x-auto bg-white rounded-lg shadow">
             <table className="w-full border-collapse min-w-max">
@@ -647,6 +683,7 @@ export default function RentalTransaction() {
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Rental Code</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Company</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Driver</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Vehicle Number</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">From</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">To</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Vehicle Type</th>
@@ -657,7 +694,7 @@ export default function RentalTransaction() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((transaction) => {
+                {getFilteredTransactions().map((transaction) => {
                   const revenue = transaction.acquisition_amount || 0;
                   const cost = transaction.total_amount || 0;
                   const netProfit = revenue - cost;
@@ -668,6 +705,7 @@ export default function RentalTransaction() {
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.load_id?.rental_code || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.payer || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.plate_no || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.from_location || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.to_location || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.vehicle_type || 'N/A'}</td>

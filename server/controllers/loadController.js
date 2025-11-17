@@ -116,13 +116,22 @@ exports.updateLoad = async (req, res) => {
     const load = await Load.findById(req.params.id);
     if (!load) return res.status(404).json({ message: 'Load not found' });
 
+    // Extract update fields
+    const {
+      vehicle_type,
+      from_location,
+      to_location,
+      rental_amount,
+      rental_date,
+    } = req.body;
+
     // Only allow updating basic load info
     const updateData = {
-      vehicle_type: req.body.vehicle_type || load.vehicle_type,
-      from_location: req.body.from_location || load.from_location,
-      to_location: req.body.to_location || load.to_location,
-      rental_amount: req.body.rental_amount || load.rental_amount,
-      rental_date: req.body.rental_date ? new Date(req.body.rental_date) : load.rental_date,
+      vehicle_type: vehicle_type || load.vehicle_type,
+      from_location: from_location || load.from_location,
+      to_location: to_location || load.to_location,
+      rental_amount: rental_amount || load.rental_amount,
+      rental_date: rental_date ? new Date(rental_date) : load.rental_date,
     };
 
     const updatedLoad = await Load.findByIdAndUpdate(
@@ -132,6 +141,40 @@ exports.updateLoad = async (req, res) => {
     ).populate([
       { path: 'driver_id', select: 'name contact driver_code' },
     ]);
+
+    // 🔥 ALSO UPDATE RELATED PAYMENT RECORDS
+    const rentalPayment = await Payment.findOne({
+      load_id: load._id,
+      payment_type: 'driver-rental'
+    });
+
+    if (rentalPayment) {
+      // Update rental payment fields
+      if (vehicle_type) rentalPayment.vehicle_type = vehicle_type;
+      if (from_location) rentalPayment.from_location = from_location;
+      if (to_location) rentalPayment.to_location = to_location;
+
+      if (rental_amount) {
+        rentalPayment.total_amount = rental_amount;
+        rentalPayment.total_due = rental_amount - rentalPayment.total_paid;
+
+        // Recalculate status based on new amount
+        if (rentalPayment.total_paid >= rental_amount) {
+          rentalPayment.status = 'paid';
+        } else if (rentalPayment.total_paid > 0) {
+          rentalPayment.status = 'partial';
+        } else {
+          rentalPayment.status = 'unpaid';
+        }
+      }
+
+      if (rental_date) {
+        rentalPayment.rental_date = new Date(rental_date);
+        rentalPayment.transaction_date = new Date(rental_date);
+      }
+
+      await rentalPayment.save();
+    }
 
     res.status(200).json(updatedLoad);
   } catch (error) {
