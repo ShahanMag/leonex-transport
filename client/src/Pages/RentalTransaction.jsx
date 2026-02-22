@@ -681,7 +681,9 @@ export default function RentalTransaction() {
             <table className="w-full border-collapse min-w-max">
               <thead>
                 <tr className="bg-gray-100 border-b">
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">#</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Rental Code</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Acquisition Date</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Company</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Driver</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Vehicle Number</th>
@@ -695,7 +697,7 @@ export default function RentalTransaction() {
                 </tr>
               </thead>
               <tbody>
-                {getFilteredTransactions().map((transaction) => {
+                {getFilteredTransactions().map((transaction,i) => {
                   const revenue = transaction.acquisition_amount || 0;
                   const cost = transaction.total_amount || 0;
                   const netProfit = revenue - cost;
@@ -703,7 +705,9 @@ export default function RentalTransaction() {
 
                   return (
                     <tr key={transaction._id} className="border-b hover:bg-gray-50">
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{i+1}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.load_id?.rental_code || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.acquisition_date ? formatDate(transaction.acquisition_date) : 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.payer || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.plate_no || 'N/A'}</td>
