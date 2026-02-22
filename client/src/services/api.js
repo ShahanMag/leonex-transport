@@ -143,6 +143,28 @@ export const userAPI = {
 };
 
 // ==========================
+// 🚗 Vehicle Type Services
+// ==========================
+export const vehicleTypeAPI = {
+  getAll: () => api.get('/vehicle-types'),
+  getById: (id) => api.get(`/vehicle-types/${id}`),
+  create: (data) => api.post('/vehicle-types', data),
+  update: (id, data) => api.put(`/vehicle-types/${id}`, data),
+  delete: (id) => api.delete(`/vehicle-types/${id}`),
+};
+
+// ==========================
+// 👤 Customer Services
+// ==========================
+export const customerAPI = {
+  getAll: () => api.get('/customers'),
+  getById: (id) => api.get(`/customers/${id}`),
+  create: (data) => api.post('/customers', data),
+  update: (id, data) => api.put(`/customers/${id}`, data),
+  delete: (id) => api.delete(`/customers/${id}`),
+};
+
+// ==========================
 // 🧾 Receipt Services
 // ==========================
 export const receiptAPI = {

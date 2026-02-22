@@ -25,6 +25,20 @@ export default function Settings() {
       color: 'bg-purple-500',
       path: '/users',
     },
+    {
+      title: 'Vehicle Types',
+      description: 'Manage vehicle types and availability',
+      icon: '🚗',
+      color: 'bg-green-500',
+      path: '/vehicle-types',
+    },
+    {
+      title: 'Customers',
+      description: 'Manage customer records and contacts',
+      icon: '👤',
+      color: 'bg-orange-500',
+      path: '/customers',
+    },
   ];
 
   return (
