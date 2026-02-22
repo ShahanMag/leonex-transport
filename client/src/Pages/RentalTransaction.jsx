@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { transactionAPI, companyAPI, driverAPI, paymentAPI } from '../services/api';
+import { transactionAPI, companyAPI, driverAPI, paymentAPI, vehicleTypeAPI } from '../services/api';
 import Button from '../components/Button';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
@@ -35,6 +35,7 @@ export default function RentalTransaction() {
   const [isLoading, setIsLoading] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [companyType, setCompanyType] = useState('existing'); // 'existing' or 'new'
   const [driverType, setDriverType] = useState('existing'); // 'existing' or 'new'
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -78,6 +79,7 @@ export default function RentalTransaction() {
   useEffect(() => {
     fetchCompanies();
     fetchDrivers();
+    fetchVehicleTypes();
     fetchTransactions();
   }, []);
 
@@ -143,6 +145,15 @@ export default function RentalTransaction() {
       setDrivers(response.data);
     } catch (error) {
       showError('Failed to fetch drivers');
+    }
+  };
+
+  const fetchVehicleTypes = async () => {
+    try {
+      const response = await vehicleTypeAPI.getAll();
+      setVehicleTypes(response.data);
+    } catch (error) {
+      showError('Failed to fetch vehicle types');
     }
   };
 
@@ -300,6 +311,11 @@ export default function RentalTransaction() {
   const driverOptions = drivers.map(d => ({
     value: d._id,
     label: d.name
+  }));
+
+  const vehicleTypeOptions = vehicleTypes.map(vt => ({
+    value: vt.name,
+    label: vt.name,
   }));
 
 
@@ -587,7 +603,7 @@ export default function RentalTransaction() {
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Vehicle & Acquisition</h3>
             <Form
               fields={[
-                { name: 'vehicle_type', label: 'Vehicle Type', placeholder: 'e.g., Truck, Van, Car', required: true },
+                { name: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: vehicleTypeOptions, required: true },
                 { name: 'plate_no', label: 'Plate Number', placeholder: 'e.g., ABC-1234' },
                 { name: 'acquisition_cost', label: 'Vehicle Cost', type: 'number', placeholder: '0', required: true },
                 { name: 'acquisition_date', label: 'Acquisition Date', type: 'date', required: true },

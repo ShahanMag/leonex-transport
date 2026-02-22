@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadAPI, driverAPI } from '../services/api';
+import { loadAPI, driverAPI, vehicleTypeAPI } from '../services/api';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import Form from '../components/Form';
@@ -10,6 +10,7 @@ import { formatDate } from '../utils/dateUtils';
 export default function Loads() {
   const [loads, setLoads] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
@@ -31,6 +32,7 @@ export default function Loads() {
   useEffect(() => {
     fetchLoads();
     fetchDrivers();
+    fetchVehicleTypes();
   }, []);
 
   const fetchLoads = async () => {
@@ -51,6 +53,15 @@ export default function Loads() {
       setDrivers(response.data);
     } catch (error) {
       showError('Failed to fetch drivers');
+    }
+  };
+
+  const fetchVehicleTypes = async () => {
+    try {
+      const response = await vehicleTypeAPI.getAll();
+      setVehicleTypes(response.data);
+    } catch (error) {
+      showError('Failed to fetch vehicle types');
     }
   };
 
@@ -281,9 +292,9 @@ export default function Loads() {
           className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">All Vehicle Types</option>
-          {[...new Set(loads.map(l => l.vehicle_type))].map((type) => (
-            <option key={type} value={type}>
-              {type}
+          {vehicleTypes.map((vt) => (
+            <option key={vt._id} value={vt.name}>
+              {vt.name}
             </option>
           ))}
         </select>
@@ -326,7 +337,7 @@ export default function Loads() {
       >
         <Form
           fields={[
-            { name: 'vehicle_type', label: 'Vehicle Type', placeholder: 'e.g., Truck, Van, Car', required: true },
+            { name: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: vehicleTypes.map(vt => ({ value: vt.name, label: vt.name })), required: true },
             { name: 'from_location', label: 'From Location', placeholder: 'Enter starting location', required: true },
             { name: 'to_location', label: 'To Location', placeholder: 'Enter destination', required: true },
             { name: 'rental_amount', label: 'Rental Amount', type: 'number', placeholder: '0', required: true },
