@@ -239,7 +239,7 @@ export default function Reports() {
     // Apply date filters for all reports with transaction_date or rental_date
     if (startDateFilter) {
       filtered = filtered.filter(item => {
-        const itemDate = item.transaction_date || item.rental_date;
+        const itemDate = item.transaction_date || item.rental_date || item.date;
         if (!itemDate) return false;
         return new Date(itemDate) >= new Date(startDateFilter);
       });
@@ -247,7 +247,7 @@ export default function Reports() {
 
     if (endDateFilter) {
       filtered = filtered.filter(item => {
-        const itemDate = item.transaction_date || item.rental_date;
+        const itemDate = item.transaction_date || item.rental_date || item.date;
         if (!itemDate) return false;
         return new Date(itemDate) <= new Date(endDateFilter);
       });
@@ -766,6 +766,50 @@ export default function Reports() {
       ))}
     </div>
   );
+
+  const BillsReport = ({ data }) => {
+    const STATUS_STYLES = { paid: 'bg-green-100 text-green-800', partial: 'bg-yellow-100 text-yellow-800', unpaid: 'bg-red-100 text-red-800' };
+    return (
+      <div className="overflow-x-auto border rounded-lg bg-white">
+        <table className="w-full min-w-max">
+          <thead>
+            <tr className="bg-gray-100 border-b">
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Type</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Name</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Customer</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Total</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Paid</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Dues</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Status</th>
+              <th className="px-2 md:px-4 py-3 text-left text-xs md:text-sm font-semibold text-gray-700 whitespace-nowrap">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(Array.isArray(data) ? data : []).map((b, i) => (
+              <tr key={i} className="border-b hover:bg-gray-50">
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm">
+                  <span className={`px-2 py-1 rounded text-xs font-semibold uppercase ${b.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {b.type}
+                  </span>
+                </td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{b.name}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800">{b.customer || '-'}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">SAR {b.totalAmount?.toLocaleString()}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-green-700 font-medium whitespace-nowrap">SAR {b.paidAmount?.toLocaleString()}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-red-700 font-medium whitespace-nowrap">SAR {b.dues?.toLocaleString()}</td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm">
+                  <span className={`px-2 py-1 rounded text-xs font-medium capitalize ${STATUS_STYLES[b.status] || ''}`}>{b.status}</span>
+                </td>
+                <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">
+                  {b.date ? formatDate(b.date) : '-'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   const DriverPerformanceReport = ({ data }) => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

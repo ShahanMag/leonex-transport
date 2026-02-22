@@ -4,6 +4,7 @@ const Company = require('../models/Company');
 const Driver = require('../models/Driver');
 const Load = require('../models/Load');
 const Payment = require('../models/Payment');
+const Bill = require('../models/Bill');
 
 /**
  * 🧩 Helper: Generate Excel file
@@ -640,5 +641,108 @@ exports.getProfitLossReportExcel = async (req, res) => {
   } catch (err) {
     console.error('Profit/Loss report Excel error:', err);
     res.status(500).json({ message: 'Failed to generate profit/loss report' });
+  }
+};
+
+/* ===========================
+ * 💵 BILLS REPORT (JSON)
+ * Income & Expense summary
+ * =========================== */
+exports.getBillsReportJSON = async (req, res) => {
+  try {
+    const { type, status } = req.query;
+    const filter = {};
+    if (type) filter.type = type;
+    if (status) filter.status = status;
+
+    const bills = await Bill.find(filter)
+      .populate('customer_id', 'name')
+      .sort({ date: -1 })
+      .lean();
+
+    const totalIncome  = bills.filter(b => b.type === 'income').reduce((s, b) => s + b.totalAmount, 0);
+    const totalExpense = bills.filter(b => b.type === 'expense').reduce((s, b) => s + b.totalAmount, 0);
+    const totalPaid    = bills.reduce((s, b) => s + (b.paidAmount || 0), 0);
+    const totalDue     = bills.reduce((s, b) => s + (b.totalAmount - (b.paidAmount || 0)), 0);
+
+    const data = bills.map(b => ({
+      type:        b.type,
+      name:        b.name,
+      customer:    b.customer_id?.name || '-',
+      totalAmount: b.totalAmount,
+      paidAmount:  b.paidAmount || 0,
+      dues:        b.totalAmount - (b.paidAmount || 0),
+      status:      b.status,
+      date:        b.date,
+      installments: (b.installments || []).map(i => ({
+        amount:    i.amount,
+        paid_date: i.paid_date,
+        notes:     i.notes,
+      })),
+    }));
+
+    res.status(200).json({
+      summary: { totalIncome, totalExpense, netBalance: totalIncome - totalExpense, totalPaid, totalDue },
+      data,
+    });
+  } catch (err) {
+    console.error('Bills report JSON error:', err);
+    res.status(500).json({ message: 'Failed to load bills report' });
+  }
+};
+
+/* ===========================
+ * 💵 BILLS REPORT (Excel)
+ * =========================== */
+exports.getBillsReportExcel = async (req, res) => {
+  try {
+    const bills = await Bill.find()
+      .populate('customer_id', 'name')
+      .sort({ date: -1 })
+      .lean();
+
+    // Find max installments for dynamic columns
+    const maxInstallments = bills.reduce((m, b) => Math.max(m, (b.installments || []).length), 0);
+
+    const installmentColumns = Array.from({ length: maxInstallments }).map((_, i) => ({
+      header: `Payment ${i + 1}`,
+      key: `Payment_${i + 1}`,
+      width: 22,
+    }));
+
+    const columns = [
+      { header: 'Type',         key: 'Type',       width: 12 },
+      { header: 'Name',         key: 'Name',       width: 30 },
+      { header: 'Customer',     key: 'Customer',   width: 25 },
+      { header: 'Total Amount', key: 'Total',      width: 15 },
+      { header: 'Paid Amount',  key: 'Paid',       width: 15 },
+      { header: 'Dues',         key: 'Dues',       width: 15 },
+      { header: 'Status',       key: 'Status',     width: 12 },
+      { header: 'Date',         key: 'Date',       width: 15 },
+      ...installmentColumns,
+    ];
+
+    const data = bills.map(b => {
+      const row = {
+        Type:     b.type,
+        Name:     b.name,
+        Customer: b.customer_id?.name || '-',
+        Total:    b.totalAmount,
+        Paid:     b.paidAmount || 0,
+        Dues:     b.totalAmount - (b.paidAmount || 0),
+        Status:   b.status,
+        Date:     b.date ? moment(b.date).format('YYYY-MM-DD') : '-',
+      };
+      (b.installments || []).forEach((inst, idx) => {
+        const date = inst.paid_date ? moment(inst.paid_date).format('YYYY-MM-DD') : 'N/A';
+        row[`Payment_${idx + 1}`] = `${inst.amount} (${date})${inst.notes ? ' - ' + inst.notes : ''}`;
+      });
+      return row;
+    });
+
+    await generateExcel('Income & Expense Report', columns, data, res);
+  } catch (err) {
+    console.error('Bills report Excel error:', err);
+    res.status(500).json({ message: 'Failed to generate bills report' });
   }
 };

@@ -59,7 +59,7 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
       <div class="receipt-container">
         <!-- Header -->
         <div class="header">
-          <div class="company-name">Leonex Road Freight Transport</div>
+          <div class="company-name">EESA Road Freight Transport</div>
           <div class="receipt-title">${installment ? 'Payment Voucher' : 'Driver Rental Payment Summary'}</div>
         </div>
 
@@ -167,7 +167,7 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
         <!-- Footer -->
         <div class="footer">
           <p>This is a computer-generated receipt.</p>
-          <p>Leonex Road Freight Transport © ${new Date().getFullYear()}</p>
+          <p>EESA Road Freight Transport © ${new Date().getFullYear()}</p>
         </div>
       </div>
     </body>

@@ -14,6 +14,8 @@ import Users from "./Pages/Users";
 import Settings from "./Pages/Settings";
 import VehicleTypes from "./Pages/VehicleTypes";
 import Customers from "./Pages/Customers";
+import IncomeExpense from "./Pages/IncomeExpense";
+import IncomeExpenseReport from "./Pages/IncomeExpenseReport";
 import './App.css';
 
 // Protected Route Component
@@ -168,6 +170,26 @@ function App() {
             <ProtectedRoute>
               <AppLayout>
                 <Customers />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/income-expense"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <IncomeExpense />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/income-expense/report"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <IncomeExpenseReport />
               </AppLayout>
             </ProtectedRoute>
           }

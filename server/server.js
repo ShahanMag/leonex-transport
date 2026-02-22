@@ -18,6 +18,7 @@ const userRoutes = require("./routes/users");
 const receiptRoutes = require("./routes/receipts");
 const vehicleTypeRoutes = require("./routes/vehicleTypes");
 const customerRoutes = require("./routes/customers");
+const billRoutes = require("./routes/bills");
 
 // Initialize Express app
 const app = express();
@@ -74,6 +75,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/receipts", receiptRoutes);
 app.use("/api/vehicle-types", vehicleTypeRoutes);
 app.use("/api/customers", customerRoutes);
+app.use("/api/bills", billRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

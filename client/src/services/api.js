@@ -103,6 +103,10 @@ export const reportAPI = {
   downloadRentalPayments: () => api.get('/reports/payments/rental', { responseType: 'blob' }),
   downloadCombinedReport: () => api.get('/reports/combined-report/excel', { responseType: 'blob' }),
   downloadProfitLoss: () => api.get('/reports/profit-loss/excel', { responseType: 'blob' }),
+
+  // Bills (Income & Expense)
+  getBillsReport: (params) => api.get('/reports/bills', { params }),
+  downloadBillsReport: () => api.get('/reports/bills/excel', { responseType: 'blob' }),
 };
 
 
@@ -151,6 +155,20 @@ export const vehicleTypeAPI = {
   create: (data) => api.post('/vehicle-types', data),
   update: (id, data) => api.put(`/vehicle-types/${id}`, data),
   delete: (id) => api.delete(`/vehicle-types/${id}`),
+};
+
+// ==========================
+// 💵 Bill (Income/Expense) Services
+// ==========================
+export const billAPI = {
+  getAll: (type) => api.get('/bills', { params: type ? { type } : {} }),
+  getById: (id) => api.get(`/bills/${id}`),
+  create: (data) => api.post('/bills', data),
+  update: (id, data) => api.put(`/bills/${id}`, data),
+  delete: (id) => api.delete(`/bills/${id}`),
+  addInstallment: (id, data) => api.post(`/bills/${id}/installments`, data),
+  updateInstallment: (id, installmentId, data) => api.put(`/bills/${id}/installments/${installmentId}`, data),
+  deleteInstallment: (id, installmentId) => api.delete(`/bills/${id}/installments/${installmentId}`),
 };
 
 // ==========================
