@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { reportAPI } from '../services/api';
 import Button from '../components/Button';
 import { showError, showSuccess } from '../utils/toast';
+import { formatDate } from '../utils/dateUtils';
 
 // 📊 Summary Card Component
 const StatCard = ({ title, value, icon, color = 'blue' }) => {
@@ -621,7 +622,7 @@ export default function Reports() {
                   </span>
                 </td>
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">
-                  {p.transaction_date ? new Date(p.transaction_date).toLocaleDateString() : '-'}
+                  {p.transaction_date ? formatDate(p.transaction_date) : '-'}
                 </td>
               </tr>
             ))}
@@ -731,7 +732,7 @@ export default function Reports() {
                   {item.profit_margin || '0%'}
                 </td>
                 <td className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-800 whitespace-nowrap">
-                  {item.rental_date ? new Date(item.rental_date).toLocaleDateString() : '-'}
+                  {item.rental_date ? formatDate(item.rental_date) : '-'}
                 </td>
               </tr>
             );

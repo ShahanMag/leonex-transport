@@ -4,6 +4,7 @@ import Button from '../components/Button';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
+import { formatDate } from '../utils/dateUtils';
 
 // 📊 Summary Card Component
 const StatCard = ({ title, value, icon, color = 'blue' }) => {
@@ -588,7 +589,7 @@ export default function RentalTransaction() {
               fields={[
                 { name: 'vehicle_type', label: 'Vehicle Type', placeholder: 'e.g., Truck, Van, Car', required: true },
                 { name: 'plate_no', label: 'Plate Number', placeholder: 'e.g., ABC-1234' },
-                { name: 'acquisition_cost', label: 'Acquisition Cost', type: 'number', placeholder: '0', required: true },
+                { name: 'acquisition_cost', label: 'Vehicle Cost', type: 'number', placeholder: '0', required: true },
                 { name: 'acquisition_date', label: 'Acquisition Date', type: 'date', required: true },
               ]}
               values={formValues}
@@ -871,7 +872,7 @@ export default function RentalTransaction() {
                 <div>
                   <p className="text-sm text-gray-600">Rental Date</p>
                   <p className="text-base font-medium text-gray-900">
-                    {viewData.rental_date ? new Date(viewData.rental_date).toLocaleDateString() : 'N/A'}
+                    {viewData.rental_date ? formatDate(viewData.rental_date) : 'N/A'}
                   </p>
                 </div>
               </div>

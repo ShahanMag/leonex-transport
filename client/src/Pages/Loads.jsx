@@ -5,6 +5,7 @@ import Table from '../components/Table';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
+import { formatDate } from '../utils/dateUtils';
 
 export default function Loads() {
   const [loads, setLoads] = useState([]);
@@ -225,7 +226,7 @@ export default function Loads() {
     {
       key: 'rental_date',
       label: 'Rental Date',
-      render: (value) => value ? new Date(value).toLocaleDateString() : '-'
+      render: (value) => value ? formatDate(value) : '-'
     },
     {
       key: 'driver_id',

@@ -4,6 +4,7 @@ import Button from '../components/Button';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
+import { formatDate } from '../utils/dateUtils';
 
 // 📊 Summary Card Component
 const StatCard = ({ title, value, icon, color = 'blue' }) => {
@@ -304,7 +305,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     {
       key: 'transaction_date',
       label: 'Transaction Date',
-      render: (date) => date ? new Date(date).toLocaleDateString() : 'N/A'
+      render: (date) => date ? formatDate(date) : 'N/A'
     },
     {
       key: 'total_paid',
@@ -605,7 +606,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                                     <td className="px-4 py-2 text-gray-800">{idx + 1}</td>
                                     <td className="px-4 py-2 text-gray-800">₹{installment.amount?.toLocaleString() || 0}</td>
                                     <td className="px-4 py-2 text-gray-800">
-                                      {installment.paid_date ? new Date(installment.paid_date).toLocaleDateString() : 'N/A'}
+                                      {installment.paid_date ? formatDate(installment.paid_date) : 'N/A'}
                                     </td>
                                     <td className="px-4 py-2 text-gray-800">{installment.notes || '-'}</td>
                                     <td className="px-4 py-2 text-gray-800">
