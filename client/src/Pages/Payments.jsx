@@ -557,7 +557,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                           }}
                           className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-medium hover:bg-green-200 transition-colors"
                         >
-                          Register
+                          Pay
                         </button>
                         <button
                           onClick={() => handlePrintReceipt(payment)}
