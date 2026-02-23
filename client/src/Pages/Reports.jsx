@@ -99,8 +99,10 @@ const AdditionalFilters = ({
 
 export default function Reports() {
   const [activeReport, setActiveReport] = useState('company-payments');
-  const [reportData, setReportData] = useState(null);
+  const [reportDataMap, setReportDataMap] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+
+  const reportData = reportDataMap[activeReport] ?? null;
   const [paymentFilter, setPaymentFilter] = useState('all');
 
   // Additional filters
@@ -111,9 +113,8 @@ export default function Reports() {
   const [endDateFilter, setEndDateFilter] = useState('');
   const [combinedStatusFilter, setCombinedStatusFilter] = useState('all');
 
+  // Reset filters only when switching tabs — data is preserved per tab
   useEffect(() => {
-    fetchReport(activeReport);
-    // Reset filters when changing report tabs
     setPaymentFilter('all');
     setCompanyNameFilter('');
     setDriverNameFilter('');
@@ -152,7 +153,7 @@ export default function Reports() {
           response = await reportAPI.getCompanyPayments();
       }
 
-      setReportData(response.data);
+      setReportDataMap(prev => ({ ...prev, [reportType]: response.data }));
     } catch (error) {
       console.error(error);
       showError('Failed to fetch report');
@@ -560,11 +561,18 @@ export default function Reports() {
 
     return (
       <div className="mb-6 flex flex-wrap justify-between items-center gap-4">
-        <PaymentFilter />
-        <CombinedStatusFilter />
-        <Button variant="primary" onClick={current.fn}>
-          📥 {current.label}
-        </Button>
+        <div className="flex flex-wrap gap-2 items-center">
+          <PaymentFilter />
+          <CombinedStatusFilter />
+        </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => fetchReport(reportType)} disabled={isLoading}>
+            {isLoading ? 'Loading...' : 'Refresh'}
+          </Button>
+          <Button variant="primary" onClick={current.fn}>
+            📥 {current.label}
+          </Button>
+        </div>
       </div>
     );
   };
@@ -841,8 +849,18 @@ export default function Reports() {
 
   // 🧩 Render current report
   const renderReport = () => {
-    if (isLoading) return <div className="text-center py-8 text-gray-600">Loading report...</div>;
-    if (!reportData) return <div className="text-center py-8 text-gray-600">No data available</div>;
+    if (isLoading) return <div className="text-center py-12 text-gray-600">Loading report...</div>;
+
+    if (!reportData) {
+      return (
+        <div className="text-center py-16">
+          <p className="text-gray-500 mb-4">Report data is not loaded yet.</p>
+          <Button variant="primary" onClick={() => fetchReport(activeReport)}>
+            Load Report
+          </Button>
+        </div>
+      );
+    }
 
     switch (activeReport) {
       case 'company-payments':

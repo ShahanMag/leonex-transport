@@ -2,10 +2,13 @@ import { useState, useEffect } from 'react';
 import { loadAPI, driverAPI, vehicleTypeAPI } from '../services/api';
 import Button from '../components/Button';
 import Table from '../components/Table';
+import Pagination from '../components/Pagination';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
 import { formatDate } from '../utils/dateUtils';
+
+const PAGE_SIZE = 10;
 
 export default function Loads() {
   const [loads, setLoads] = useState([]);
@@ -28,6 +31,7 @@ export default function Loads() {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [assignValues, setAssignValues] = useState({ driver_id: '' });
   const [errors, setErrors] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchLoads();
@@ -68,6 +72,7 @@ export default function Loads() {
   const handleSearch = async (e) => {
     const query = e.target.value;
     setSearchQuery(query);
+    setCurrentPage(1);
 
     if (!query.trim()) {
       fetchLoads();
@@ -88,6 +93,7 @@ export default function Loads() {
   const handleVehicleTypeFilter = (e) => {
     const vehicleType = e.target.value;
     setSelectedVehicleTypeFilter(vehicleType);
+    setCurrentPage(1);
   };
 
   // Client-side filter function
@@ -300,7 +306,17 @@ export default function Loads() {
         </select>
       </div>
 
-      <Table columns={columns} data={getFilteredLoads()} actions={getActions} isLoading={isLoading} />
+      {(() => {
+        const filtered = getFilteredLoads();
+        const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+        const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+        return (
+          <>
+            <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={filtered.length} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} />
+            <Table columns={columns} data={paginated} actions={getActions} isLoading={isLoading} />
+          </>
+        );
+      })()}
 
       {/* Create/Edit Load Modal */}
       <Modal

@@ -49,6 +49,8 @@ exports.createDriver = async (req, res) => {
     status,
     phone_country_code = '+966',
     phone_number,
+    vehicle_type = '',
+    plate_no = '',
   } = req.body;
 
   try {
@@ -62,6 +64,8 @@ exports.createDriver = async (req, res) => {
       status: status || 'active',
       phone_country_code,
       phone_number,
+      vehicle_type,
+      plate_no,
     });
 
     const savedDriver = await driver.save();

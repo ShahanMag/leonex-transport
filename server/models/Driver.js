@@ -30,6 +30,14 @@ const driverSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    vehicle_type: {
+      type: String,
+      default: '',
+    },
+    plate_no: {
+      type: String,
+      default: '',
+    },
   },
   { timestamps: true }
 );

@@ -134,12 +134,14 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
             <td>${payment.plate_no || 'N/A'}</td>
           </tr>
           <tr>
-            <th>From Location</th>
-            <td>${payment.from_location || payment.load_id?.from_location || 'N/A'}</td>
+            <th style="width: 25%;">From Location</th>
+            <td style="width: 25%;">${payment.from_location || payment.load_id?.from_location || 'N/A'}</td>
+            <th style="width: 25%;">Rental Date</th>
+            <td style="width: 25%;">${payment.rental_date ? moment(payment.rental_date).format('DD/MM/YYYY') : 'N/A'}</td>
           </tr>
           <tr>
             <th>To Location</th>
-            <td>${payment.to_location || payment.load_id?.to_location || 'N/A'}</td>
+            <td colspan="3">${payment.to_location || payment.load_id?.to_location || 'N/A'}</td>
           </tr>
         </table>
         ` : ''}

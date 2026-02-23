@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { transactionAPI, companyAPI, driverAPI, paymentAPI, vehicleTypeAPI } from '../services/api';
+import Pagination from '../components/Pagination';
+
+const PAGE_SIZE = 10;
 import Button from '../components/Button';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
@@ -45,6 +48,7 @@ export default function RentalTransaction() {
   const [transactions, setTransactions] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [formValues, setFormValues] = useState({
     // Company
@@ -158,6 +162,19 @@ export default function RentalTransaction() {
   };
 
   const handleFormChange = (values) => {
+    // Auto-fill vehicle fields when an existing driver is selected
+    if (driverType === 'existing' && values.driver_id && values.driver_id !== formValues.driver_id) {
+      const selectedDriver = drivers.find(d => d._id === values.driver_id);
+      if (selectedDriver) {
+        setFormValues({
+          ...values,
+          vehicle_type: selectedDriver.vehicle_type || values.vehicle_type,
+          plate_no: selectedDriver.plate_no || values.plate_no,
+        });
+        if (Object.keys(errors).length > 0) setErrors({});
+        return;
+      }
+    }
     setFormValues(values);
     // Clear errors when user starts typing
     if (Object.keys(errors).length > 0) {
@@ -645,7 +662,7 @@ export default function RentalTransaction() {
               type="text"
               placeholder="Search by rental code, company name, driver name, or vehicle number..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -693,7 +710,15 @@ export default function RentalTransaction() {
             <p className="text-gray-600">No transactions match your search criteria.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto bg-white rounded-lg shadow">
+          <>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(getFilteredTransactions().length / PAGE_SIZE)}
+            totalItems={getFilteredTransactions().length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setCurrentPage}
+          />
+          <div className="overflow-x-auto bg-white rounded-lg shadow mt-3">
             <table className="w-full border-collapse min-w-max">
               <thead>
                 <tr className="bg-gray-100 border-b">
@@ -713,7 +738,7 @@ export default function RentalTransaction() {
                 </tr>
               </thead>
               <tbody>
-                {getFilteredTransactions().map((transaction,i) => {
+                {getFilteredTransactions().slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((transaction,i) => {
                   const revenue = transaction.acquisition_amount || 0;
                   const cost = transaction.total_amount || 0;
                   const netProfit = revenue - cost;
@@ -721,7 +746,7 @@ export default function RentalTransaction() {
 
                   return (
                     <tr key={transaction._id} className="border-b hover:bg-gray-50">
-                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{i+1}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.load_id?.rental_code || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.acquisition_date ? formatDate(transaction.acquisition_date) : 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
@@ -759,6 +784,7 @@ export default function RentalTransaction() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

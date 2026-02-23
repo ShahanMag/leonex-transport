@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { paymentAPI, loadAPI, receiptAPI } from '../services/api';
+import Pagination from '../components/Pagination';
+
+const PAGE_SIZE = 10;
 import Button from '../components/Button';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
@@ -279,6 +282,12 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
   };
 
   const [expandedPaymentId, setExpandedPaymentId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when tab or any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, statusFilter, startDateFilter, endDateFilter, companyDriverFilter, searchQuery]);
 
   const columns = [
     {
@@ -524,7 +533,14 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
 
       {/* Payments Table with Nested History */}
       <div className="mb-8">
-        <div className="overflow-x-auto bg-white rounded-lg shadow">
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(displayPayments.length / PAGE_SIZE)}
+          totalItems={displayPayments.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setCurrentPage}
+        />
+        <div className="overflow-x-auto bg-white rounded-lg shadow mt-3">
           <table className="w-full border-collapse min-w-max">
             <thead>
               <tr className="bg-gray-100 border-b">
@@ -537,7 +553,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
               </tr>
             </thead>
             <tbody>
-              {displayPayments.map((payment) => (
+              {displayPayments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((payment) => (
                 <React.Fragment key={payment._id}>
                   {/* Main payment row */}
                   <tr className="border-b hover:bg-gray-50">

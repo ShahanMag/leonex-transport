@@ -114,6 +114,8 @@ exports.createRentalTransaction = async (req, res) => {
           phone_country_code: driver_phone_country_code,
           phone_number: driver_phone_number,
           status: 'active',
+          vehicle_type: vehicle_type || '',
+          plate_no: plate_no || '',
         });
         driver = await driver.save({ session: session || undefined });
       }
