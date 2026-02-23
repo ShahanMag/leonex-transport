@@ -29,7 +29,7 @@ cd server
 npm install
 npm run dev
 ```
-Runs on `http://localhost:5000`
+Runs on `http://localhost:5003`
 
 ### 4. Install & run the frontend
 ```bash
