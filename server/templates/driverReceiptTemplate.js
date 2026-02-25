@@ -57,9 +57,8 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
     </head>
     <body>
       <div class="receipt-container">
-        <!-- Header -->
+        <!-- OLD HEADER (commented out for rollback)
         <div class="header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #8b5cf6; padding-bottom: 12px; margin-bottom: 15px; text-align: unset;">
-          <!-- English (Left) -->
           <div style="text-align: left;">
             <div style="font-size: 20px; font-weight: bold; color: #1f2937;">EESA Transport Co.</div>
             <div style="font-size: 12px; color: #4b5563; margin-top: 4px;">C.R: 1010569210</div>
@@ -67,7 +66,6 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
             <div style="font-size: 12px; color: #4b5563;">VAT No.: 300756371300003</div>
             <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">${installment ? 'Payment Voucher' : 'Driver Rental Payment Summary'}</div>
           </div>
-          <!-- Arabic (Right) -->
           <div style="text-align: right; direction: rtl;">
             <div style="font-size: 20px; font-weight: bold; color: #1f2937;">شركة عيسى للنقل</div>
             <div style="font-size: 12px; color: #4b5563; margin-top: 4px;">س.ت: ١٠١٠٥٦٩٢١٠</div>
@@ -76,6 +74,7 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
             <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">${installment ? 'سند صرف' : 'ملخص مدفوعات السائق'}</div>
           </div>
         </div>
+        END OLD HEADER -->
 
         <!-- Receipt Info -->
         <div class="receipt-info">
@@ -204,11 +203,12 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
           </div>
         </div>
 
-        <!-- Footer -->
+        <!-- OLD FOOTER (commented out for rollback)
         <div class="footer">
           <p>This is a computer-generated receipt.</p>
           <p>EESA Transport © ${new Date().getFullYear()}</p>
         </div>
+        END OLD FOOTER -->
       </div>
     </body>
     </html>

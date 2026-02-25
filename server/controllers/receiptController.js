@@ -1,9 +1,19 @@
+const fs = require('fs');
+const path = require('path');
 const chromium = require('@sparticuz/chromium');
 const Payment = require('../models/Payment');
 const Company = require('../models/Company');
 const Driver = require('../models/Driver');
 const generateCompanyReceiptHTML = require('../templates/companyReceiptTemplate');
 const generateDriverReceiptHTML = require('../templates/driverReceiptTemplate');
+
+// Pre-load header and footer images as base64 data URIs for Puppeteer PDF templates
+const headerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA header.png')).toString('base64')}`;
+const footerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA Footer.png')).toString('base64')}`;
+
+// Renders on every page via Puppeteer's native header/footer support
+const pdfHeaderTemplate = `<div style="margin:0;padding:0;width:100%;"><img src="${headerBase64}" style="width:100%;height:230px;object-fit:fill;display:block;margin-top:-50px;" /></div>`;
+const pdfFooterTemplate = `<div style="margin:0;padding:0;width:65%;margin-left:auto;margin-right:auto;"><img src="${footerBase64}" style="width:100%;height:220px;object-fit:fill;display:block;margin-bottom:-100px;" /></div>`;
 
 // Detect environment and use appropriate puppeteer configuration
 const isProduction = process.env.VERCEL || process.env.NODE_ENV === 'production';
@@ -69,10 +79,13 @@ exports.generateCompanyReceipt = async (req, res) => {
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: pdfHeaderTemplate,
+      footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '10px',
+        top: '190px',
         right: '10px',
-        bottom: '10px',
+        bottom: '130px',
         left: '10px'
       }
     });
@@ -129,10 +142,13 @@ exports.generateDriverReceipt = async (req, res) => {
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: pdfHeaderTemplate,
+      footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '10px',
+        top: '190px',
         right: '10px',
-        bottom: '10px',
+        bottom: '130px',
         left: '10px'
       }
     });
@@ -195,10 +211,13 @@ exports.generateCompanyInstallmentReceipt = async (req, res) => {
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: pdfHeaderTemplate,
+      footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '10px',
+        top: '190px',
         right: '10px',
-        bottom: '10px',
+        bottom: '130px',
         left: '10px'
       }
     });
@@ -261,10 +280,13 @@ exports.generateDriverInstallmentReceipt = async (req, res) => {
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: pdfHeaderTemplate,
+      footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '10px',
+        top: '190px',
         right: '10px',
-        bottom: '10px',
+        bottom: '130px',
         left: '10px'
       }
     });
