@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { showSuccess, showError } from '../utils/toast';
 import { userAPI } from '../services/api';
-import Logo from '../assets/image.png';
+import Logo from '../assets/image.jpg';
 
 export default function Login() {
   const [formData, setFormData] = useState({ username: '', password: '' });
@@ -41,14 +41,14 @@ export default function Login() {
       <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src={Logo} alt="Leonex" className="h-20 object-contain" />
+          <img src={Logo} alt="EESA" className="w-32 object-contain" />
         </div>
 
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">
           Welcome Back
         </h1>
         <p className="text-center text-gray-600 mb-8">
-          Sign in to Leonex Transport System
+          Sign in to EESA Transport System
         </p>
 
         <form onSubmit={handleSubmit}>

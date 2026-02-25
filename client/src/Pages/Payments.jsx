@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { paymentAPI, loadAPI, receiptAPI } from '../services/api';
+import Pagination from '../components/Pagination';
+
+const PAGE_SIZE = 10;
 import Button from '../components/Button';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
+import { formatDate } from '../utils/dateUtils';
 
 // 📊 Summary Card Component
 const StatCard = ({ title, value, icon, color = 'blue' }) => {
@@ -278,6 +282,12 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
   };
 
   const [expandedPaymentId, setExpandedPaymentId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when tab or any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, statusFilter, startDateFilter, endDateFilter, companyDriverFilter, searchQuery]);
 
   const columns = [
     {
@@ -304,7 +314,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     {
       key: 'transaction_date',
       label: 'Transaction Date',
-      render: (date) => date ? new Date(date).toLocaleDateString() : 'N/A'
+      render: (date) => date ? formatDate(date) : 'N/A'
     },
     {
       key: 'total_paid',
@@ -523,7 +533,14 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
 
       {/* Payments Table with Nested History */}
       <div className="mb-8">
-        <div className="overflow-x-auto bg-white rounded-lg shadow">
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.ceil(displayPayments.length / PAGE_SIZE)}
+          totalItems={displayPayments.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setCurrentPage}
+        />
+        <div className="overflow-x-auto bg-white rounded-lg shadow mt-3">
           <table className="w-full border-collapse min-w-max">
             <thead>
               <tr className="bg-gray-100 border-b">
@@ -536,7 +553,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
               </tr>
             </thead>
             <tbody>
-              {displayPayments.map((payment) => (
+              {displayPayments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((payment) => (
                 <React.Fragment key={payment._id}>
                   {/* Main payment row */}
                   <tr className="border-b hover:bg-gray-50">
@@ -556,7 +573,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                           }}
                           className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs font-medium hover:bg-green-200 transition-colors"
                         >
-                          Register
+                          Pay
                         </button>
                         <button
                           onClick={() => handlePrintReceipt(payment)}
@@ -605,7 +622,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                                     <td className="px-4 py-2 text-gray-800">{idx + 1}</td>
                                     <td className="px-4 py-2 text-gray-800">₹{installment.amount?.toLocaleString() || 0}</td>
                                     <td className="px-4 py-2 text-gray-800">
-                                      {installment.paid_date ? new Date(installment.paid_date).toLocaleDateString() : 'N/A'}
+                                      {installment.paid_date ? formatDate(installment.paid_date) : 'N/A'}
                                     </td>
                                     <td className="px-4 py-2 text-gray-800">{installment.notes || '-'}</td>
                                     <td className="px-4 py-2 text-gray-800">

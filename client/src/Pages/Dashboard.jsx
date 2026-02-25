@@ -73,7 +73,7 @@ export default function Dashboard() {
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       <div className="mb-6 md:mb-8">
         <h1 className="text-2xl md:text-4xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-sm md:text-base text-gray-600 mt-2">Welcome to Leonex Road Freight Transport</p>
+        <p className="text-sm md:text-base text-gray-600 mt-2">Welcome to EESA Road Freight Transport</p>
       </div>
 
       {/* Stats Grid */}

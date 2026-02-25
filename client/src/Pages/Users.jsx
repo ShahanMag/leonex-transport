@@ -5,6 +5,7 @@ import Table from '../components/Table';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
+import { formatDate } from '../utils/dateUtils';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -162,7 +163,7 @@ export default function Users() {
     {
       key: 'createdAt',
       label: 'Created At',
-      render: (value) => (value ? new Date(value).toLocaleDateString() : '-'),
+      render: (value) => (value ? formatDate(value) : '-'),
     },
   ];
 

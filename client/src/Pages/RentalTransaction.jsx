@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
-import { transactionAPI, companyAPI, driverAPI, paymentAPI } from '../services/api';
+import { transactionAPI, companyAPI, driverAPI, paymentAPI, vehicleTypeAPI } from '../services/api';
+import Pagination from '../components/Pagination';
+
+const PAGE_SIZE = 10;
 import Button from '../components/Button';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
+import { formatDate } from '../utils/dateUtils';
 
 // 📊 Summary Card Component
 const StatCard = ({ title, value, icon, color = 'blue' }) => {
@@ -34,6 +38,7 @@ export default function RentalTransaction() {
   const [isLoading, setIsLoading] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [companyType, setCompanyType] = useState('existing'); // 'existing' or 'new'
   const [driverType, setDriverType] = useState('existing'); // 'existing' or 'new'
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,6 +48,7 @@ export default function RentalTransaction() {
   const [transactions, setTransactions] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [formValues, setFormValues] = useState({
     // Company
@@ -77,6 +83,7 @@ export default function RentalTransaction() {
   useEffect(() => {
     fetchCompanies();
     fetchDrivers();
+    fetchVehicleTypes();
     fetchTransactions();
   }, []);
 
@@ -145,7 +152,29 @@ export default function RentalTransaction() {
     }
   };
 
+  const fetchVehicleTypes = async () => {
+    try {
+      const response = await vehicleTypeAPI.getAll();
+      setVehicleTypes(response.data);
+    } catch (error) {
+      showError('Failed to fetch vehicle types');
+    }
+  };
+
   const handleFormChange = (values) => {
+    // Auto-fill vehicle fields when an existing driver is selected
+    if (driverType === 'existing' && values.driver_id && values.driver_id !== formValues.driver_id) {
+      const selectedDriver = drivers.find(d => d._id === values.driver_id);
+      if (selectedDriver) {
+        setFormValues({
+          ...values,
+          vehicle_type: selectedDriver.vehicle_type || values.vehicle_type,
+          plate_no: selectedDriver.plate_no || values.plate_no,
+        });
+        if (Object.keys(errors).length > 0) setErrors({});
+        return;
+      }
+    }
     setFormValues(values);
     // Clear errors when user starts typing
     if (Object.keys(errors).length > 0) {
@@ -299,6 +328,11 @@ export default function RentalTransaction() {
   const driverOptions = drivers.map(d => ({
     value: d._id,
     label: d.name
+  }));
+
+  const vehicleTypeOptions = vehicleTypes.map(vt => ({
+    value: vt.name,
+    label: vt.name,
   }));
 
 
@@ -586,9 +620,9 @@ export default function RentalTransaction() {
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Vehicle & Acquisition</h3>
             <Form
               fields={[
-                { name: 'vehicle_type', label: 'Vehicle Type', placeholder: 'e.g., Truck, Van, Car', required: true },
+                { name: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: vehicleTypeOptions, required: true },
                 { name: 'plate_no', label: 'Plate Number', placeholder: 'e.g., ABC-1234' },
-                { name: 'acquisition_cost', label: 'Acquisition Cost', type: 'number', placeholder: '0', required: true },
+                { name: 'acquisition_cost', label: 'Vehicle Cost', type: 'number', placeholder: '0', required: true },
                 { name: 'acquisition_date', label: 'Acquisition Date', type: 'date', required: true },
               ]}
               values={formValues}
@@ -628,7 +662,7 @@ export default function RentalTransaction() {
               type="text"
               placeholder="Search by rental code, company name, driver name, or vehicle number..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -676,11 +710,21 @@ export default function RentalTransaction() {
             <p className="text-gray-600">No transactions match your search criteria.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto bg-white rounded-lg shadow">
+          <>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(getFilteredTransactions().length / PAGE_SIZE)}
+            totalItems={getFilteredTransactions().length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setCurrentPage}
+          />
+          <div className="overflow-x-auto bg-white rounded-lg shadow mt-3">
             <table className="w-full border-collapse min-w-max">
               <thead>
                 <tr className="bg-gray-100 border-b">
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">#</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Rental Code</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Acquisition Date</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Company</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Driver</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Vehicle Number</th>
@@ -694,7 +738,7 @@ export default function RentalTransaction() {
                 </tr>
               </thead>
               <tbody>
-                {getFilteredTransactions().map((transaction) => {
+                {getFilteredTransactions().slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((transaction,i) => {
                   const revenue = transaction.acquisition_amount || 0;
                   const cost = transaction.total_amount || 0;
                   const netProfit = revenue - cost;
@@ -702,7 +746,9 @@ export default function RentalTransaction() {
 
                   return (
                     <tr key={transaction._id} className="border-b hover:bg-gray-50">
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.load_id?.rental_code || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.acquisition_date ? formatDate(transaction.acquisition_date) : 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.payer || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.plate_no || 'N/A'}</td>
@@ -738,6 +784,7 @@ export default function RentalTransaction() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
@@ -871,7 +918,7 @@ export default function RentalTransaction() {
                 <div>
                   <p className="text-sm text-gray-600">Rental Date</p>
                   <p className="text-base font-medium text-gray-900">
-                    {viewData.rental_date ? new Date(viewData.rental_date).toLocaleDateString() : 'N/A'}
+                    {viewData.rental_date ? formatDate(viewData.rental_date) : 'N/A'}
                   </p>
                 </div>
               </div>

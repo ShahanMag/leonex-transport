@@ -18,4 +18,8 @@ router.get('/drivers', reportController.getDriverReport);
 router.get('/vehicles', reportController.getVehicleReport);
 router.get('/loads', reportController.getLoadReport);
 
+// 💵 Bills (Income & Expense) report
+router.get('/bills', reportController.getBillsReportJSON);
+router.get('/bills/excel', reportController.getBillsReportExcel);
+
 module.exports = router;

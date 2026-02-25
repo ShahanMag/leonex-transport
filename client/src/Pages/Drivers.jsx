@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { driverAPI } from '../services/api';
+import { driverAPI, vehicleTypeAPI } from '../services/api';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import Form from '../components/Form';
@@ -8,6 +8,7 @@ import { showSuccess, showError, showConfirm } from '../utils/toast';
 
 export default function Drivers() {
   const [drivers, setDrivers] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -20,12 +21,24 @@ export default function Drivers() {
     status: 'active',
     phone_country_code: '+966',
     phone_number: '',
+    vehicle_type: '',
+    plate_no: '',
   });
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     fetchDrivers();
+    fetchVehicleTypes();
   }, []);
+
+  const fetchVehicleTypes = async () => {
+    try {
+      const response = await vehicleTypeAPI.getAll();
+      setVehicleTypes(response.data);
+    } catch (error) {
+      // non-critical, silently fail
+    }
+  };
 
   const fetchDrivers = async () => {
     try {
@@ -109,6 +122,8 @@ export default function Drivers() {
         status: 'active',
         phone_country_code: '+966',
         phone_number: '',
+        vehicle_type: '',
+        plate_no: '',
       });
       setErrors({});
       fetchDrivers();
@@ -147,6 +162,8 @@ export default function Drivers() {
       status: 'active',
       phone_country_code: '+966',
       phone_number: '',
+      vehicle_type: '',
+      plate_no: '',
     });
     setEditingId(null);
     setErrors({});
@@ -162,6 +179,8 @@ export default function Drivers() {
       label: 'Phone',
       render: (value, row) => `${row.phone_country_code} ${row.phone_number}`
     },
+    { key: 'vehicle_type', label: 'Vehicle Type', render: (v) => v || '—' },
+    { key: 'plate_no', label: 'Plate No.', render: (v) => v || '—' },
   ];
 
   const actions = [
@@ -261,6 +280,13 @@ export default function Drivers() {
                 { value: 'suspended', label: 'Suspended' },
               ],
             },
+            {
+              name: 'vehicle_type',
+              label: 'Vehicle Type',
+              type: 'select',
+              options: [{ value: '', label: '— None —' }, ...vehicleTypes.map(vt => ({ value: vt.name, label: vt.name }))],
+            },
+            { name: 'plate_no', label: 'Plate Number', placeholder: 'e.g., ABC-1234' },
           ]}
           values={formValues}
           errors={errors}

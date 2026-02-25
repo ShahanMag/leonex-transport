@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Button from './Button';
 
 export default function Modal({
@@ -8,6 +9,15 @@ export default function Modal({
   footer,
   size = 'lg',
 }) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const sizeClasses = {
@@ -21,12 +31,12 @@ export default function Modal({
     <>
       {/* Overlay - positioned within the page content */}
       <div
-        className="absolute inset-0 bg-black bg-opacity-50 z-40"
+        className="fixed inset-0 bg-black bg-opacity-50 z-40"
         onClick={onClose}
         style={{ pointerEvents: 'auto' }}
       />
       {/* Modal - positioned within the page content and above overlay */}
-      <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+      <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
         <div className={`bg-white rounded-lg shadow-2xl ${sizeClasses[size]} w-full mx-4 max-h-[90vh] flex flex-col pointer-events-auto`}>
         {/* Header */}
         <div className="border-b px-8 py-5">

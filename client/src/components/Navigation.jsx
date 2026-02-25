@@ -22,8 +22,8 @@ export default function Navigation() {
     <nav className="bg-blue-700 text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/leonex-logo.png" alt="Leonex Road Freight Transport" className="h-10 w-auto" />
-          <span className="text-xl font-bold hidden sm:inline">Leonex</span>
+          <img src="/Logo2.png" alt="EESA Transport" className="h-10 w-auto" />
+          <span className="text-xl font-bold hidden sm:inline">EESA</span>
         </Link>
 
         {/* Desktop Menu */}

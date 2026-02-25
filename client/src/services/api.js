@@ -103,6 +103,10 @@ export const reportAPI = {
   downloadRentalPayments: () => api.get('/reports/payments/rental', { responseType: 'blob' }),
   downloadCombinedReport: () => api.get('/reports/combined-report/excel', { responseType: 'blob' }),
   downloadProfitLoss: () => api.get('/reports/profit-loss/excel', { responseType: 'blob' }),
+
+  // Bills (Income & Expense)
+  getBillsReport: (params) => api.get('/reports/bills', { params }),
+  downloadBillsReport: () => api.get('/reports/bills/excel', { responseType: 'blob' }),
 };
 
 
@@ -140,6 +144,42 @@ export const userAPI = {
   update: (id, data) => api.put(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`),
   login: (data) => api.post('/users/login', data),
+};
+
+// ==========================
+// 🚗 Vehicle Type Services
+// ==========================
+export const vehicleTypeAPI = {
+  getAll: () => api.get('/vehicle-types'),
+  getById: (id) => api.get(`/vehicle-types/${id}`),
+  create: (data) => api.post('/vehicle-types', data),
+  update: (id, data) => api.put(`/vehicle-types/${id}`, data),
+  delete: (id) => api.delete(`/vehicle-types/${id}`),
+};
+
+// ==========================
+// 💵 Bill (Income/Expense) Services
+// ==========================
+export const billAPI = {
+  getAll: (type) => api.get('/bills', { params: type ? { type } : {} }),
+  getById: (id) => api.get(`/bills/${id}`),
+  create: (data) => api.post('/bills', data),
+  update: (id, data) => api.put(`/bills/${id}`, data),
+  delete: (id) => api.delete(`/bills/${id}`),
+  addInstallment: (id, data) => api.post(`/bills/${id}/installments`, data),
+  updateInstallment: (id, installmentId, data) => api.put(`/bills/${id}/installments/${installmentId}`, data),
+  deleteInstallment: (id, installmentId) => api.delete(`/bills/${id}/installments/${installmentId}`),
+};
+
+// ==========================
+// 👤 Customer Services
+// ==========================
+export const customerAPI = {
+  getAll: () => api.get('/customers'),
+  getById: (id) => api.get(`/customers/${id}`),
+  create: (data) => api.post('/customers', data),
+  update: (id, data) => api.put(`/customers/${id}`, data),
+  delete: (id) => api.delete(`/customers/${id}`),
 };
 
 // ==========================

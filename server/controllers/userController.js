@@ -181,7 +181,7 @@ exports.initializeDefaultUsers = async () => {
           password: '123456789',
           role: 'superadmin',
           fullName: 'Super Administrator',
-          email: 'superadmin@leonex.com',
+          email: 'superadmin@EESA.com',
           isActive: true,
         },
         {
@@ -189,7 +189,7 @@ exports.initializeDefaultUsers = async () => {
           password: '123456789',
           role: 'admin',
           fullName: 'Administrator',
-          email: 'admin@leonex.com',
+          email: 'admin@EESA.com',
           isActive: true,
         },
       ];

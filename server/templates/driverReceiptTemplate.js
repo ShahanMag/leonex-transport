@@ -58,9 +58,23 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
     <body>
       <div class="receipt-container">
         <!-- Header -->
-        <div class="header">
-          <div class="company-name">Leonex Road Freight Transport</div>
-          <div class="receipt-title">${installment ? 'Payment Voucher' : 'Driver Rental Payment Summary'}</div>
+        <div class="header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #8b5cf6; padding-bottom: 12px; margin-bottom: 15px; text-align: unset;">
+          <!-- English (Left) -->
+          <div style="text-align: left;">
+            <div style="font-size: 20px; font-weight: bold; color: #1f2937;">EESA Transport Co.</div>
+            <div style="font-size: 12px; color: #4b5563; margin-top: 4px;">C.R: 1010569210</div>
+            <div style="font-size: 12px; color: #4b5563;">Mobile: 0508702137</div>
+            <div style="font-size: 12px; color: #4b5563;">VAT No.: 300756371300003</div>
+            <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">${installment ? 'Payment Voucher' : 'Driver Rental Payment Summary'}</div>
+          </div>
+          <!-- Arabic (Right) -->
+          <div style="text-align: right; direction: rtl;">
+            <div style="font-size: 20px; font-weight: bold; color: #1f2937;">شركة عيسى للنقل</div>
+            <div style="font-size: 12px; color: #4b5563; margin-top: 4px;">س.ت: ١٠١٠٥٦٩٢١٠</div>
+            <div style="font-size: 12px; color: #4b5563;">الجوال: ٠٥٠٨٧٠٢١٣٧</div>
+            <div style="font-size: 12px; color: #4b5563;">الرقم الضريبي: ٣٠٠٧٥٦٣٧١٣٠٠٠٠٣</div>
+            <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">${installment ? 'سند صرف' : 'ملخص مدفوعات السائق'}</div>
+          </div>
         </div>
 
         <!-- Receipt Info -->
@@ -119,6 +133,16 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
             <th>Plate Number</th>
             <td>${payment.plate_no || 'N/A'}</td>
           </tr>
+          <tr>
+            <th style="width: 25%;">From Location</th>
+            <td style="width: 25%;">${payment.from_location || payment.load_id?.from_location || 'N/A'}</td>
+            <th style="width: 25%;">Rental Date</th>
+            <td style="width: 25%;">${payment.rental_date ? moment(payment.rental_date).format('DD/MM/YYYY') : 'N/A'}</td>
+          </tr>
+          <tr>
+            <th>To Location</th>
+            <td colspan="3">${payment.to_location || payment.load_id?.to_location || 'N/A'}</td>
+          </tr>
         </table>
         ` : ''}
 
@@ -164,10 +188,26 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
           </div>
         </div>
 
+        <!-- Signatures -->
+        <div style="display: flex; justify-content: space-between; margin-top: 40px; padding: 0 10px;">
+          <div style="text-align: center; width: 40%;">
+            <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 40px;"></div>
+            <p style="font-size: 13px; font-weight: bold; color: #374151;">التوقيع المعتمد</p>
+            <p style="font-size: 12px; color: #374151;">Authorized Signature</p>
+            <p style="font-size: 11px; color: #6b7280; margin-top: 2px;">شركة عيسى للنقل / EESA Transport</p>
+          </div>
+          <div style="text-align: center; width: 40%;">
+            <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 40px;"></div>
+            <p style="font-size: 13px; font-weight: bold; color: #374151;">توقيع العميل</p>
+            <p style="font-size: 12px; color: #374151;">Customer Signature</p>
+            <p style="font-size: 11px; color: #6b7280; margin-top: 2px;">${driver?.name || ''}</p>
+          </div>
+        </div>
+
         <!-- Footer -->
         <div class="footer">
           <p>This is a computer-generated receipt.</p>
-          <p>Leonex Road Freight Transport © ${new Date().getFullYear()}</p>
+          <p>EESA Transport © ${new Date().getFullYear()}</p>
         </div>
       </div>
     </body>
