@@ -29,14 +29,14 @@ export default function Modal({
 
   return (
     <>
-      {/* Overlay - positioned within the page content */}
+      {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-40"
+        className="fixed inset-0 bg-black bg-opacity-50 z-[200]"
         onClick={onClose}
         style={{ pointerEvents: 'auto' }}
       />
-      {/* Modal - positioned within the page content and above overlay */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+      {/* Modal */}
+      <div className="fixed inset-0 z-[210] flex items-center justify-center pointer-events-none">
         <div className={`bg-white rounded-lg shadow-2xl ${sizeClasses[size]} w-full mx-4 max-h-[90vh] flex flex-col pointer-events-auto`}>
         {/* Header */}
         <div className="border-b px-8 py-5">
