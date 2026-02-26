@@ -80,7 +80,7 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
         <div class="receipt-info">
           <div class="info-block">
             <div class="info-label">Receipt No:</div>
-            <div class="info-value">#${payment._id.toString().slice(-8).toUpperCase()}</div>
+            <div class="info-value">${payment.receipt_code || '#' + payment._id.toString().slice(-8).toUpperCase()}</div>
             <div class="info-label">Date:</div>
             <div class="info-value">${moment().format('DD/MM/YYYY HH:mm')}</div>
           </div>

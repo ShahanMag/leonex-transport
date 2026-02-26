@@ -80,7 +80,7 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
         <div class="receipt-info">
           <div class="info-block">
             <div class="info-label">Receipt No:</div>
-            <div class="info-value">#${payment._id.toString().slice(-8).toUpperCase()}</div>
+            <div class="info-value">${payment.receipt_code || '#' + payment._id.toString().slice(-8).toUpperCase()}</div>
             <div class="info-label">Date:</div>
             <div class="info-value">${moment().format('DD/MM/YYYY HH:mm')}</div>
           </div>
@@ -126,7 +126,7 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
           <tr>
             <th style="width: 25%;">From Location</th>
             <td style="width: 25%;">${payment.from_location || payment.load_id?.from_location || 'N/A'}</td>
-            <th style="width: 25%;">Acquisition Date</th>
+            <th style="width: 25%;">Purchase Date</th>
             <td style="width: 25%;">${payment.acquisition_date ? moment(payment.acquisition_date).format('DD/MM/YYYY') : 'N/A'}</td>
           </tr>
           <tr>

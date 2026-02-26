@@ -143,6 +143,7 @@ exports.createRentalTransaction = async (req, res) => {
     const savedLoad = await load.save({ session: session || undefined });
 
     // 4. Create Acquisition Payment (Company → Supplier)
+    const acquisitionReceiptCode = await codeGenerator.generateReceiptCode();
     const acquisitionPayment = new Payment({
       payer: company.name,
       payer_id: company._id,
@@ -162,11 +163,13 @@ exports.createRentalTransaction = async (req, res) => {
       installments: [],
       date: new Date(),
       transaction_date: new Date(acquisition_date),
+      receipt_code: acquisitionReceiptCode,
     });
 
     const savedAcquisitionPayment = await acquisitionPayment.save({ session: session || undefined });
 
     // 5. Create Rental Payment (Driver → Company)
+    const rentalReceiptCode = await codeGenerator.generateReceiptCode();
     const rentalPayment = new Payment({
       payer: driver.name,
       payer_id: driver._id,
@@ -190,6 +193,7 @@ exports.createRentalTransaction = async (req, res) => {
       date: new Date(),
       transaction_date: new Date(rental_date),
       related_payment_id: savedAcquisitionPayment._id,
+      receipt_code: rentalReceiptCode,
     });
 
     const savedRentalPayment = await rentalPayment.save({ session: session || undefined });
