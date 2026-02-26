@@ -124,7 +124,7 @@ exports.getVehicleReport = async (req, res) => {
       { header: 'Plate Number', key: 'PlateNo', width: 20 },
       { header: 'Company', key: 'Company', width: 25 },
       { header: 'Acquisition Cost', key: 'AcquisitionCost', width: 20 },
-      { header: 'Acquisition Date', key: 'AcquisitionDate', width: 20 },
+      { header: 'Purchase Date', key: 'AcquisitionDate', width: 20 },
     ];
 
     await generateExcel('Vehicle Report', columns, data, res);

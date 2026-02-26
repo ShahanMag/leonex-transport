@@ -88,7 +88,7 @@ export default function Sidebar() {
             <img
               src={Logo}
               alt="EESA"
-              className="w-[99%] h-24  rounded-lg"
+              className="w-full h-24"
             />
           </Link>
         </div>

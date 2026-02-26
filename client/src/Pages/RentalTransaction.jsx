@@ -623,7 +623,7 @@ export default function RentalTransaction() {
                 { name: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: vehicleTypeOptions, required: true },
                 { name: 'plate_no', label: 'Plate Number', placeholder: 'e.g., ABC-1234' },
                 { name: 'acquisition_cost', label: 'Vehicle Cost', type: 'number', placeholder: '0', required: true },
-                { name: 'acquisition_date', label: 'Acquisition Date', type: 'date', required: true },
+                { name: 'acquisition_date', label: 'Purchase Date', type: 'date', required: true },
               ]}
               values={formValues}
               errors={errors}
@@ -653,7 +653,7 @@ export default function RentalTransaction() {
 
       {/* Transactions Table */}
       <div className="mt-12">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Rental Transactions</h2>
+        {/* <h2 className="text-2xl font-bold text-gray-800 mb-6">Rental Transactions</h2> */}
 
         {/* Search Bar */}
         {transactions.length > 0 && (
