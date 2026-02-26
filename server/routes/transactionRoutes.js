@@ -46,6 +46,7 @@ const transactionController = require('../controllers/transactionController');
  * }
  */
 router.post('/rental', transactionController.createRentalTransaction);
+router.post('/rental/bulk', transactionController.bulkCreateRentalTransactions);
 router.get('/rental/:id', transactionController.getRentalTransactionById);
 router.put('/rental/:id', transactionController.updateRentalTransaction);
 
