@@ -169,7 +169,7 @@ export default function RentalTransaction() {
   };
 
   const BULK_COLUMNS = [
-    'company_name', 'driver_name', 'driver_iqama_id', 'driver_phone_number',
+    'company_name', 'company_contact', 'company_address', 'driver_name', 'driver_iqama_id', 'driver_phone_number',
     'vehicle_type', 'plate_no', 'acquisition_cost', 'acquisition_date',
     'from_location', 'to_location', 'rental_amount', 'rental_date',
   ];
@@ -177,7 +177,7 @@ export default function RentalTransaction() {
   const downloadTemplate = () => {
     const ws = XLSX.utils.aoa_to_sheet([
       BULK_COLUMNS,
-      ['Saudi Co.', 'Ahmed Ali', '2345678901', '0501234567', 'Truck', 'ABC-1234', '15000', '2026-02-01', 'Riyadh', 'Jeddah', '8000', '2026-02-01'],
+      ['Saudi Co.', 'Mohammed Ahmed', 'Riyadh, Saudi Arabia', 'Ahmed Ali', '2345678901', '0501234567', 'Truck', 'ABC-1234', '15000', '2026-02-01', 'Riyadh', 'Jeddah', '8000', '2026-02-01'],
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
@@ -885,7 +885,7 @@ export default function RentalTransaction() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm font-semibold text-blue-800 mb-1">Step 1 — Download the template</p>
             <p className="text-xs text-blue-700 mb-3">
-              Fill in the Excel template with your transaction data. Required columns: company_name, driver_name, driver_iqama_id, vehicle_type, acquisition_cost, acquisition_date, from_location, to_location, rental_amount, rental_date.
+              Fill in the Excel template with your transaction data. Required columns: company_name, company_contact, company_address, driver_name, driver_iqama_id, vehicle_type, acquisition_cost, acquisition_date, from_location, to_location, rental_amount, rental_date.
             </p>
             <button
               onClick={downloadTemplate}

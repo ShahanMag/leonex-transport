@@ -262,6 +262,8 @@ exports.bulkCreateRentalTransactions = async (req, res) => {
     try {
       const {
         company_name,
+        company_contact = '',
+        company_address = '',
         driver_name,
         driver_iqama_id,
         driver_phone_country_code = '+966',
@@ -294,7 +296,7 @@ exports.bulkCreateRentalTransactions = async (req, res) => {
       let company = await Company.findOne({ name: company_name });
       if (!company) {
         const company_code = await codeGenerator.generateCompanyCode();
-        company = await new Company({ company_code, name: company_name }).save();
+        company = await new Company({ company_code, name: company_name, contact: company_contact, address: company_address }).save();
       }
 
       // Find or create Driver
