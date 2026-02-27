@@ -1,6 +1,7 @@
 const Company = require('../models/Company');
 const Driver = require('../models/Driver');
 const Load = require('../models/Load');
+const Payment = require('../models/Payment');
 
 /**
  * Generate unique company code
@@ -50,6 +51,32 @@ exports.generateDriverCode = async () => {
     return `DRV-${String(nextNumber).padStart(3, '0')}`;
   } catch (error) {
     console.error('Error generating driver code:', error);
+    throw error;
+  }
+};
+
+/**
+ * Generate unique receipt code
+ * Format: ESSA1001, ESSA1002, ...
+ */
+exports.generateReceiptCode = async () => {
+  try {
+    const lastPayment = await Payment.findOne({ receipt_code: { $exists: true, $ne: null } })
+      .select('receipt_code')
+      .sort({ _id: -1 })
+      .exec();
+
+    let nextNumber = 1001;
+    if (lastPayment && lastPayment.receipt_code) {
+      const match = lastPayment.receipt_code.match(/ESSA(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1]) + 1;
+      }
+    }
+
+    return `ESSA${nextNumber}`;
+  } catch (error) {
+    console.error('Error generating receipt code:', error);
     throw error;
   }
 };

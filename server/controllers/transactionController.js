@@ -143,6 +143,7 @@ exports.createRentalTransaction = async (req, res) => {
     const savedLoad = await load.save({ session: session || undefined });
 
     // 4. Create Acquisition Payment (Company → Supplier)
+    const acquisitionReceiptCode = await codeGenerator.generateReceiptCode();
     const acquisitionPayment = new Payment({
       payer: company.name,
       payer_id: company._id,
@@ -162,11 +163,13 @@ exports.createRentalTransaction = async (req, res) => {
       installments: [],
       date: new Date(),
       transaction_date: new Date(acquisition_date),
+      receipt_code: acquisitionReceiptCode,
     });
 
     const savedAcquisitionPayment = await acquisitionPayment.save({ session: session || undefined });
 
     // 5. Create Rental Payment (Driver → Company)
+    const rentalReceiptCode = await codeGenerator.generateReceiptCode();
     const rentalPayment = new Payment({
       payer: driver.name,
       payer_id: driver._id,
@@ -190,6 +193,7 @@ exports.createRentalTransaction = async (req, res) => {
       date: new Date(),
       transaction_date: new Date(rental_date),
       related_payment_id: savedAcquisitionPayment._id,
+      receipt_code: rentalReceiptCode,
     });
 
     const savedRentalPayment = await rentalPayment.save({ session: session || undefined });
@@ -239,6 +243,169 @@ exports.createRentalTransaction = async (req, res) => {
     if (session) session.endSession();
   }
 };
+/**
+ * Bulk Create Rental Transactions
+ *
+ * Accepts an array of transaction row objects and processes each one.
+ * Returns per-row success/error results.
+ */
+exports.bulkCreateRentalTransactions = async (req, res) => {
+  const { rows } = req.body;
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ message: 'rows must be a non-empty array' });
+  }
+
+  const results = [];
+
+  for (const [index, data] of rows.entries()) {
+    try {
+      const {
+        company_name,
+        company_contact = '',
+        company_address = '',
+        driver_name,
+        driver_iqama_id,
+        driver_phone_country_code = '+966',
+        driver_phone_number,
+        vehicle_type,
+        plate_no,
+        acquisition_cost,
+        acquisition_date,
+        from_location,
+        to_location,
+        rental_amount,
+        rental_date,
+      } = data;
+
+      // Validation
+      if (!vehicle_type || !acquisition_cost || !from_location || !to_location || !rental_amount) {
+        results.push({ row: index + 1, status: 'error', message: 'Missing required fields: vehicle_type, acquisition_cost, from_location, to_location, rental_amount' });
+        continue;
+      }
+      if (!company_name) {
+        results.push({ row: index + 1, status: 'error', message: 'company_name is required' });
+        continue;
+      }
+      if (!driver_name || !driver_iqama_id) {
+        results.push({ row: index + 1, status: 'error', message: 'driver_name and driver_iqama_id are required' });
+        continue;
+      }
+
+      // Find or create Company
+      let company = await Company.findOne({ name: company_name });
+      if (!company) {
+        const company_code = await codeGenerator.generateCompanyCode();
+        company = await new Company({ company_code, name: company_name, contact: company_contact, address: company_address }).save();
+      }
+
+      // Find or create Driver
+      let driver = await Driver.findOne({ iqama_id: driver_iqama_id });
+      if (!driver) {
+        const driver_code = await codeGenerator.generateDriverCode();
+        driver = await new Driver({
+          driver_code,
+          name: driver_name,
+          iqama_id: driver_iqama_id,
+          phone_country_code: driver_phone_country_code,
+          phone_number: driver_phone_number || '',
+          status: 'active',
+          vehicle_type: vehicle_type || '',
+          plate_no: plate_no || '',
+        }).save();
+      }
+
+      // Create Load
+      const rental_code = await codeGenerator.generateRentalCode();
+      const load = await new Load({
+        rental_code,
+        vehicle_type,
+        company_id: company._id,
+        driver_id: driver._id,
+        from_location,
+        to_location,
+        rental_amount: parseFloat(rental_amount),
+        rental_date: new Date(rental_date),
+        status: 'pending',
+      }).save();
+
+      // Create Acquisition Payment
+      const acquisitionReceiptCode = await codeGenerator.generateReceiptCode();
+      const acquisitionPayment = await new Payment({
+        payer: company.name,
+        payer_id: company._id,
+        payee: 'Leonix',
+        company_id: company._id,
+        driver_id: driver._id,
+        load_id: load._id,
+        total_amount: parseFloat(acquisition_cost),
+        total_paid: 0,
+        total_due: parseFloat(acquisition_cost),
+        vehicle_type,
+        plate_no: plate_no || '',
+        acquisition_date: new Date(acquisition_date),
+        description: `Vehicle acquisition - ${vehicle_type} (${plate_no}) for ${rental_code}`,
+        payment_type: 'vehicle-acquisition',
+        status: 'unpaid',
+        installments: [],
+        date: new Date(),
+        transaction_date: new Date(acquisition_date),
+        receipt_code: acquisitionReceiptCode,
+      }).save();
+
+      // Create Rental Payment
+      const rentalReceiptCode = await codeGenerator.generateReceiptCode();
+      const rentalPayment = await new Payment({
+        payer: driver.name,
+        payer_id: driver._id,
+        payee: company.name,
+        payee_id: company._id,
+        company_id: company._id,
+        driver_id: driver._id,
+        load_id: load._id,
+        total_amount: parseFloat(rental_amount),
+        total_paid: 0,
+        total_due: parseFloat(rental_amount),
+        vehicle_type,
+        plate_no: plate_no || '',
+        from_location,
+        to_location,
+        rental_date: new Date(rental_date),
+        description: `Rental payment for ${rental_code} - ${from_location} to ${to_location}`,
+        payment_type: 'driver-rental',
+        status: 'unpaid',
+        installments: [],
+        date: new Date(),
+        transaction_date: new Date(rental_date),
+        related_payment_id: acquisitionPayment._id,
+        receipt_code: rentalReceiptCode,
+      }).save();
+
+      // Link acquisition to rental
+      await Payment.findByIdAndUpdate(acquisitionPayment._id, { related_payment_id: rentalPayment._id });
+
+      results.push({
+        row: index + 1,
+        status: 'success',
+        rental_code,
+        receipt_codes: { acquisition: acquisitionReceiptCode, rental: rentalReceiptCode },
+        driver: driver.name,
+        company: company.name,
+      });
+    } catch (err) {
+      results.push({ row: index + 1, status: 'error', message: err.message });
+    }
+  }
+
+  const successCount = results.filter(r => r.status === 'success').length;
+  const errorCount = results.filter(r => r.status === 'error').length;
+
+  res.status(200).json({
+    message: `Bulk upload complete: ${successCount} created, ${errorCount} failed`,
+    results,
+  });
+};
+
 exports.getRentalTransactionById = async (req, res) => {
   try {
     const { id } = req.params;

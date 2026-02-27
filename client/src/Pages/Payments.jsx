@@ -484,7 +484,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
               : 'text-gray-600 border-transparent hover:text-gray-800'
           }`}
         >
-          Vehicle Acquisition <span className="text-xs text-gray-500 ml-2">({vehicleAcqCount})</span>
+          Vehicle Details <span className="text-xs text-gray-500 ml-2">({vehicleAcqCount})</span>
         </button>
         <button
           onClick={() => setActiveTab('driver-rental')}

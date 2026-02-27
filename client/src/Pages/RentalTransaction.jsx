@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import { transactionAPI, companyAPI, driverAPI, paymentAPI, vehicleTypeAPI } from '../services/api';
 import Pagination from '../components/Pagination';
 
@@ -49,6 +50,12 @@ export default function RentalTransaction() {
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Bulk upload state
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkRows, setBulkRows] = useState([]);
+  const [bulkResults, setBulkResults] = useState(null);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
 
   const [formValues, setFormValues] = useState({
     // Company
@@ -158,6 +165,67 @@ export default function RentalTransaction() {
       setVehicleTypes(response.data);
     } catch (error) {
       showError('Failed to fetch vehicle types');
+    }
+  };
+
+  const BULK_COLUMNS = [
+    'company_name', 'company_contact', 'company_address', 'driver_name', 'driver_iqama_id', 'driver_phone_number',
+    'vehicle_type', 'plate_no', 'acquisition_cost', 'acquisition_date',
+    'from_location', 'to_location', 'rental_amount', 'rental_date',
+  ];
+
+  const downloadTemplate = () => {
+    const ws = XLSX.utils.aoa_to_sheet([
+      BULK_COLUMNS,
+      ['Saudi Co.', 'Mohammed Ahmed', 'Riyadh, Saudi Arabia', 'Ahmed Ali', '2345678901', '0501234567', 'Truck', 'ABC-1234', '15000', '2026-02-01', 'Riyadh', 'Jeddah', '8000', '2026-02-01'],
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+    XLSX.writeFile(wb, 'rental_transactions_template.xlsx');
+  };
+
+  const handleExcelParse = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const wb = XLSX.read(evt.target.result, { type: 'binary', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      // Normalize date fields that Excel may return as Date objects
+      const normalized = data.map(row => {
+        const normalize = (val) => {
+          if (val instanceof Date) return val.toISOString().split('T')[0];
+          return String(val).trim();
+        };
+        return {
+          ...row,
+          acquisition_date: normalize(row.acquisition_date),
+          rental_date: normalize(row.rental_date),
+          acquisition_cost: String(row.acquisition_cost),
+          rental_amount: String(row.rental_amount),
+        };
+      });
+
+      setBulkRows(normalized);
+      setBulkResults(null);
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleBulkUpload = async () => {
+    if (bulkRows.length === 0) return;
+    try {
+      setIsBulkLoading(true);
+      const response = await transactionAPI.bulkCreate(bulkRows);
+      setBulkResults(response.data.results);
+      fetchTransactions();
+    } catch (error) {
+      showError(error.response?.data?.message || 'Bulk upload failed');
+    } finally {
+      setIsBulkLoading(false);
     }
   };
 
@@ -424,9 +492,14 @@ export default function RentalTransaction() {
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Rental Transactions</h1>
-          <Button variant="success" onClick={() => setIsModalOpen(true)}>
-            + New Rental Transaction
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => { setIsBulkModalOpen(true); setBulkRows([]); setBulkResults(null); }}>
+              Upload Excel
+            </Button>
+            <Button variant="success" onClick={() => setIsModalOpen(true)}>
+              + New Rental Transaction
+            </Button>
+          </div>
         </div>
 
         {/* <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-6">
@@ -623,7 +696,7 @@ export default function RentalTransaction() {
                 { name: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: vehicleTypeOptions, required: true },
                 { name: 'plate_no', label: 'Plate Number', placeholder: 'e.g., ABC-1234' },
                 { name: 'acquisition_cost', label: 'Vehicle Cost', type: 'number', placeholder: '0', required: true },
-                { name: 'acquisition_date', label: 'Acquisition Date', type: 'date', required: true },
+                { name: 'acquisition_date', label: 'Purchase Date', type: 'date', required: true },
               ]}
               values={formValues}
               errors={errors}
@@ -653,7 +726,7 @@ export default function RentalTransaction() {
 
       {/* Transactions Table */}
       <div className="mt-12">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Rental Transactions</h2>
+        {/* <h2 className="text-2xl font-bold text-gray-800 mb-6">Rental Transactions</h2> */}
 
         {/* Search Bar */}
         {transactions.length > 0 && (
@@ -787,6 +860,121 @@ export default function RentalTransaction() {
           </>
         )}
       </div>
+
+      {/* Bulk Upload Modal */}
+      <Modal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        title="Bulk Upload Rental Transactions"
+        size="xl"
+        footer={
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setIsBulkModalOpen(false)} disabled={isBulkLoading}>
+              Close
+            </Button>
+            {bulkRows.length > 0 && !bulkResults && (
+              <Button variant="primary" onClick={handleBulkUpload} disabled={isBulkLoading}>
+                {isBulkLoading ? 'Uploading...' : `Upload ${bulkRows.length} Rows`}
+              </Button>
+            )}
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          {/* Step 1: Download template */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm font-semibold text-blue-800 mb-1">Step 1 — Download the template</p>
+            <p className="text-xs text-blue-700 mb-3">
+              Fill in the Excel template with your transaction data. Required columns: company_name, company_contact, company_address, driver_name, driver_iqama_id, vehicle_type, acquisition_cost, acquisition_date, from_location, to_location, rental_amount, rental_date.
+            </p>
+            <button
+              onClick={downloadTemplate}
+              className="text-sm bg-white border border-blue-400 text-blue-700 px-3 py-1.5 rounded hover:bg-blue-100 font-medium"
+            >
+              Download Template (.xlsx)
+            </button>
+          </div>
+
+          {/* Step 2: Upload file */}
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-2">Step 2 — Select your filled Excel file</p>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleExcelParse}
+              className="block w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-gray-300 file:text-sm file:font-medium file:bg-gray-50 hover:file:bg-gray-100"
+            />
+          </div>
+
+          {/* Preview parsed rows */}
+          {bulkRows.length > 0 && !bulkResults && (
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-2">Preview — {bulkRows.length} row(s) detected</p>
+              <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                <table className="w-full text-xs min-w-max">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">#</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Company</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Driver</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Iqama ID</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Vehicle Type</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Plate No</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Acq. Cost</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Acq. Date</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">From</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">To</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Rental Amt</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-600">Rental Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bulkRows.map((row, i) => (
+                      <tr key={i} className="border-t border-gray-100 hover:bg-gray-50">
+                        <td className="px-3 py-2 text-gray-500">{i + 1}</td>
+                        <td className="px-3 py-2">{row.company_name || '-'}</td>
+                        <td className="px-3 py-2">{row.driver_name || '-'}</td>
+                        <td className="px-3 py-2">{row.driver_iqama_id || '-'}</td>
+                        <td className="px-3 py-2">{row.vehicle_type || '-'}</td>
+                        <td className="px-3 py-2">{row.plate_no || '-'}</td>
+                        <td className="px-3 py-2">{row.acquisition_cost || '-'}</td>
+                        <td className="px-3 py-2">{row.acquisition_date || '-'}</td>
+                        <td className="px-3 py-2">{row.from_location || '-'}</td>
+                        <td className="px-3 py-2">{row.to_location || '-'}</td>
+                        <td className="px-3 py-2">{row.rental_amount || '-'}</td>
+                        <td className="px-3 py-2">{row.rental_date || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Upload results */}
+          {bulkResults && (
+            <div>
+              <p className="text-sm font-semibold text-gray-700 mb-2">
+                Results — {bulkResults.filter(r => r.status === 'success').length} succeeded, {bulkResults.filter(r => r.status === 'error').length} failed
+              </p>
+              <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                {bulkResults.map((r) => (
+                  <div
+                    key={r.row}
+                    className={`flex items-start gap-2 px-3 py-2 rounded text-xs ${r.status === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}
+                  >
+                    <span className="font-semibold shrink-0">Row {r.row}:</span>
+                    {r.status === 'success'
+                      ? <span>Created — Rental Code: <strong>{r.rental_code}</strong> | Receipts: {r.receipt_codes?.acquisition}, {r.receipt_codes?.rental}</span>
+                      : <span>{r.message}</span>
+                    }
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* View Transaction Modal */}
       <Modal

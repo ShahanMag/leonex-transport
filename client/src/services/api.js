@@ -116,6 +116,7 @@ export const reportAPI = {
 // ==========================
 export const transactionAPI = {
   createRentalTransaction: (data) => api.post('/transactions/rental', data),
+  bulkCreate: (rows) => api.post('/transactions/rental/bulk', { rows }),
 
   // ✅ Fetch all rental transactions
   getAll: () => api.get('/loads'),

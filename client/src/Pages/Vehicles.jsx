@@ -27,7 +27,7 @@ export default function Vehicles() {
               </li>
               <li className="flex items-start">
                 <span className="text-amber-500 mr-3 font-bold">•</span>
-                <span>Vehicle acquisition is handled as part of the unified rental transaction</span>
+                <span>Vehicle Details is handled as part of the unified rental transaction</span>
               </li>
             </ul>
           </div>
