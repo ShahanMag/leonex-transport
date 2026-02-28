@@ -1,5 +1,6 @@
-const moment = require('moment');
-
+const moment = require("moment");
+const momentSaudi = require("moment-timezone");
+const saudiTime = moment().tz("Asia/Riyadh").format("DD/MM/YYYY HH:mm");
 const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
   const { showInstallments = false, installment = null } = options;
 
@@ -8,19 +9,25 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
     ? `<tr>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">1</td>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${installment.amount.toLocaleString()}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(installment.paid_date || installment.date).format('DD/MM/YYYY')}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${installment.notes || '-'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(installment.paid_date || installment.date).format("DD/MM/YYYY")}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${installment.notes || "-"}</td>
       </tr>`
-    : showInstallments && payment.installments && payment.installments.length > 0
-    ? payment.installments.map((inst, index) => `
+    : showInstallments &&
+        payment.installments &&
+        payment.installments.length > 0
+      ? payment.installments
+          .map(
+            (inst, index) => `
         <tr>
           <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${index + 1}</td>
           <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${inst.amount.toLocaleString()}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(inst.paid_date || inst.date).format('DD/MM/YYYY')}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${inst.notes || '-'}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(inst.paid_date || inst.date).format("DD/MM/YYYY")}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${inst.notes || "-"}</td>
         </tr>
-      `).join('')
-    : '<tr><td colspan="4" style="padding: 20px; text-align: center; color: #9ca3af;">No installments recorded</td></tr>';
+      `,
+          )
+          .join("")
+      : '<tr><td colspan="4" style="padding: 20px; text-align: center; color: #9ca3af;">No installments recorded</td></tr>';
 
   return `
     <!DOCTYPE html>
@@ -64,14 +71,14 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
             <div style="font-size: 12px; color: #4b5563; margin-top: 4px;">C.R: 1010569210</div>
             <div style="font-size: 12px; color: #4b5563;">Mobile: 0508702137</div>
             <div style="font-size: 12px; color: #4b5563;">VAT No.: 300756371300003</div>
-            <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">${installment ? 'Payment Voucher' : 'Company Payment Summary'}</div>
+            <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">${installment ? "Payment Voucher" : "Company Payment Summary"}</div>
           </div>
           <div style="text-align: right; direction: rtl;">
             <div style="font-size: 20px; font-weight: bold; color: #1f2937;">شركة عيسى للنقل</div>
             <div style="font-size: 12px; color: #4b5563; margin-top: 4px;">س.ت: ١٠١٠٥٦٩٢١٠</div>
             <div style="font-size: 12px; color: #4b5563;">الجوال: ٠٥٠٨٧٠٢١٣٧</div>
             <div style="font-size: 12px; color: #4b5563;">الرقم الضريبي: ٣٠٠٧٥٦٣٧١٣٠٠٠٠٣</div>
-            <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">${installment ? 'سند صرف' : 'ملخص مدفوعات الشركة'}</div>
+            <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">${installment ? "سند صرف" : "ملخص مدفوعات الشركة"}</div>
           </div>
         </div>
         END OLD HEADER -->
@@ -80,65 +87,82 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
         <div class="receipt-info">
           <div class="info-block">
             <div class="info-label">Receipt No:</div>
-            <div class="info-value">${payment.receipt_code || '#' + payment._id.toString().slice(-8).toUpperCase()}</div>
+            <div class="info-value">${payment.receipt_code || "#" + payment._id.toString().slice(-8).toUpperCase()}</div>
             <div class="info-label">Date:</div>
-            <div class="info-value">${moment().format('DD/MM/YYYY HH:mm')}</div>
+            <div class="info-value">${saudiTime}</div>
           </div>
           <div class="info-block" style="text-align: right;">
             <div class="info-label">Payment Type:</div>
-            <div class="info-value">${payment.payment_type === 'vehicle-acquisition' ? 'Vehicle Acquisition' : 'Company Expense'}</div>
+            <div class="info-value">${payment.payment_type === "vehicle-acquisition" ? "Vehicle Acquisition" : "Company Expense"}</div>
           </div>
         </div>
 
-        <!-- Company Details -->
-        <div class="section-title">Company Details</div>
-        <table>
-          <tr>
-            <th style="width: 30%;">Company Name</th>
-            <td>${company?.name || 'N/A'}</td>
-          </tr>
-          <tr>
-            <th>Contact Person</th>
-            <td>${company?.contact || 'N/A'}</td>
-          </tr>
-          <tr>
-            <th>Email</th>
-            <td>${company?.email || 'N/A'}</td>
-          </tr>
-          <tr>
-            <th>Phone</th>
-            <td>${company?.phone_country_code || ''} ${company?.phone_number || 'N/A'}</td>
-          </tr>
-        </table>
+       <!-- Wrapper -->
+<div style="display: flex; gap: 20px; align-items: flex-start;">
 
-        <!-- Vehicle/Load Details -->
-        ${payment.vehicle_type ? `
-        <div class="section-title">Vehicle Details</div>
-        <table>
-          <tr>
-            <th style="width: 30%;">Vehicle Type</th>
-            <td>${payment.vehicle_type || 'N/A'}</td>
-          </tr>
-          <tr>
-            <th>Plate Number</th>
-            <td>${payment.plate_no || 'N/A'}</td>
-          </tr>
-          <tr>
-            <th style="width: 25%;">From Location</th>
-            <td style="width: 25%;">${payment.from_location || payment.load_id?.from_location || 'N/A'}</td>
-            <th style="width: 25%;">Purchase Date</th>
-            <td style="width: 25%;">${payment.acquisition_date ? moment(payment.acquisition_date).format('DD/MM/YYYY') : 'N/A'}</td>
-          </tr>
-          <tr>
-            <th>To Location</th>
-            <td colspan="3">${payment.to_location || payment.load_id?.to_location || 'N/A'}</td>
-          </tr>
-        </table>
-        ` : ''}
+  <!-- Company Details -->
+  <div style="flex: 1;">
+    <div class="section-title">Company Details</div>
+    <table style="width: 100%;">
+      <tr>
+        <th style="width: 40%;">Company Name</th>
+        <td>${company?.name || "N/A"}</td>
+      </tr>
+      <tr>
+        <th>Contact Person</th>
+        <td>${company?.contact || "N/A"}</td>
+      </tr>
+      <tr>
+        <th>Email</th>
+        <td>${company?.email || "N/A"}</td>
+      </tr>
+      <tr>
+        <th>Phone</th>
+        <td>${company?.phone_country_code || ""} ${company?.phone_number || "N/A"}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Vehicle Details -->
+  ${
+    payment.vehicle_type
+      ? `
+  <div style="flex: 1;">
+    <div class="section-title">Vehicle Details</div>
+    <table style="width: 100%;">
+      <tr>
+        <th style="width: 40%;">Vehicle Type</th>
+        <td>${payment.vehicle_type || "N/A"}</td>
+      </tr>
+      <tr>
+        <th>Plate Number</th>
+        <td>${payment.plate_no || "N/A"}</td>
+      </tr>
+      <tr>
+        <th>From Location</th>
+        <td>${payment.from_location || payment.load_id?.from_location || "N/A"}</td>
+      </tr>
+      <tr>
+        <th>Purchase Date</th>
+        <td>${payment.acquisition_date ? moment(payment.acquisition_date).format("DD/MM/YYYY") : "N/A"}</td>
+      </tr>
+      <tr>
+        <th>To Location</th>
+        <td>${payment.to_location || payment.load_id?.to_location || "N/A"}</td>
+      </tr>
+    </table>
+  </div>
+  `
+      : ""
+  }
+
+</div>
 
         <!-- Payment Installments -->
-        ${installment || showInstallments ? `
-        <div class="section-title">${installment ? 'Installment Details' : 'Payment History'}</div>
+        ${
+          installment || showInstallments
+            ? `
+        <div class="section-title">${installment ? "Installment Details" : "Payment History"}</div>
         <table>
           <thead>
             <tr>
@@ -152,7 +176,9 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
             ${installmentsRows}
           </tbody>
         </table>
-        ` : ''}
+        `
+            : ""
+        }
 
         <!-- Payment Summary -->
         <div class="summary-box">
@@ -190,7 +216,7 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
             <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 40px;"></div>
             <p style="font-size: 13px; font-weight: bold; color: #374151;">توقيع العميل</p>
             <p style="font-size: 12px; color: #374151;">Customer Signature</p>
-            <p style="font-size: 11px; color: #6b7280; margin-top: 2px;">${company?.name || ''}</p>
+            <p style="font-size: 11px; color: #6b7280; margin-top: 2px;">${company?.name || ""}</p>
           </div>
         </div>
 
