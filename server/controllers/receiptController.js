@@ -12,8 +12,9 @@ const headerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirnam
 const footerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA Footer.png')).toString('base64')}`;
 
 // Renders on every page via Puppeteer's native header/footer support
-const pdfHeaderTemplate = `<div style="margin:0;padding:0;width:100%;"><img src="${headerBase64}" style="width:100%;height:230px;object-fit:fill;display:block;margin-top:-50px;" /></div>`;
-const pdfFooterTemplate = `<div style="margin:0;padding:0;width:65%;margin-left:auto;margin-right:auto;"><img src="${footerBase64}" style="width:100%;height:220px;object-fit:fill;display:block;margin-bottom:-100px;" /></div>`;
+const pdfHeaderTemplate = `<div style="margin:0;padding:0;width:100%;"><img src="${headerBase64}" style="width:100%;height:150px;object-fit:fill;display:block;" /></div>`;
+const pdfFooterTemplate = `<div style="margin:0;padding:0;width:100%;margin-left:auto;margin-right:auto;"><img src="${footerBase64}" style="width:100%;height:280px;object-fit:fill;display:block;margin-bottom:-20px;margin-top:-100px;"
+" /></div>`;
 
 // Detect environment and use appropriate puppeteer configuration
 const isProduction = process.env.VERCEL || process.env.NODE_ENV === 'production';
@@ -83,9 +84,9 @@ exports.generateCompanyReceipt = async (req, res) => {
       headerTemplate: pdfHeaderTemplate,
       footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '190px',
+        top: '180px',
         right: '10px',
-        bottom: '130px',
+        bottom: '260px',
         left: '10px'
       }
     });
