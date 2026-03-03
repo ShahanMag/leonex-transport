@@ -190,21 +190,6 @@ export default function Loads() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (load) => {
-    showConfirm('Are you sure you want to delete this load?', async () => {
-      try {
-        setIsLoading(true);
-        await loadAPI.delete(load._id);
-        showSuccess('Load deleted successfully');
-        fetchLoads();
-      } catch (error) {
-        showError('Failed to delete load');
-      } finally {
-        setIsLoading(false);
-      }
-    });
-  };
-
   const handleOpenAssign = (load) => {
     setAssigningLoadId(load._id);
     setAssignValues({ driver_id: '' });
@@ -263,13 +248,6 @@ export default function Loads() {
         variant: 'primary',
       });
     }
-
-    // Always show Delete button
-    baseActions.push({
-      label: 'Delete',
-      onClick: () => handleDelete(load),
-      variant: 'danger',
-    });
 
     return baseActions;
   };

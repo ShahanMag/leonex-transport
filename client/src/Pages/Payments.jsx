@@ -219,20 +219,6 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     });
   };
 
-  const handleDeletePayment = async (payment) => {
-    showConfirm('Are you sure you want to delete this payment?', async () => {
-      try {
-        setIsLoading(true);
-        await paymentAPI.delete(payment._id);
-        showSuccess('Payment deleted successfully');
-        fetchPayments();
-      } catch (error) {
-        showError('Failed to delete payment');
-      } finally {
-        setIsLoading(false);
-      }
-    });
-  };
 
   const handlePrintReceipt = (payment) => {
     try {
@@ -359,7 +345,6 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
       setInstallmentErrors({});
       setIsInstallmentOpen(true);
     }, variant: 'success' },
-    { label: 'Delete', onClick: handleDeletePayment, variant: 'danger' },
   ];
 
   // Filter payments based on tab and additional filters
@@ -581,12 +566,6 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                           className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors"
                         >
                           Print Receipt
-                        </button>
-                        <button
-                          onClick={() => handleDeletePayment(payment)}
-                          className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-medium hover:bg-red-200 transition-colors"
-                        >
-                          Delete
                         </button>
                       </div>
                     </td>
