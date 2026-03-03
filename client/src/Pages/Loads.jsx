@@ -8,6 +8,30 @@ import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
 import { formatDate } from '../utils/dateUtils';
 
+const StatCard = ({ title, value, icon, color = 'blue' }) => {
+  const colorClasses = {
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    red: 'bg-red-500',
+    yellow: 'bg-yellow-500',
+    purple: 'bg-purple-500',
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium mb-1">{title}</p>
+          <p className="text-2xl font-bold text-gray-800">{value}</p>
+        </div>
+        <div className={`${colorClasses[color]} p-3 rounded-lg`}>
+          <span className="text-white text-2xl">{icon}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Loads() {
   const [loads, setLoads] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -104,6 +128,15 @@ export default function Loads() {
     }
 
     return filtered;
+  };
+
+  const calculateSummary = () => {
+    const filtered = getFilteredLoads();
+    const count = filtered.length;
+    const totalRental = filtered.reduce((sum, l) => sum + (l.rental_amount || 0), 0);
+    const avgRental = count > 0 ? Math.round(totalRental / count) : 0;
+    const pending = filtered.filter(l => l.status === 'pending').length;
+    return { count, totalRental, avgRental, pending };
   };
 
   const handleFormChange = (values) => {
@@ -282,6 +315,18 @@ export default function Loads() {
           ))}
         </select>
       </div>
+
+      {loads.length > 0 && (() => {
+        const summary = calculateSummary();
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <StatCard title="Total Loads" value={summary.count} icon="📦" color="blue" />
+            <StatCard title="Total Rental Value" value={`SAR ${summary.totalRental.toLocaleString()}`} icon="💵" color="green" />
+            <StatCard title="Avg Rental Amount" value={`SAR ${summary.avgRental.toLocaleString()}`} icon="📊" color="purple" />
+            <StatCard title="Pending" value={summary.pending} icon="⏳" color="yellow" />
+          </div>
+        );
+      })()}
 
       {(() => {
         const filtered = getFilteredLoads();
