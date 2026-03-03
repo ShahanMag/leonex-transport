@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadAPI, driverAPI, vehicleTypeAPI } from '../services/api';
+import { loadAPI, driverAPI, vehicleTypeAPI, paymentAPI } from '../services/api';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import Pagination from '../components/Pagination';
@@ -55,12 +55,23 @@ export default function Loads() {
   const [errors, setErrors] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [payments, setPayments] = useState([]);
 
   useEffect(() => {
     fetchLoads();
     fetchDrivers();
     fetchVehicleTypes();
+    fetchPayments();
   }, []);
+
+  const fetchPayments = async () => {
+    try {
+      const response = await paymentAPI.getAll();
+      setPayments(response.data);
+    } catch (error) {
+      // non-critical — summary cards will show 0
+    }
+  };
 
   const fetchLoads = async () => {
     try {
@@ -132,11 +143,13 @@ export default function Loads() {
 
   const calculateSummary = () => {
     const filtered = getFilteredLoads();
-    const count = filtered.length;
-    const totalRental = filtered.reduce((sum, l) => sum + (l.rental_amount || 0), 0);
-    const avgRental = count > 0 ? Math.round(totalRental / count) : 0;
-    const pending = filtered.filter(l => l.status === 'pending').length;
-    return { count, totalRental, avgRental, pending };
+    const loadIds = new Set(filtered.map(l => l._id));
+    const linked = payments.filter(p => p.load_id && loadIds.has(p.load_id));
+    const acquisitions = linked.filter(p => p.payment_type === 'vehicle-acquisition');
+    const totalRevenue = acquisitions.reduce((sum, p) => sum + (p.acquisition_amount || 0), 0);
+    const totalCost = acquisitions.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+    const netProfit = totalRevenue - totalCost;
+    return { totalRevenue, totalCost, netProfit, count: filtered.length };
   };
 
   const handleFormChange = (values) => {
@@ -320,10 +333,10 @@ export default function Loads() {
         const summary = calculateSummary();
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <StatCard title="Total Loads" value={summary.count} icon="📦" color="blue" />
-            <StatCard title="Total Rental Value" value={`SAR ${summary.totalRental.toLocaleString()}`} icon="💵" color="green" />
-            <StatCard title="Avg Rental Amount" value={`SAR ${summary.avgRental.toLocaleString()}`} icon="📊" color="purple" />
-            <StatCard title="Pending" value={summary.pending} icon="⏳" color="yellow" />
+            <StatCard title="Total Revenue" value={`SAR ${summary.totalRevenue.toLocaleString()}`} icon="💵" color="green" />
+            <StatCard title="Total Cost" value={`SAR ${summary.totalCost.toLocaleString()}`} icon="💸" color="red" />
+            <StatCard title="Net Profit/Loss" value={`SAR ${summary.netProfit.toLocaleString()}`} icon={summary.netProfit >= 0 ? '📈' : '📉'} color={summary.netProfit >= 0 ? 'green' : 'red'} />
+            <StatCard title="Total Transactions" value={summary.count} icon="🔄" color="purple" />
           </div>
         );
       })()}
