@@ -49,5 +49,6 @@ router.post('/rental', transactionController.createRentalTransaction);
 router.post('/rental/bulk', transactionController.bulkCreateRentalTransactions);
 router.get('/rental/:id', transactionController.getRentalTransactionById);
 router.put('/rental/:id', transactionController.updateRentalTransaction);
+router.delete('/rental/:id', transactionController.deleteRentalTransaction);
 
 module.exports = router;

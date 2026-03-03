@@ -149,6 +149,9 @@ export const transactionAPI = {
 
   // ✅ Update a rental transaction
   update: (id, data) => api.put(`/transactions/rental/${id}`, data),
+
+  // ✅ Delete a rental transaction (load + all linked payments)
+  delete: (id) => api.delete(`/transactions/rental/${id}`),
 };
 
 // ==========================

@@ -361,8 +361,16 @@ exports.deleteInstallment = async (req, res) => {
 // Delete payment
 exports.deletePayment = async (req, res) => {
   try {
-    const payment = await Payment.findByIdAndDelete(req.params.id);
+    const payment = await Payment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
+
+    if (payment.load_id) {
+      return res.status(400).json({
+        message: 'Cannot delete a rental payment directly. Delete the full rental transaction instead.',
+      });
+    }
+
+    await Payment.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: 'Payment deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

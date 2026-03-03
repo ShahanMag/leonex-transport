@@ -424,6 +424,23 @@ export default function RentalTransaction() {
     }
   };
 
+  // Delete transaction
+  const handleDelete = (transaction) => {
+    const id = transaction.load_id?._id || transaction.load_id;
+    showConfirm('Delete this rental transaction? This will also delete all linked payments and cannot be undone.', async () => {
+      try {
+        setIsLoading(true);
+        await transactionAPI.delete(id);
+        showSuccess('Rental transaction deleted successfully');
+        fetchTransactions();
+      } catch (error) {
+        showError(error.response?.data?.message || 'Failed to delete rental transaction');
+      } finally {
+        setIsLoading(false);
+      }
+    });
+  };
+
   // Edit transaction
   const handleEdit = async (transaction) => {
     try {
@@ -849,6 +866,13 @@ export default function RentalTransaction() {
                             size="sm"
                           >
                             Edit
+                          </Button>
+                          <Button
+                            variant="danger"
+                            onClick={() => handleDelete(transaction)}
+                            size="sm"
+                          >
+                            Delete
                           </Button>
                         </div>
                       </td>

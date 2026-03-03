@@ -562,3 +562,35 @@ exports.updateRentalTransaction = async (req, res) => {
     res.status(500).json({ message: 'Failed to update rental transaction', error: error.message });
   }
 };
+
+// Delete Rental Transaction
+exports.deleteRentalTransaction = async (req, res) => {
+  try {
+    const load = await Load.findById(req.params.id);
+    if (!load) return res.status(404).json({ message: 'Rental transaction not found' });
+
+    const payments = await Payment.find({ load_id: req.params.id });
+
+    const hasPaid = payments.some((p) => p.status === 'paid');
+    const hasPartial = payments.some((p) => p.status === 'partial');
+
+    if (hasPaid) {
+      return res.status(400).json({
+        message: 'Cannot delete a rental transaction that has been fully paid.',
+      });
+    }
+    if (hasPartial) {
+      return res.status(400).json({
+        message: 'Cannot delete a rental transaction with partial payments. Remove the payments first.',
+      });
+    }
+
+    await Payment.deleteMany({ load_id: req.params.id });
+    await Load.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({ message: 'Rental transaction deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting rental transaction:', error);
+    res.status(500).json({ message: 'Failed to delete rental transaction', error: error.message });
+  }
+};
