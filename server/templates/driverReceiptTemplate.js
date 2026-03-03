@@ -1,7 +1,6 @@
-const moment = require("moment");
-const momentSaudi = require("moment-timezone");
-const saudiTime = moment().tz("Asia/Riyadh").format("DD/MM/YYYY HH:mm");
+const moment = require("moment-timezone");
 const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
+  const saudiTime = moment().tz("Asia/Riyadh").format("DD/MM/YYYY HH:mm");
   const { showInstallments = false, installment = null } = options;
 
   // If printing a specific installment, show only that one
@@ -9,7 +8,7 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
     ? `<tr>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">1</td>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${installment.amount.toLocaleString()}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(installment.paid_date || installment.date).format("DD/MM/YYYY")}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(installment.paid_date || installment.date).tz("Asia/Riyadh").format("DD/MM/YYYY")}</td>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${installment.notes || "-"}</td>
       </tr>`
     : showInstallments &&
@@ -21,7 +20,7 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
         <tr>
           <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${index + 1}</td>
           <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${inst.amount.toLocaleString()}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(inst.paid_date || inst.date).format("DD/MM/YYYY")}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(inst.paid_date || inst.date).tz("Asia/Riyadh").format("DD/MM/YYYY")}</td>
           <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${inst.notes || "-"}</td>
         </tr>
       `,
@@ -153,7 +152,7 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
       </tr>
       <tr>
         <th>Rental Date</th>
-        <td>${payment.rental_date ? moment(payment.rental_date).format("DD/MM/YYYY") : "N/A"}</td>
+        <td>${payment.rental_date ? moment(payment.rental_date).tz("Asia/Riyadh").format("DD/MM/YYYY") : "N/A"}</td>
       </tr>
       <tr>
         <th>To Location</th>

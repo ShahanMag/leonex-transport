@@ -220,43 +220,41 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
   };
 
 
-  const handlePrintReceipt = (payment) => {
+  const handlePrintReceipt = async (payment) => {
     try {
-      let receiptUrl;
+      let response;
 
-      // Determine which receipt to generate based on payment type
       if (payment.payment_type === 'vehicle-acquisition') {
-        receiptUrl = receiptAPI.generateCompanyReceipt(payment._id);
+        response = await receiptAPI.generateCompanyReceipt(payment._id);
       } else if (payment.payment_type === 'driver-rental') {
-        receiptUrl = receiptAPI.generateDriverReceipt(payment._id);
+        response = await receiptAPI.generateDriverReceipt(payment._id);
       } else {
         showError('Invalid payment type for receipt generation');
         return;
       }
 
-      // Open receipt in new tab
-      window.open(receiptUrl, '_blank');
+      const blobUrl = URL.createObjectURL(response.data);
+      window.open(blobUrl, '_blank');
     } catch (error) {
       showError('Failed to generate receipt');
     }
   };
 
-  const handlePrintInstallmentReceipt = (payment, installment) => {
+  const handlePrintInstallmentReceipt = async (payment, installment) => {
     try {
-      let receiptUrl;
+      let response;
 
-      // Determine which installment receipt to generate based on payment type
       if (payment.payment_type === 'vehicle-acquisition') {
-        receiptUrl = receiptAPI.generateCompanyInstallmentReceipt(payment._id, installment._id);
+        response = await receiptAPI.generateCompanyInstallmentReceipt(payment._id, installment._id);
       } else if (payment.payment_type === 'driver-rental') {
-        receiptUrl = receiptAPI.generateDriverInstallmentReceipt(payment._id, installment._id);
+        response = await receiptAPI.generateDriverInstallmentReceipt(payment._id, installment._id);
       } else {
         showError('Invalid payment type for receipt generation');
         return;
       }
 
-      // Open installment receipt in new tab
-      window.open(receiptUrl, '_blank');
+      const blobUrl = URL.createObjectURL(response.data);
+      window.open(blobUrl, '_blank');
     } catch (error) {
       showError('Failed to generate installment receipt');
     }

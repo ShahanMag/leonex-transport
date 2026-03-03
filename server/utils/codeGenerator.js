@@ -83,13 +83,13 @@ exports.generateReceiptCode = async () => {
 
 /**
  * Generate unique vehicle (company acquisition) receipt code
- * Format: VEH-YYYY-XXXX (e.g. VEH-2025-0001)
+ * Format: EESA-VEH-YYYY-XXXX (e.g. EESA-VEH-2025-0001)
  */
 exports.generateVehicleReceiptCode = async () => {
   try {
     const currentYear = new Date().getFullYear();
     const lastPayment = await Payment.findOne({
-      receipt_code: { $regex: `^VEH-${currentYear}-` },
+      receipt_code: { $regex: `^EESA-VEH-${currentYear}-` },
     })
       .select('receipt_code')
       .sort({ _id: -1 })
@@ -97,13 +97,13 @@ exports.generateVehicleReceiptCode = async () => {
 
     let nextNumber = 1;
     if (lastPayment && lastPayment.receipt_code) {
-      const match = lastPayment.receipt_code.match(/VEH-\d+-(\d+)/);
+      const match = lastPayment.receipt_code.match(/EESA-VEH-\d+-(\d+)/);
       if (match) {
         nextNumber = parseInt(match[1]) + 1;
       }
     }
 
-    return `VEH-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
+    return `EESA-VEH-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
   } catch (error) {
     console.error('Error generating vehicle receipt code:', error);
     throw error;
@@ -112,13 +112,13 @@ exports.generateVehicleReceiptCode = async () => {
 
 /**
  * Generate unique driver rental receipt code
- * Format: DRV-YYYY-XXXX (e.g. DRV-2025-0001)
+ * Format: EESA-DRV-YYYY-XXXX (e.g. EESA-DRV-2025-0001)
  */
 exports.generateDriverReceiptCode = async () => {
   try {
     const currentYear = new Date().getFullYear();
     const lastPayment = await Payment.findOne({
-      receipt_code: { $regex: `^DRV-${currentYear}-` },
+      receipt_code: { $regex: `^EESA-DRV-${currentYear}-` },
     })
       .select('receipt_code')
       .sort({ _id: -1 })
@@ -126,13 +126,13 @@ exports.generateDriverReceiptCode = async () => {
 
     let nextNumber = 1;
     if (lastPayment && lastPayment.receipt_code) {
-      const match = lastPayment.receipt_code.match(/DRV-\d+-(\d+)/);
+      const match = lastPayment.receipt_code.match(/EESA-DRV-\d+-(\d+)/);
       if (match) {
         nextNumber = parseInt(match[1]) + 1;
       }
     }
 
-    return `DRV-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
+    return `EESA-DRV-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
   } catch (error) {
     console.error('Error generating driver receipt code:', error);
     throw error;

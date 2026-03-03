@@ -213,19 +213,21 @@ export const customerAPI = {
 // 🧾 Receipt Services
 // ==========================
 export const receiptAPI = {
-  // Generate company payment summary receipt (returns PDF)
-  generateCompanyReceipt: (paymentId) => `${API_BASE_URL}/receipts/company/${paymentId}`,
+  // Generate company payment summary receipt (returns PDF blob)
+  generateCompanyReceipt: (paymentId) =>
+    api.get(`/receipts/company/${paymentId}`, { responseType: 'blob' }),
 
-  // Generate driver rental payment summary receipt (returns PDF)
-  generateDriverReceipt: (paymentId) => `${API_BASE_URL}/receipts/driver/${paymentId}`,
+  // Generate driver rental payment summary receipt (returns PDF blob)
+  generateDriverReceipt: (paymentId) =>
+    api.get(`/receipts/driver/${paymentId}`, { responseType: 'blob' }),
 
-  // Generate company payment installment receipt (returns PDF)
+  // Generate company payment installment receipt (returns PDF blob)
   generateCompanyInstallmentReceipt: (paymentId, installmentId) =>
-    `${API_BASE_URL}/receipts/company/${paymentId}/installment/${installmentId}`,
+    api.get(`/receipts/company/${paymentId}/installment/${installmentId}`, { responseType: 'blob' }),
 
-  // Generate driver rental payment installment receipt (returns PDF)
+  // Generate driver rental payment installment receipt (returns PDF blob)
   generateDriverInstallmentReceipt: (paymentId, installmentId) =>
-    `${API_BASE_URL}/receipts/driver/${paymentId}/installment/${installmentId}`,
+    api.get(`/receipts/driver/${paymentId}/installment/${installmentId}`, { responseType: 'blob' }),
 };
 
 export default api;
