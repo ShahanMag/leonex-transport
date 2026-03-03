@@ -348,7 +348,7 @@ export default function Loads() {
         return (
           <>
             <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
-            <Table columns={columns} data={paginated} actions={getActions} isLoading={isLoading} />
+            <Table columns={columns} data={paginated} isLoading={isLoading} />
           </>
         );
       })()}
