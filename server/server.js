@@ -4,6 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 const connectDB = require("./config/database");
 const errorHandler = require("./middleware/errorHandler");
+const authMiddleware = require("./middleware/auth");
 
 // Import routes
 const companyRoutes = require("./routes/companies");
@@ -61,6 +62,19 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Health check endpoint
 app.get("/api/health", (_req, res) => {
   res.status(200).json({ message: "Server is running" });
+});
+
+// Auth middleware — applied to all routes except login and health
+app.use((req, res, next) => {
+  const publicRoutes = [
+    { method: 'POST', path: '/api/users/login' },
+    { method: 'GET',  path: '/api/health' },
+  ];
+  const isPublic = publicRoutes.some(
+    (r) => r.method === req.method && r.path === req.path
+  );
+  if (isPublic || req.method === 'OPTIONS') return next();
+  authMiddleware(req, res, next);
 });
 
 // API Routes
