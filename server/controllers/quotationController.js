@@ -6,11 +6,39 @@ const Term = require('../models/Terms');
 // 🔹 Get All Quotations
 exports.getAllQuotations = async (req, res) => {
   try {
-    const quotations = await Quotation.find()
-      .populate('customer')
-      .sort({ createdAt: -1 });
+    let { page = 1, limit = 10, search = '' } = req.query;
 
-    res.status(200).json(quotations);
+    page = parseInt(page);
+    limit = parseInt(limit);
+
+    const skip = (page - 1) * limit;
+
+    // 🔎 Search by quotation number
+    const searchFilter = search
+      ? {
+          quotation_number: { $regex: search, $options: 'i' }
+        }
+      : {};
+
+    // Total count (for frontend pagination)
+    const total = await Quotation.countDocuments(searchFilter);
+
+    const quotations = await Quotation.find(searchFilter)
+      .populate('customer')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      data: quotations,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
