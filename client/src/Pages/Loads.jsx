@@ -8,8 +8,6 @@ import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
 import { formatDate } from '../utils/dateUtils';
 
-const PAGE_SIZE = 10;
-
 export default function Loads() {
   const [loads, setLoads] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -32,6 +30,7 @@ export default function Loads() {
   const [assignValues, setAssignValues] = useState({ driver_id: '' });
   const [errors, setErrors] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   useEffect(() => {
     fetchLoads();
@@ -308,11 +307,11 @@ export default function Loads() {
 
       {(() => {
         const filtered = getFilteredLoads();
-        const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-        const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+        const totalPages = Math.ceil(filtered.length / pageSize);
+        const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
         return (
           <>
-            <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={filtered.length} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} />
+            <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
             <Table columns={columns} data={paginated} actions={getActions} isLoading={isLoading} />
           </>
         );

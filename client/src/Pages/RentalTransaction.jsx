@@ -3,7 +3,6 @@ import * as XLSX from 'xlsx';
 import { transactionAPI, companyAPI, driverAPI, paymentAPI, vehicleTypeAPI } from '../services/api';
 import Pagination from '../components/Pagination';
 
-const PAGE_SIZE = 10;
 import Button from '../components/Button';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
@@ -50,6 +49,7 @@ export default function RentalTransaction() {
   const [editingId, setEditingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   // Bulk upload state
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -690,7 +690,7 @@ export default function RentalTransaction() {
 
           {/* Vehicle & Acquisition Section */}
           <div className="border-b pb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Vehicle & Acquisition</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Vehicle Rental Details</h3>
             <Form
               fields={[
                 { name: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: vehicleTypeOptions, required: true },
@@ -786,10 +786,11 @@ export default function RentalTransaction() {
           <>
           <Pagination
             currentPage={currentPage}
-            totalPages={Math.ceil(getFilteredTransactions().length / PAGE_SIZE)}
+            totalPages={Math.ceil(getFilteredTransactions().length / pageSize)}
             totalItems={getFilteredTransactions().length}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             onPageChange={setCurrentPage}
+            onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
           />
           <div className="overflow-x-auto bg-white rounded-lg shadow mt-3">
             <table className="w-full border-collapse min-w-max">
@@ -797,7 +798,7 @@ export default function RentalTransaction() {
                 <tr className="bg-gray-100 border-b">
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">#</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Rental Code</th>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Acquisition Date</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Rental Date</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Company</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Driver</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Vehicle Number</th>
@@ -811,7 +812,7 @@ export default function RentalTransaction() {
                 </tr>
               </thead>
               <tbody>
-                {getFilteredTransactions().slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((transaction,i) => {
+                {getFilteredTransactions().slice((currentPage - 1) * pageSize, currentPage * pageSize).map((transaction,i) => {
                   const revenue = transaction.acquisition_amount || 0;
                   const cost = transaction.total_amount || 0;
                   const netProfit = revenue - cost;
@@ -819,7 +820,7 @@ export default function RentalTransaction() {
 
                   return (
                     <tr key={transaction._id} className="border-b hover:bg-gray-50">
-                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{(currentPage - 1) * pageSize + i + 1}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.load_id?.rental_code || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.acquisition_date ? formatDate(transaction.acquisition_date) : 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>

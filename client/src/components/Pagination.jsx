@@ -1,4 +1,6 @@
-export default function Pagination({ currentPage, totalPages, totalItems, pageSize, onPageChange }) {
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
+
+export default function Pagination({ currentPage, totalPages, totalItems, pageSize, onPageChange, onPageSizeChange }) {
   if (!totalItems) return null;
 
   const from = (currentPage - 1) * pageSize + 1;
@@ -19,9 +21,25 @@ export default function Pagination({ currentPage, totalPages, totalItems, pageSi
 
   return (
     <div className="flex items-center justify-between mt-4 px-1 flex-wrap gap-2">
-      <span className="text-sm text-gray-500">
-        Showing {from}–{to} of {totalItems} results
-      </span>
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-sm text-gray-500">
+          Showing {from}–{to} of {totalItems} results
+        </span>
+        {onPageSizeChange && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm text-gray-500">Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              className="text-sm border rounded px-2 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
       {totalPages > 1 && (
         <div className="flex gap-1 flex-wrap">
