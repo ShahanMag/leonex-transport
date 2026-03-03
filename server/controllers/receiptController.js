@@ -6,6 +6,7 @@ const Company = require('../models/Company');
 const Driver = require('../models/Driver');
 const generateCompanyReceiptHTML = require('../templates/companyReceiptTemplate');
 const generateDriverReceiptHTML = require('../templates/driverReceiptTemplate');
+const { generateVehicleReceiptCode, generateDriverReceiptCode } = require('../utils/codeGenerator');
 
 // Pre-load header and footer images as base64 data URIs for Puppeteer PDF templates
 const headerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA header.png')).toString('base64')}`;
@@ -62,6 +63,13 @@ exports.generateCompanyReceipt = async (req, res) => {
       return res.status(400).json({
         message: 'This payment is not a company payment. Use driver receipt endpoint instead.'
       });
+    }
+
+    // Auto-assign vehicle receipt code on first print
+    if (!payment.receipt_code) {
+      const code = await generateVehicleReceiptCode();
+      await Payment.findByIdAndUpdate(paymentId, { receipt_code: code });
+      payment.receipt_code = code;
     }
 
     const company = payment.company_id;
@@ -125,6 +133,13 @@ exports.generateDriverReceipt = async (req, res) => {
       return res.status(400).json({
         message: 'This payment is not a driver rental payment. Use company receipt endpoint instead.'
       });
+    }
+
+    // Auto-assign driver receipt code on first print
+    if (!payment.receipt_code) {
+      const code = await generateDriverReceiptCode();
+      await Payment.findByIdAndUpdate(paymentId, { receipt_code: code });
+      payment.receipt_code = code;
     }
 
     const company = payment.company_id;
@@ -196,6 +211,13 @@ exports.generateCompanyInstallmentReceipt = async (req, res) => {
       return res.status(404).json({ message: 'Installment not found' });
     }
 
+    // Auto-assign vehicle receipt code on first print
+    if (!payment.receipt_code) {
+      const code = await generateVehicleReceiptCode();
+      await Payment.findByIdAndUpdate(paymentId, { receipt_code: code });
+      payment.receipt_code = code;
+    }
+
     const company = payment.company_id;
     const driver = payment.driver_id;
 
@@ -263,6 +285,13 @@ exports.generateDriverInstallmentReceipt = async (req, res) => {
     const installment = payment.installments.find(inst => inst._id.toString() === installmentId);
     if (!installment) {
       return res.status(404).json({ message: 'Installment not found' });
+    }
+
+    // Auto-assign driver receipt code on first print
+    if (!payment.receipt_code) {
+      const code = await generateDriverReceiptCode();
+      await Payment.findByIdAndUpdate(paymentId, { receipt_code: code });
+      payment.receipt_code = code;
     }
 
     const company = payment.company_id;
