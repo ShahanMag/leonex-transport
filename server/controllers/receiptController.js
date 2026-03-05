@@ -6,6 +6,8 @@ const Company = require('../models/Company');
 const Driver = require('../models/Driver');
 const generateCompanyReceiptHTML = require('../templates/companyReceiptTemplate');
 const generateDriverReceiptHTML = require('../templates/driverReceiptTemplate');
+const generateQuotationHTML = require('../templates/quotationTemplate');
+const Quotation = require('../models/Quotation');
 const { generateVehicleReceiptCode, generateDriverReceiptCode } = require('../utils/codeGenerator');
 
 // Pre-load header and footer images as base64 data URIs for Puppeteer PDF templates
@@ -94,7 +96,7 @@ exports.generateCompanyReceipt = async (req, res) => {
       margin: {
         top: '180px',
         right: '10px',
-        bottom: '260px',
+        bottom: '300px',
         left: '10px'
       }
     });
@@ -331,5 +333,50 @@ exports.generateDriverInstallmentReceipt = async (req, res) => {
   } catch (error) {
     console.error('Error generating driver installment receipt:', error);
     res.status(500).json({ message: 'Failed to generate receipt', error: error.message });
+  }
+};
+
+// Generate Quotation PDF
+exports.generateQuotationPdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quotation = await Quotation.findById(id).populate('customer').lean();
+
+    if (!quotation || quotation.is_deleted) {
+      return res.status(404).json({ message: 'Quotation not found' });
+    }
+
+    const html = generateQuotationHTML(quotation);
+
+    const browserOptions = await getBrowserOptions();
+    const browser = await puppeteer.launch(browserOptions);
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: pdfHeaderTemplate,
+      footerTemplate: pdfFooterTemplate,
+      margin: {
+        top: '180px',
+        right: '30px',
+        bottom: '300px',
+        left: '30px'
+      }
+    });
+
+    await browser.close();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=quotation-${quotation.quotation_number}.pdf`);
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error('Error generating quotation PDF:', error);
+    res.status(500).json({ message: 'Failed to generate PDF', error: error.message });
   }
 };

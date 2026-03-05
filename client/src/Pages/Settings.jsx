@@ -39,6 +39,13 @@ export default function Settings() {
       color: 'bg-orange-500',
       path: '/customers',
     },
+    {
+      title: 'Terms',
+      description: 'Manage quotation terms and conditions',
+      icon: '📋',
+      color: 'bg-teal-500',
+      path: '/terms',
+    },
   ];
 
   return (

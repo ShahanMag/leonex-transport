@@ -66,9 +66,13 @@ const quotationSchema = new mongoose.Schema(
       default: 'Draft',
     },
 
+    quotation_date: { type: Date },
     valid_until: Date,
 
     notes: String,
+
+    is_deleted: { type: Boolean, default: false },
+    deleted_at: { type: Date, default: null },
   },
   { timestamps: true }
 );

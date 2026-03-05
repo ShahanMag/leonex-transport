@@ -27,6 +27,7 @@ export default function Sidebar() {
           highlight: true,
         },
         { path: "/loads", label: "Rentals", icon: "📦" },
+        { path: "/quotations", label: "Quotations", icon: "📄" },
         { path: "/payments", label: "Payments", icon: "💰" },
         { path: "/reports", label: "Reports", icon: "📈" },
         { path: "/settings", label: "Settings", icon: "⚙️" },
@@ -41,7 +42,7 @@ export default function Sidebar() {
     },
   ];
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => path === '/' ? location.pathname === path : location.pathname.startsWith(path);
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");

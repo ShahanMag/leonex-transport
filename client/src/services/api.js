@@ -199,6 +199,29 @@ export const billAPI = {
 };
 
 // ==========================
+// 📝 Term Services
+// ==========================
+export const termAPI = {
+  getAll: () => api.get('/terms'),
+  getById: (id) => api.get(`/terms/${id}`),
+  create: (data) => api.post('/terms', data),
+  update: (id, data) => api.put(`/terms/${id}`, data),
+  delete: (id) => api.delete(`/terms/${id}`),
+};
+
+// ==========================
+// 📄 Quotation Services
+// ==========================
+export const quotationAPI = {
+  getAll: (params) => api.get('/quotations', { params }),
+  getById: (id) => api.get(`/quotations/${id}`),
+  create: (data) => api.post('/quotations', data),
+  update: (id, data) => api.put(`/quotations/${id}`, data),
+  delete: (id) => api.delete(`/quotations/${id}`),
+  generatePdf: (id) => api.get(`/quotations/${id}/pdf`, { responseType: 'blob' }),
+};
+
+// ==========================
 // 👤 Customer Services
 // ==========================
 export const customerAPI = {

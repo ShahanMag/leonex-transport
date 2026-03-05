@@ -22,6 +22,9 @@ const termSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    is_deleted: { type: Boolean, default: false },
+    deleted_at: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -24,6 +24,7 @@ export default function Customers() {
     iqama_id: '',
     phone_country_code: '+966',
     phone_number: '',
+    email: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -44,7 +45,7 @@ export default function Customers() {
   };
 
   const resetForm = () => {
-    setFormValues({ name: '', iqama_id: '', phone_country_code: '+966', phone_number: '' });
+    setFormValues({ name: '', iqama_id: '', phone_country_code: '+966', phone_number: '', email: '' });
     setErrors({});
     setEditingId(null);
   };
@@ -60,6 +61,7 @@ export default function Customers() {
       iqama_id: customer.iqama_id || '',
       phone_country_code: customer.phone_country_code || '+966',
       phone_number: customer.phone_number || '',
+      email: customer.email || '',
     });
     setEditingId(customer._id);
     setIsFormOpen(true);
@@ -78,6 +80,7 @@ export default function Customers() {
         iqama_id: formValues.iqama_id,
         phone_country_code: formValues.phone_country_code,
         phone_number: formValues.phone_number,
+        email: formValues.email,
       };
 
       if (editingId) {
@@ -119,9 +122,9 @@ export default function Customers() {
     {
       key: 'phone_number',
       label: 'Phone',
-      render: (val, row) =>
-        val ? `${row.phone_country_code} ${val}` : '-',
+      render: (val, row) => val ? `${row.phone_country_code} ${val}` : '-',
     },
+    { key: 'email', label: 'Email', render: (val) => val || '-' },
   ];
 
   const actions = (row) => [
@@ -167,6 +170,7 @@ export default function Customers() {
               options: countryCodeOptions,
             },
             { name: 'phone_number', label: 'Phone Number', placeholder: 'Enter phone number' },
+            { name: 'email', label: 'Email', type: 'email', placeholder: 'Enter email address' },
           ]}
           values={formValues}
           errors={errors}

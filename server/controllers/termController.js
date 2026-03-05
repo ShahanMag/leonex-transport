@@ -3,7 +3,7 @@ const Term = require("../models/Terms");
 // 🔹 Get All Terms
 exports.getAllTerms = async (req, res) => {
   try {
-    const terms = await Term.find().sort({ order: 1, createdAt: -1 });
+    const terms = await Term.find({ is_deleted: { $ne: true } }).sort({ order: 1, createdAt: -1 });
     res.status(200).json(terms);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -14,7 +14,7 @@ exports.getAllTerms = async (req, res) => {
 exports.getTermById = async (req, res) => {
   try {
     const term = await Term.findById(req.params.id);
-    if (!term) return res.status(404).json({ message: "Term not found" });
+    if (!term || term.is_deleted) return res.status(404).json({ message: "Term not found" });
 
     res.status(200).json(term);
   } catch (error) {
@@ -67,8 +67,12 @@ exports.updateTerm = async (req, res) => {
 // 🔹 Delete Term
 exports.deleteTerm = async (req, res) => {
   try {
-    const term = await Term.findByIdAndDelete(req.params.id);
-    if (!term) return res.status(404).json({ message: "Term not found" });
+    const term = await Term.findById(req.params.id);
+    if (!term || term.is_deleted) return res.status(404).json({ message: "Term not found" });
+
+    term.is_deleted = true;
+    term.deleted_at = new Date();
+    await term.save();
 
     res.status(200).json({ message: "Term deleted successfully" });
   } catch (error) {
@@ -78,7 +82,7 @@ exports.deleteTerm = async (req, res) => {
 
 exports.getActiveTerms = async (req, res) => {
   try {
-    const terms = await Term.find({ is_active: true }).sort({ order: 1 });
+    const terms = await Term.find({ is_active: true, is_deleted: { $ne: true } }).sort({ order: 1 });
     res.status(200).json(terms);
   } catch (error) {
     res.status(500).json({ message: error.message });

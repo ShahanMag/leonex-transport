@@ -16,6 +16,10 @@ import VehicleTypes from "./Pages/VehicleTypes";
 import Customers from "./Pages/Customers";
 import IncomeExpense from "./Pages/IncomeExpense";
 import IncomeExpenseReport from "./Pages/IncomeExpenseReport";
+import Terms from "./Pages/Terms";
+import Quotations from "./Pages/Quotations";
+import QuotationDetail from "./Pages/QuotationDetail";
+import QuotationForm from "./Pages/QuotationForm";
 import './App.css';
 
 // Protected Route Component
@@ -190,6 +194,56 @@ function App() {
             <ProtectedRoute>
               <AppLayout>
                 <IncomeExpenseReport />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/terms"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Terms />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotations"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Quotations />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotations/new"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <QuotationForm />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotations/:id/edit"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <QuotationForm />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotations/:id"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <QuotationDetail />
               </AppLayout>
             </ProtectedRoute>
           }
