@@ -6,6 +6,7 @@ const loadSchema = new mongoose.Schema(
     vehicle_type: { type: String, required: true },
     company_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
     driver_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Driver' },
+    agent_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Agent', default: null },
     from_location: { type: String, required: true },
     to_location: { type: String, required: true },
     rental_amount: Number,

@@ -1,4 +1,6 @@
 const Customer = require('../models/Customer');
+const Bill = require('../models/Bill');
+const Quotation = require('../models/Quotation');
 
 exports.getAllCustomers = async (req, res) => {
   try {
@@ -66,6 +68,16 @@ exports.deleteCustomer = async (req, res) => {
   try {
     const customer = await Customer.findById(req.params.id);
     if (!customer) return res.status(404).json({ message: 'Customer not found' });
+
+    const usedInBill = await Bill.findOne({ customer_id: req.params.id });
+    if (usedInBill) {
+      return res.status(400).json({ message: 'Cannot delete customer: this customer is linked to one or more bills.' });
+    }
+    const usedInQuotation = await Quotation.findOne({ customer: req.params.id });
+    if (usedInQuotation) {
+      return res.status(400).json({ message: 'Cannot delete customer: this customer is linked to one or more quotations.' });
+    }
+
     customer.is_deleted = true;
     customer.deleted_at = new Date();
     await customer.save();

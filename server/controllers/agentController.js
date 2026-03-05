@@ -1,4 +1,5 @@
 const Agent = require('../models/Agent');
+const Load = require('../models/Load');
 
 exports.getAllAgents = async (req, res) => {
   try {
@@ -69,6 +70,11 @@ exports.deleteAgent = async (req, res) => {
   try {
     const agent = await Agent.findById(req.params.id);
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
+
+    const usedInLoad = await Load.findOne({ agent_id: req.params.id });
+    if (usedInLoad) {
+      return res.status(400).json({ message: 'Cannot delete agent: this agent is linked to one or more rentals.' });
+    }
 
     agent.is_deleted = true;
     agent.deleted_at = new Date();

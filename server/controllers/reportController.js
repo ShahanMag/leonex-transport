@@ -2,6 +2,7 @@ const ExcelJS = require('exceljs');
 const moment = require('moment');
 const Company = require('../models/Company');
 const Driver = require('../models/Driver');
+const Agent = require('../models/Agent');
 const Load = require('../models/Load');
 const Payment = require('../models/Payment');
 const Bill = require('../models/Bill');
@@ -489,7 +490,7 @@ exports.getRentalPaymentsJSON = async (req, res) => {
  * =========================== */
 exports.getCombinedReportJSON = async (req, res) => {
   try {
-    const { status, startDate, endDate, companies, drivers } = req.query;
+    const { status, startDate, endDate, companies, drivers, agents } = req.query;
 
     const loadQuery = {};
     if (startDate || endDate) {
@@ -511,10 +512,18 @@ exports.getCombinedReportJSON = async (req, res) => {
         loadQuery.driver_id = { $in: driverDocs.map(d => d._id) };
       }
     }
+    if (agents) {
+      const agentNames = agents.split(',').filter(Boolean);
+      if (agentNames.length) {
+        const agentDocs = await Agent.find({ name: { $in: agentNames } }).select('_id').lean();
+        loadQuery.agent_id = { $in: agentDocs.map(a => a._id) };
+      }
+    }
 
     const loads = await Load.find(loadQuery)
       .populate('company_id', 'name')
       .populate('driver_id', 'name')
+      .populate('agent_id', 'name')
       .lean();
 
     let data = await Promise.all(
@@ -531,6 +540,7 @@ exports.getCombinedReportJSON = async (req, res) => {
           rental_code: load.rental_code,
           company: load.company_id?.name || 'N/A',
           driver: load.driver_id?.name || 'N/A',
+          agent: load.agent_id?.name || '-',
           from_location: load.from_location,
           to_location: load.to_location,
           vehicle_type: load.vehicle_type,
@@ -571,7 +581,7 @@ exports.getCombinedReportJSON = async (req, res) => {
  * =========================== */
 exports.getProfitLossReportJSON = async (req, res) => {
   try {
-    const { startDate, endDate, companies, drivers } = req.query;
+    const { startDate, endDate, companies, drivers, agents } = req.query;
 
     const loadQuery = {};
     if (startDate || endDate) {
@@ -593,10 +603,18 @@ exports.getProfitLossReportJSON = async (req, res) => {
         loadQuery.driver_id = { $in: driverDocs.map(d => d._id) };
       }
     }
+    if (agents) {
+      const agentNames = agents.split(',').filter(Boolean);
+      if (agentNames.length) {
+        const agentDocs = await Agent.find({ name: { $in: agentNames } }).select('_id').lean();
+        loadQuery.agent_id = { $in: agentDocs.map(a => a._id) };
+      }
+    }
 
     const loads = await Load.find(loadQuery)
       .populate('company_id', 'name')
       .populate('driver_id', 'name')
+      .populate('agent_id', 'name')
       .lean();
 
     const dataPromises = loads.map(async (load) => {
@@ -615,6 +633,7 @@ exports.getProfitLossReportJSON = async (req, res) => {
         rental_code: load.rental_code,
         company: load.company_id?.name || 'N/A',
         driver: load.driver_id?.name || 'N/A',
+        agent: load.agent_id?.name || '-',
         revenue,
         cost,
         net_profit: netProfit,
@@ -638,7 +657,7 @@ exports.getProfitLossReportJSON = async (req, res) => {
  * =========================== */
 exports.getCombinedReportExcel = async (req, res) => {
   try {
-    const { status, startDate, endDate, companies, drivers } = req.query;
+    const { status, startDate, endDate, companies, drivers, agents } = req.query;
 
     const loadQuery = {};
     if (startDate || endDate) {
@@ -660,10 +679,18 @@ exports.getCombinedReportExcel = async (req, res) => {
         loadQuery.driver_id = { $in: driverDocs.map(d => d._id) };
       }
     }
+    if (agents) {
+      const agentNames = agents.split(',').filter(Boolean);
+      if (agentNames.length) {
+        const agentDocs = await Agent.find({ name: { $in: agentNames } }).select('_id').lean();
+        loadQuery.agent_id = { $in: agentDocs.map(a => a._id) };
+      }
+    }
 
     const loads = await Load.find(loadQuery)
       .populate('company_id', 'name')
       .populate('driver_id', 'name')
+      .populate('agent_id', 'name')
       .lean();
 
     let data = await Promise.all(
@@ -686,6 +713,7 @@ exports.getCombinedReportExcel = async (req, res) => {
           RentalCode: load.rental_code,
           Company: load.company_id?.name || 'N/A',
           Driver: load.driver_id?.name || 'N/A',
+          Agent: load.agent_id?.name || '-',
           From: load.from_location,
           To: load.to_location,
           VehicleType: load.vehicle_type,
@@ -719,6 +747,7 @@ exports.getCombinedReportExcel = async (req, res) => {
       { header: 'Rental Code', key: 'RentalCode', width: 20 },
       { header: 'Company', key: 'Company', width: 25 },
       { header: 'Driver', key: 'Driver', width: 25 },
+      { header: 'Agent', key: 'Agent', width: 25 },
       { header: 'From', key: 'From', width: 20 },
       { header: 'To', key: 'To', width: 20 },
       { header: 'Vehicle Type', key: 'VehicleType', width: 20 },
@@ -747,7 +776,7 @@ exports.getCombinedReportExcel = async (req, res) => {
  * =========================== */
 exports.getProfitLossReportExcel = async (req, res) => {
   try {
-    const { startDate, endDate, companies, drivers } = req.query;
+    const { startDate, endDate, companies, drivers, agents } = req.query;
 
     const loadQuery = {};
     if (startDate || endDate) {
@@ -769,10 +798,18 @@ exports.getProfitLossReportExcel = async (req, res) => {
         loadQuery.driver_id = { $in: driverDocs.map(d => d._id) };
       }
     }
+    if (agents) {
+      const agentNames = agents.split(',').filter(Boolean);
+      if (agentNames.length) {
+        const agentDocs = await Agent.find({ name: { $in: agentNames } }).select('_id').lean();
+        loadQuery.agent_id = { $in: agentDocs.map(a => a._id) };
+      }
+    }
 
     const loads = await Load.find(loadQuery)
       .populate('company_id', 'name')
       .populate('driver_id', 'name')
+      .populate('agent_id', 'name')
       .lean();
 
     const dataPromises = loads.map(async (load) => {
@@ -797,6 +834,7 @@ exports.getProfitLossReportExcel = async (req, res) => {
         RentalCode: load.rental_code,
         Company: load.company_id?.name || 'N/A',
         Driver: load.driver_id?.name || 'N/A',
+        Agent: load.agent_id?.name || '-',
         Revenue: revenue,
         Cost: cost,
         NetProfit: netProfit,
@@ -813,6 +851,7 @@ exports.getProfitLossReportExcel = async (req, res) => {
       { header: 'Rental Code', key: 'RentalCode', width: 20 },
       { header: 'Company', key: 'Company', width: 25 },
       { header: 'Driver', key: 'Driver', width: 25 },
+      { header: 'Agent', key: 'Agent', width: 25 },
       { header: 'Revenue', key: 'Revenue', width: 15 },
       { header: 'Cost', key: 'Cost', width: 15 },
       { header: 'Net Profit/Loss', key: 'NetProfit', width: 18 },

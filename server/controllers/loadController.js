@@ -9,7 +9,8 @@ exports.getAllLoads = async (req, res) => {
   try {
     const loads = await Load.find()
       .populate('company_id', 'name company_code')
-      .populate('driver_id', 'name contact driver_code');
+      .populate('driver_id', 'name contact driver_code')
+      .populate('agent_id', 'name');
     res.status(200).json(loads);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -33,7 +34,8 @@ exports.searchLoads = async (req, res) => {
       ]
     })
       .populate('company_id', 'name company_code')
-      .populate('driver_id', 'name contact driver_code');
+      .populate('driver_id', 'name contact driver_code')
+      .populate('agent_id', 'name');
 
     res.status(200).json(loads);
   } catch (error) {

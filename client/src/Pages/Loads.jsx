@@ -280,6 +280,11 @@ export default function Loads() {
       label: 'Driver',
       render: (value) => value?.name || 'Unassigned'
     },
+    {
+      key: 'agent_id',
+      label: 'Agent',
+      render: (value) => value?.name || '-'
+    },
   ];
 
   // Dynamic actions based on load status

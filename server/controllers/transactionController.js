@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Company = require('../models/Company');
 const Driver = require('../models/Driver');
+const Agent = require('../models/Agent');
 const Payment = require('../models/Payment');
 const Load = require('../models/Load');
 const codeGenerator = require('../utils/codeGenerator');
@@ -51,6 +52,9 @@ exports.createRentalTransaction = async (req, res) => {
       to_location,
       rental_amount,
       rental_date,
+
+      // Agent (optional)
+      agent_id,
     } = req.body;
 
     // Validation
@@ -128,11 +132,20 @@ exports.createRentalTransaction = async (req, res) => {
 
     // 5. Create Load record (needed first to get rental_code for acquisition payment)
     const rental_code = await codeGenerator.generateRentalCode();
+    // Validate agent if provided
+    if (agent_id) {
+      const agentExists = await Agent.findById(agent_id).lean();
+      if (!agentExists) {
+        return res.status(404).json({ message: 'Agent not found' });
+      }
+    }
+
     const load = new Load({
       rental_code,
       vehicle_type,
       company_id: company._id,
       driver_id: driver._id,
+      agent_id: agent_id || null,
       from_location,
       to_location,
       rental_amount,
@@ -268,6 +281,7 @@ exports.bulkCreateRentalTransactions = async (req, res) => {
         driver_iqama_id,
         driver_phone_country_code = '+966',
         driver_phone_number,
+        agent_name,
         vehicle_type,
         plate_no,
         acquisition_cost,
@@ -315,6 +329,16 @@ exports.bulkCreateRentalTransactions = async (req, res) => {
         }).save();
       }
 
+      // Find or create Agent (optional)
+      let agentId = null;
+      if (agent_name && agent_name.trim()) {
+        let agent = await Agent.findOne({ name: agent_name.trim() });
+        if (!agent) {
+          agent = await new Agent({ name: agent_name.trim(), phone_number: '' }).save();
+        }
+        agentId = agent._id;
+      }
+
       // Create Load
       const rental_code = await codeGenerator.generateRentalCode();
       const load = await new Load({
@@ -322,6 +346,7 @@ exports.bulkCreateRentalTransactions = async (req, res) => {
         vehicle_type,
         company_id: company._id,
         driver_id: driver._id,
+        agent_id: agentId,
         from_location,
         to_location,
         rental_amount: parseFloat(rental_amount),
@@ -416,6 +441,7 @@ exports.getRentalTransactionById = async (req, res) => {
     })
       .populate('company_id', 'name company_code contact address email phone_country_code phone_number')
       .populate('driver_id', 'name driver_code iqama_id phone_country_code phone_number status')
+      .populate('agent_id', 'name phone_country_code phone_number email location')
       .lean();
 
     if (!load) {
@@ -438,8 +464,9 @@ exports.getRentalTransactionById = async (req, res) => {
       rental_date: load.rental_date,
       status: load.status,
 
-      company: load.company_id, // full populated company object
-      driver: load.driver_id,   // full populated driver object
+      company: load.company_id,
+      driver: load.driver_id,
+      agent: load.agent_id || null,
 
       payments: {
         rental: rentalPayment || null,
@@ -470,6 +497,7 @@ exports.updateRentalTransaction = async (req, res) => {
       acquisition_date,
       rental_amount,
       rental_date,
+      agent_id,
     } = req.body;
 
     // 1️⃣ Find and update Load
@@ -487,6 +515,7 @@ exports.updateRentalTransaction = async (req, res) => {
     if (to_location) load.to_location = to_location;
     if (rental_amount) load.rental_amount = rental_amount;
     if (rental_date) load.rental_date = new Date(rental_date);
+    if (agent_id !== undefined) load.agent_id = agent_id || null;
 
     await load.save();
 

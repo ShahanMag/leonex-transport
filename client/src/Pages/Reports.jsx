@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { reportAPI, companyAPI, driverAPI } from '../services/api';
+import { reportAPI, companyAPI, driverAPI, agentAPI } from '../services/api';
 import Button from '../components/Button';
 import { showError, showSuccess } from '../utils/toast';
 import { formatDate } from '../utils/dateUtils';
@@ -39,15 +39,15 @@ const StatusBadge = ({ status }) => (
 
 // ─── Config: which filters each report uses ───────────────────────────────────
 const REPORT_FILTERS = {
-  'company-payments': { status: true, company: true, driver: false, date: true },
-  'rental-payments':  { status: true, company: false, driver: true,  date: true },
-  'combined-report':  { status: true, company: true,  driver: true,  date: true },
-  'profit-loss':      { status: false, company: true, driver: true,  date: true },
+  'company-payments': { status: true, company: true, driver: false, agent: false, date: true },
+  'rental-payments':  { status: true, company: false, driver: true,  agent: false, date: true },
+  'combined-report':  { status: true, company: true,  driver: true,  agent: true,  date: true },
+  'profit-loss':      { status: false, company: true, driver: true,  agent: true,  date: true },
 };
 
 const STATUS_OPTIONS = ['paid', 'partial', 'unpaid'];
 
-const EMPTY_FILTERS = { status: '', company: '', driver: '', startDate: '', endDate: '' };
+const EMPTY_FILTERS = { status: '', company: '', driver: '', agent: '', startDate: '', endDate: '' };
 
 export default function Reports() {
   const [activeReport, setActiveReport] = useState('company-payments');
@@ -57,14 +57,16 @@ export default function Reports() {
   // Filter options loaded from API
   const [companyOptions, setCompanyOptions] = useState([]);
   const [driverOptions, setDriverOptions] = useState([]);
+  const [agentOptions, setAgentOptions] = useState([]);
 
   // Active filters (applied on "Apply")
   const [filters, setFilters] = useState(EMPTY_FILTERS);
 
-  // Load company + driver lists once for multi-select options
+  // Load company + driver + agent lists once for filter options
   useEffect(() => {
     companyAPI.getAll().then(r => setCompanyOptions(r.data.map(c => c.name))).catch(() => {});
     driverAPI.getAll().then(r => setDriverOptions(r.data.map(d => d.name))).catch(() => {});
+    agentAPI.getAll().then(r => setAgentOptions(r.data.map(a => a.name))).catch(() => {});
   }, []);
 
   // Reset filters + data when switching tabs, then auto-fetch
@@ -84,6 +86,7 @@ export default function Reports() {
     if (cfg.status  && f.status)  params.status    = f.status;
     if (cfg.company && f.company) params.companies = f.company;
     if (cfg.driver  && f.driver)  params.drivers   = f.driver;
+    if (cfg.agent   && f.agent)   params.agents    = f.agent;
     return params;
   };
 
@@ -261,6 +264,21 @@ export default function Reports() {
             </select>
           </div>
         )}
+        {cfg.agent && (
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 font-medium">Agent</label>
+            <select
+              value={filters.agent}
+              onChange={e => setFilter('agent', e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="">All</option>
+              {agentOptions.map(a => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="flex gap-2 items-end pb-0.5">
           <Button variant="primary" onClick={handleApply} disabled={isLoading}>
             Apply
@@ -360,7 +378,7 @@ export default function Reports() {
       <table className="w-full min-w-max">
         <thead>
           <tr className="bg-gray-100 border-b">
-            {['Rental Code','Company','Driver','From','To','Revenue','Rev. Paid','Rev. Due','Rev. Status','Cost','Cost Paid','Cost Due','Cost Status','Net Profit/Loss'].map(h => (
+            {['Rental Code','Company','Driver','Agent','From','To','Revenue','Rev. Paid','Rev. Due','Rev. Status','Cost','Cost Paid','Cost Due','Cost Status','Net Profit/Loss'].map(h => (
               <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -373,6 +391,7 @@ export default function Reports() {
                 <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{item.rental_code || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.company || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.driver || '-'}</td>
+                <td className="px-4 py-3 text-xs text-gray-800">{item.agent || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.from_location || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.to_location || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">SAR {item.revenue?.toLocaleString() || 0}</td>
@@ -399,7 +418,7 @@ export default function Reports() {
       <table className="w-full min-w-max">
         <thead>
           <tr className="bg-gray-100 border-b">
-            {['Rental Code','Company','Driver','Revenue','Cost','Net Profit/Loss','Profit Margin','Date'].map(h => (
+            {['Rental Code','Company','Driver','Agent','Revenue','Cost','Net Profit/Loss','Profit Margin','Date'].map(h => (
               <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -412,6 +431,7 @@ export default function Reports() {
                 <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{item.rental_code || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.company || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.driver || '-'}</td>
+                <td className="px-4 py-3 text-xs text-gray-800">{item.agent || '-'}</td>
                 <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">SAR {item.revenue?.toLocaleString() || 0}</td>
                 <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">SAR {item.cost?.toLocaleString() || 0}</td>
                 <td className={`px-4 py-3 text-xs font-bold whitespace-nowrap ${profit ? 'text-green-600' : 'text-red-600'}`}>

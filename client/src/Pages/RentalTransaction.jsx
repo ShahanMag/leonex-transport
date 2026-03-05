@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
-import { transactionAPI, companyAPI, driverAPI, paymentAPI, vehicleTypeAPI } from '../services/api';
+import { transactionAPI, companyAPI, driverAPI, paymentAPI, vehicleTypeAPI, agentAPI } from '../services/api';
 import Pagination from '../components/Pagination';
 
 import Button from '../components/Button';
@@ -39,8 +39,10 @@ export default function RentalTransaction() {
   const [companies, setCompanies] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [companyType, setCompanyType] = useState('existing'); // 'existing' or 'new'
   const [driverType, setDriverType] = useState('existing'); // 'existing' or 'new'
+  const [agentType, setAgentType] = useState('existing'); // 'existing' or 'new'
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewData, setViewData] = useState(null);
@@ -85,12 +87,21 @@ export default function RentalTransaction() {
     to_location: '',
     rental_amount: '',
     rental_date: '',
+
+    // Agent
+    agent_id: '',
+    agent_name: '',
+    agent_phone_country_code: '+966',
+    agent_phone_number: '',
+    agent_email: '',
+    agent_location: '',
   });
 
   useEffect(() => {
     fetchCompanies();
     fetchDrivers();
     fetchVehicleTypes();
+    fetchAgents();
     fetchTransactions();
   }, []);
 
@@ -168,8 +179,18 @@ export default function RentalTransaction() {
     }
   };
 
+  const fetchAgents = async () => {
+    try {
+      const response = await agentAPI.getAll();
+      setAgents(response.data);
+    } catch {
+      // agents are optional — silent fail
+    }
+  };
+
   const BULK_COLUMNS = [
     'company_name', 'company_contact', 'company_address', 'driver_name', 'driver_iqama_id', 'driver_phone_number',
+    'agent_name',
     'vehicle_type', 'plate_no', 'acquisition_cost', 'acquisition_date',
     'from_location', 'to_location', 'rental_amount', 'rental_date',
   ];
@@ -177,7 +198,7 @@ export default function RentalTransaction() {
   const downloadTemplate = () => {
     const ws = XLSX.utils.aoa_to_sheet([
       BULK_COLUMNS,
-      ['Saudi Co.', 'Mohammed Ahmed', 'Riyadh, Saudi Arabia', 'Ahmed Ali', '2345678901', '0501234567', 'Truck', 'ABC-1234', '15000', '2026-02-01', 'Riyadh', 'Jeddah', '8000', '2026-02-01'],
+      ['Saudi Co.', 'Mohammed Ahmed', 'Riyadh, Saudi Arabia', 'Ahmed Ali', '2345678901', '0501234567', 'Ahmad (optional)', 'Truck', 'ABC-1234', '15000', '2026-02-01', 'Riyadh', 'Jeddah', '8000', '2026-02-01'],
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
@@ -334,7 +355,22 @@ export default function RentalTransaction() {
         to_location: formValues.to_location,
         rental_amount: parseFloat(formValues.rental_amount),
         rental_date: formValues.rental_date,
+
       };
+
+      // Agent (optional) — create new agent first if needed
+      if (agentType === 'existing') {
+        if (formValues.agent_id) payload.agent_id = formValues.agent_id;
+      } else if (agentType === 'new' && formValues.agent_name) {
+        const newAgent = await agentAPI.create({
+          name: formValues.agent_name,
+          phone_country_code: formValues.agent_phone_country_code,
+          phone_number: formValues.agent_phone_number,
+          email: formValues.agent_email,
+          location: formValues.agent_location,
+        });
+        payload.agent_id = newAgent.data._id;
+      }
 
       let response;
       if (editingId) {
@@ -372,9 +408,16 @@ export default function RentalTransaction() {
         to_location: '',
         rental_amount: '',
         rental_date: '',
+        agent_id: '',
+        agent_name: '',
+        agent_phone_country_code: '+966',
+        agent_phone_number: '',
+        agent_email: '',
+        agent_location: '',
       });
       setCompanyType('existing');
       setDriverType('existing');
+      setAgentType('existing');
       setEditingId(null);
       setIsModalOpen(false);
 
@@ -402,6 +445,11 @@ export default function RentalTransaction() {
     value: vt.name,
     label: vt.name,
   }));
+
+  const agentOptions = [
+    { value: '', label: '— No Agent —' },
+    ...agents.map(a => ({ value: a._id, label: a.name })),
+  ];
 
 
   const countryCodeOptions = [
@@ -460,11 +508,18 @@ export default function RentalTransaction() {
         to_location: t.to_location || '',
         rental_amount: t.payments?.rental?.total_amount || '',
         rental_date: t.payments?.rental?.rental_date?.split('T')[0] || '',
+        agent_id: t.agent?._id || '',
+        agent_name: '',
+        agent_phone_country_code: '+966',
+        agent_phone_number: '',
+        agent_email: '',
+        agent_location: '',
       });
 
       setEditingId(id);
       setCompanyType('existing');
       setDriverType('existing');
+      setAgentType('existing');
       setIsModalOpen(true);
     } catch (error) {
       console.error('Edit fetch error:', error);
@@ -484,8 +539,9 @@ export default function RentalTransaction() {
       const companyName = (transaction.company_id?.name || transaction.payee || '').toLowerCase();
       const driverName = (transaction.payer || '').toLowerCase();
       const vehicleNumber = (transaction.plate_no || '').toLowerCase();
+      const agentName = (transaction.load_id?.agent_id?.name || '').toLowerCase();
 
-      return rentalCode.includes(query) || companyName.includes(query) || driverName.includes(query) || vehicleNumber.includes(query);
+      return rentalCode.includes(query) || companyName.includes(query) || driverName.includes(query) || vehicleNumber.includes(query) || agentName.includes(query);
     });
   };
 
@@ -705,6 +761,74 @@ export default function RentalTransaction() {
             )}
           </div>
 
+          {/* Agent Section */}
+          <div className="border-b pb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-1">Agent <span className="text-sm font-normal text-gray-400">(optional)</span></h3>
+            <p className="text-xs text-gray-500 mb-4">Select the agent who sourced this rental, if applicable.</p>
+
+            <div className="mb-4 flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="agentType"
+                  value="existing"
+                  checked={agentType === 'existing'}
+                  onChange={(e) => {
+                    setAgentType(e.target.value);
+                    setFormValues({ ...formValues, agent_id: '', agent_name: '' });
+                  }}
+                  className="mr-2"
+                />
+                <span className="text-gray-700">Select Existing Agent</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="agentType"
+                  value="new"
+                  checked={agentType === 'new'}
+                  onChange={(e) => {
+                    setAgentType(e.target.value);
+                    setFormValues({ ...formValues, agent_id: '' });
+                  }}
+                  className="mr-2"
+                />
+                <span className="text-gray-700">Create New Agent</span>
+              </label>
+            </div>
+
+            {agentType === 'existing' ? (
+              <Form
+                fields={[
+                  { name: 'agent_id', label: 'Agent', type: 'select', options: agentOptions },
+                ]}
+                values={formValues}
+                errors={errors}
+                onChange={handleFormChange}
+                isLoading={isLoading}
+              />
+            ) : (
+              <Form
+                fields={[
+                  { name: 'agent_name', label: 'Agent Name', placeholder: 'Enter agent name', required: true },
+                  {
+                    name: 'agent_phone_country_code',
+                    label: 'Country Code',
+                    type: 'select',
+                    options: countryCodeOptions,
+                  },
+                  { name: 'agent_phone_number', label: 'Phone Number', placeholder: 'Enter phone number' },
+                  { name: 'agent_email', label: 'Email', type: 'email', placeholder: 'Enter email (optional)' },
+                  { name: 'agent_location', label: 'Location', placeholder: 'Enter location (optional)' },
+                ]}
+                values={formValues}
+                errors={errors}
+                onChange={handleFormChange}
+                isLoading={isLoading}
+              />
+            )}
+          </div>
+
           {/* Vehicle & Acquisition Section */}
           <div className="border-b pb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Vehicle Rental Details</h3>
@@ -818,6 +942,7 @@ export default function RentalTransaction() {
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Rental Date</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Company</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Driver</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Agent</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Vehicle Number</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">From</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">To</th>
@@ -842,6 +967,7 @@ export default function RentalTransaction() {
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.acquisition_date ? formatDate(transaction.acquisition_date) : 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.payer || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.load_id?.agent_id?.name || '-'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.plate_no || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.from_location || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.to_location || 'N/A'}</td>
