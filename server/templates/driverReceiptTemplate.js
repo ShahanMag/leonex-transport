@@ -8,7 +8,11 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
     ? `<tr>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">1</td>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${installment.amount.toLocaleString()}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(installment.paid_date || installment.date).tz("Asia/Riyadh").format("DD/MM/YYYY")}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(
+          installment.paid_date || installment.date,
+        )
+          .tz("Asia/Riyadh")
+          .format("DD/MM/YYYY")}</td>
         <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${installment.notes || "-"}</td>
       </tr>`
     : showInstallments &&
@@ -20,7 +24,11 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
         <tr>
           <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${index + 1}</td>
           <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${inst.amount.toLocaleString()}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(inst.paid_date || inst.date).tz("Asia/Riyadh").format("DD/MM/YYYY")}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(
+            inst.paid_date || inst.date,
+          )
+            .tz("Asia/Riyadh")
+            .format("DD/MM/YYYY")}</td>
           <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${inst.notes || "-"}</td>
         </tr>
       `,
@@ -63,24 +71,13 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
     </head>
     <body>
       <div class="receipt-container">
-        <!-- OLD HEADER (commented out for rollback)
-        <div class="header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #8b5cf6; padding-bottom: 12px; margin-bottom: 15px; text-align: unset;">
-          <div style="text-align: left;">
-            <div style="font-size: 20px; font-weight: bold; color: #1f2937;">EESA Transport Co.</div>
-            <div style="font-size: 12px; color: #4b5563; margin-top: 4px;">C.R: 1010569210</div>
-            <div style="font-size: 12px; color: #4b5563;">Mobile: 0508702137</div>
-            <div style="font-size: 12px; color: #4b5563;">VAT No.: 300756371300003</div>
-            <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">${installment ? "Payment Voucher" : "Driver Rental Payment Summary"}</div>
-          </div>
-          <div style="text-align: right; direction: rtl;">
-            <div style="font-size: 20px; font-weight: bold; color: #1f2937;">شركة عيسى للنقل</div>
-            <div style="font-size: 12px; color: #4b5563; margin-top: 4px;">س.ت: ١٠١٠٥٦٩٢١٠</div>
-            <div style="font-size: 12px; color: #4b5563;">الجوال: ٠٥٠٨٧٠٢١٣٧</div>
-            <div style="font-size: 12px; color: #4b5563;">الرقم الضريبي: ٣٠٠٧٥٦٣٧١٣٠٠٠٠٣</div>
-            <div style="font-size: 13px; color: #6b7280; margin-top: 6px;">${installment ? "سند صرف" : "ملخص مدفوعات السائق"}</div>
+        <!-- Company Details -->
+        <div style="margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #e5e7eb;">
+          <div style="font-size: 15px; font-weight: bold; color: #1e40af;">EESA Transport Co. &nbsp;/&nbsp; شركة عيسى للنقل</div>
+          <div style="font-size: 12px; color: #4b5563; margin-top: 4px;">
+            C.R: 1010569210 &nbsp;&nbsp;·&nbsp;&nbsp; Mobile: 0508702137 &nbsp;&nbsp;·&nbsp;&nbsp; VAT No.: 300756371300003
           </div>
         </div>
-        END OLD HEADER -->
 
         <!-- Receipt Info -->
         <div class="receipt-info">
@@ -147,12 +144,12 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
         <td>${payment.plate_no || "N/A"}</td>
       </tr>
       <tr>
-        <th>From Location</th>
-        <td>${payment.from_location || payment.load_id?.from_location || "N/A"}</td>
-      </tr>
-      <tr>
         <th>Rental Date</th>
         <td>${payment.rental_date ? moment(payment.rental_date).tz("Asia/Riyadh").format("DD/MM/YYYY") : "N/A"}</td>
+      </tr>
+      <tr>
+        <th>From Location</th>
+        <td>${payment.from_location || payment.load_id?.from_location || "N/A"}</td>
       </tr>
       <tr>
         <th>To Location</th>

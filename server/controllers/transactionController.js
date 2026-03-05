@@ -563,7 +563,7 @@ exports.updateRentalTransaction = async (req, res) => {
   }
 };
 
-// Delete Rental Transaction
+// Delete Rental Transaction (soft delete)
 exports.deleteRentalTransaction = async (req, res) => {
   try {
     const load = await Load.findById(req.params.id);
@@ -585,8 +585,14 @@ exports.deleteRentalTransaction = async (req, res) => {
       });
     }
 
-    await Payment.deleteMany({ load_id: req.params.id });
-    await Load.findByIdAndDelete(req.params.id);
+    const now = new Date();
+    await Payment.updateMany(
+      { load_id: req.params.id },
+      { is_deleted: true, deleted_at: now }
+    );
+    load.is_deleted = true;
+    load.deleted_at = now;
+    await load.save();
 
     res.status(200).json({ message: 'Rental transaction deleted successfully' });
   } catch (error) {

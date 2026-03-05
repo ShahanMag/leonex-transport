@@ -17,6 +17,7 @@ import Customers from "./Pages/Customers";
 import IncomeExpense from "./Pages/IncomeExpense";
 import IncomeExpenseReport from "./Pages/IncomeExpenseReport";
 import Terms from "./Pages/Terms";
+import Agents from "./Pages/Agents";
 import Quotations from "./Pages/Quotations";
 import QuotationDetail from "./Pages/QuotationDetail";
 import QuotationForm from "./Pages/QuotationForm";
@@ -204,6 +205,16 @@ function App() {
             <ProtectedRoute>
               <AppLayout>
                 <Terms />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/agents"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Agents />
               </AppLayout>
             </ProtectedRoute>
           }

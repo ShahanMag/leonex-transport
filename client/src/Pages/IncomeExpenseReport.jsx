@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { reportAPI } from '../services/api';
+import { reportAPI, customerAPI } from '../services/api';
 import Button from '../components/Button';
 import { showError, showSuccess } from '../utils/toast';
 import { formatDate } from '../utils/dateUtils';
@@ -16,22 +16,33 @@ export default function IncomeExpenseReport() {
   const [downloadLoading, setDownloadLoading] = useState(false);
 
   // Filters
-  const [typeFilter, setTypeFilter]     = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [startDate, setStartDate]       = useState('');
-  const [endDate, setEndDate]           = useState('');
+  const [typeFilter, setTypeFilter]         = useState('');
+  const [statusFilter, setStatusFilter]     = useState('');
+  const [customerFilter, setCustomerFilter] = useState('');
+  const [startDate, setStartDate]           = useState('');
+  const [endDate, setEndDate]               = useState('');
+
+  const [customerOptions, setCustomerOptions] = useState([]);
 
   useEffect(() => {
+    customerAPI.getAll().then(r => setCustomerOptions(r.data.map(c => c.name))).catch(() => {});
     fetchReport();
   }, []);
 
-  const fetchReport = async () => {
+  const buildParams = () => {
+    const params = {};
+    if (typeFilter)     params.type     = typeFilter;
+    if (statusFilter)   params.status   = statusFilter;
+    if (customerFilter) params.customer = customerFilter;
+    if (startDate)      params.startDate = startDate;
+    if (endDate)        params.endDate   = endDate;
+    return params;
+  };
+
+  const fetchReport = async (params) => {
     try {
       setIsLoading(true);
-      const params = {};
-      if (typeFilter)   params.type   = typeFilter;
-      if (statusFilter) params.status = statusFilter;
-      const response = await reportAPI.getBillsReport(params);
+      const response = await reportAPI.getBillsReport(params ?? buildParams());
       setReportData(response.data);
     } catch {
       showError('Failed to load report');
@@ -45,7 +56,7 @@ export default function IncomeExpenseReport() {
   const handleDownload = async () => {
     try {
       setDownloadLoading(true);
-      const response = await reportAPI.downloadBillsReport();
+      const response = await reportAPI.downloadBillsReport(buildParams());
       const blob = new Blob([response.data], { type: response.headers['content-type'] });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -63,13 +74,7 @@ export default function IncomeExpenseReport() {
     }
   };
 
-  // Client-side date filter on top of server data
-  const filteredData = (reportData?.data || []).filter(b => {
-    if (startDate && new Date(b.date) < new Date(startDate)) return false;
-    if (endDate   && new Date(b.date) > new Date(endDate))   return false;
-    return true;
-  });
-
+  const filteredData = reportData?.data || [];
   const summary = reportData?.summary || {};
 
   return (
@@ -87,42 +92,40 @@ export default function IncomeExpenseReport() {
       </div>
 
       {/* Summary Cards */}
-      {reportData && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
-            <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📥</span></div>
-            <div>
-              <p className="text-sm text-gray-500">Total Income</p>
-              <p className="text-xl font-bold text-green-600">{(summary.totalIncome || 0).toLocaleString()} SAR</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
-            <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📤</span></div>
-            <div>
-              <p className="text-sm text-gray-500">Total Expense</p>
-              <p className="text-xl font-bold text-red-600">{(summary.totalExpense || 0).toLocaleString()} SAR</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
-            <div className={`${(summary.netBalance || 0) >= 0 ? 'bg-blue-500' : 'bg-orange-500'} p-3 rounded-lg`}>
-              <span className="text-white text-xl">{(summary.netBalance || 0) >= 0 ? '📈' : '📉'}</span>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Net Balance</p>
-              <p className={`text-xl font-bold ${(summary.netBalance || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-                {(summary.netBalance || 0).toLocaleString()} SAR
-              </p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
-            <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
-            <div>
-              <p className="text-sm text-gray-500">Total Due</p>
-              <p className="text-xl font-bold text-purple-600">{(summary.totalDue || 0).toLocaleString()} SAR</p>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
+          <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📥</span></div>
+          <div>
+            <p className="text-sm text-gray-500">Total Income</p>
+            <p className="text-xl font-bold text-green-600">{(summary.totalIncome || 0).toLocaleString()} SAR</p>
           </div>
         </div>
-      )}
+        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
+          <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📤</span></div>
+          <div>
+            <p className="text-sm text-gray-500">Total Expense</p>
+            <p className="text-xl font-bold text-red-600">{(summary.totalExpense || 0).toLocaleString()} SAR</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
+          <div className={`${(summary.netBalance || 0) >= 0 ? 'bg-blue-500' : 'bg-orange-500'} p-3 rounded-lg`}>
+            <span className="text-white text-xl">{(summary.netBalance || 0) >= 0 ? '📈' : '📉'}</span>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Net Balance</p>
+            <p className={`text-xl font-bold ${(summary.netBalance || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+              {(summary.netBalance || 0).toLocaleString()} SAR
+            </p>
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
+          <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
+          <div>
+            <p className="text-sm text-gray-500">Total Due</p>
+            <p className="text-xl font-bold text-purple-600">{(summary.totalDue || 0).toLocaleString()} SAR</p>
+          </div>
+        </div>
+      </div>
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -170,10 +173,23 @@ export default function IncomeExpenseReport() {
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Customer</label>
+            <select
+              value={customerFilter}
+              onChange={e => setCustomerFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Customers</option>
+              {customerOptions.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
           <Button variant="primary" onClick={handleApplyFilters} disabled={isLoading}>
             Apply
           </Button>
-          <Button variant="secondary" onClick={() => { setTypeFilter(''); setStatusFilter(''); setStartDate(''); setEndDate(''); fetchReport(); }}>
+          <Button variant="secondary" onClick={() => { setTypeFilter(''); setStatusFilter(''); setCustomerFilter(''); setStartDate(''); setEndDate(''); fetchReport({}); }}>
             Reset
           </Button>
         </div>

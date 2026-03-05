@@ -127,7 +127,7 @@ const generateQuotationHTML = (quotation) => {
     .sig-grid {
       display: flex;
       justify-content: space-between;
-      margin-top: 30px;
+      margin-top: 100px;
       gap: 30px;
     }
     .sig-box { flex: 1; }
@@ -137,6 +137,7 @@ const generateQuotationHTML = (quotation) => {
       margin-top: 50px;
       margin-bottom: 6px;
     }
+    .sig-field { font-size: 12px; color: #374151; margin-bottom: 3px; }
     .sig-caption { font-size: 12px; color: #374151; text-align: center; }
   </style>
 </head>
@@ -238,14 +239,26 @@ const generateQuotationHTML = (quotation) => {
   <p class="acceptance-intro">
     By signing below, both parties agree to the rates and conditions set out in this quotation.
   </p>
+  <!-- Contact details -->
   <div class="sig-grid">
     <div class="sig-box">
       <div class="sig-party-label">First Party — EESA Transport Co.</div>
+      <div class="sig-field">Mobile: 0508702137</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-party-label">Second Party — ${customer.name || 'Client'}</div>
+      ${customerPhone ? `<div class="sig-field">Mobile: ${customerPhone}</div>` : ''}
+      ${customer.email ? `<div class="sig-field">Email: ${customer.email}</div>` : ''}
+    </div>
+  </div>
+
+  <!-- Signature lines -->
+  <div class="sig-grid" style="margin-top: 60px;">
+    <div class="sig-box">
       <div class="sig-line"></div>
       <div class="sig-caption">Signature</div>
     </div>
     <div class="sig-box">
-      <div class="sig-party-label">Second Party — ${customer.name || 'Client'}</div>
       <div class="sig-line"></div>
       <div class="sig-caption">Signature</div>
     </div>

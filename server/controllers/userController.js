@@ -109,7 +109,7 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// Delete user
+// Delete user (soft delete)
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -117,12 +117,13 @@ exports.deleteUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Prevent deletion of superadmin
     if (user.role === 'superadmin') {
       return res.status(403).json({ message: 'Cannot delete superadmin user' });
     }
 
-    await User.findByIdAndDelete(req.params.id);
+    user.is_deleted = true;
+    user.deleted_at = new Date();
+    await user.save();
 
     res.status(200).json({ message: 'User deleted successfully' });
   } catch (error) {

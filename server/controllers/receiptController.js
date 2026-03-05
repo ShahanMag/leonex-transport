@@ -16,8 +16,7 @@ const footerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirnam
 
 // Renders on every page via Puppeteer's native header/footer support
 const pdfHeaderTemplate = `<div style="margin:0;padding:0;width:100%;"><img src="${headerBase64}" style="width:100%;height:150px;object-fit:fill;display:block;" /></div>`;
-const pdfFooterTemplate = `<div style="margin:0;padding:0;width:100%;margin-left:auto;margin-right:auto;"><img src="${footerBase64}" style="width:100%;height:280px;object-fit:fill;display:block;margin-bottom:-20px;margin-top:-100px;"
-" /></div>`;
+const pdfFooterTemplate = `<div style="margin:0;padding:0;width:100%;margin-left:auto;margin-right:auto;"><img src="${footerBase64}" style="width:100%;height:340px;object-fit:fill;display:block;margin-bottom:-20px;margin-top:-100px;" /></div>`;
 
 // Detect environment and use appropriate puppeteer configuration
 const isProduction = process.env.VERCEL || process.env.NODE_ENV === 'production';
@@ -77,8 +76,8 @@ exports.generateCompanyReceipt = async (req, res) => {
     const company = payment.company_id;
     const driver = payment.driver_id;
 
-    // Generate HTML (summary mode - no installment breakdown)
-    const html = generateCompanyReceiptHTML(payment, company, driver, { showInstallments: false });
+    // Generate HTML with installment breakdown
+    const html = generateCompanyReceiptHTML(payment, company, driver, { showInstallments: true });
 
     // Launch Puppeteer and generate PDF
     const browserOptions = await getBrowserOptions();
@@ -95,9 +94,9 @@ exports.generateCompanyReceipt = async (req, res) => {
       footerTemplate: pdfFooterTemplate,
       margin: {
         top: '180px',
-        right: '10px',
-        bottom: '300px',
-        left: '10px'
+        right: '40px',
+        bottom: '170px',
+        left: '40px'
       }
     });
 
@@ -147,8 +146,8 @@ exports.generateDriverReceipt = async (req, res) => {
     const company = payment.company_id;
     const driver = payment.driver_id;
 
-    // Generate HTML (summary mode - no installment breakdown)
-    const html = generateDriverReceiptHTML(payment, company, driver, { showInstallments: false });
+    // Generate HTML with installment breakdown
+    const html = generateDriverReceiptHTML(payment, company, driver, { showInstallments: true });
 
     // Launch Puppeteer and generate PDF
     const browserOptions = await getBrowserOptions();
@@ -164,10 +163,10 @@ exports.generateDriverReceipt = async (req, res) => {
       headerTemplate: pdfHeaderTemplate,
       footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '190px',
-        right: '10px',
-        bottom: '130px',
-        left: '10px'
+        top: '180px',
+        right: '40px',
+        bottom: '170px',
+        left: '40px'
       }
     });
 
@@ -240,10 +239,10 @@ exports.generateCompanyInstallmentReceipt = async (req, res) => {
       headerTemplate: pdfHeaderTemplate,
       footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '190px',
-        right: '10px',
-        bottom: '130px',
-        left: '10px'
+        top: '180px',
+        right: '40px',
+        bottom: '170px',
+        left: '40px'
       }
     });
 
@@ -316,10 +315,10 @@ exports.generateDriverInstallmentReceipt = async (req, res) => {
       headerTemplate: pdfHeaderTemplate,
       footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '190px',
-        right: '10px',
-        bottom: '130px',
-        left: '10px'
+        top: '180px',
+        right: '40px',
+        bottom: '170px',
+        left: '40px'
       }
     });
 
@@ -363,9 +362,9 @@ exports.generateQuotationPdf = async (req, res) => {
       footerTemplate: pdfFooterTemplate,
       margin: {
         top: '180px',
-        right: '30px',
-        bottom: '300px',
-        left: '30px'
+        right: '40px',
+        bottom: '170px',
+        left: '40px'
       }
     });
 

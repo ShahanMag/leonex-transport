@@ -234,18 +234,14 @@ exports.completeLoad = async (req, res) => {
   }
 };
 
-// Delete load
+// Delete load (soft delete)
 exports.deleteLoad = async (req, res) => {
   try {
-    const linkedPayments = await Payment.countDocuments({ load_id: req.params.id });
-    if (linkedPayments > 0) {
-      return res.status(400).json({
-        message: 'Cannot delete this load directly. Delete the full rental transaction instead.',
-      });
-    }
-
-    const load = await Load.findByIdAndDelete(req.params.id);
+    const load = await Load.findById(req.params.id);
     if (!load) return res.status(404).json({ message: 'Load not found' });
+    load.is_deleted = true;
+    load.deleted_at = new Date();
+    await load.save();
     res.status(200).json({ message: 'Load deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

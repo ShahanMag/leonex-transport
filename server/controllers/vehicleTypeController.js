@@ -70,8 +70,11 @@ exports.updateVehicleType = async (req, res) => {
 
 exports.deleteVehicleType = async (req, res) => {
   try {
-    const vehicleType = await VehicleType.findByIdAndDelete(req.params.id);
+    const vehicleType = await VehicleType.findById(req.params.id);
     if (!vehicleType) return res.status(404).json({ message: 'Vehicle type not found' });
+    vehicleType.is_deleted = true;
+    vehicleType.deleted_at = new Date();
+    await vehicleType.save();
     res.status(200).json({ message: 'Vehicle type deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

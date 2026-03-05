@@ -358,7 +358,7 @@ exports.deleteInstallment = async (req, res) => {
   }
 };
 
-// Delete payment
+// Delete payment (soft delete)
 exports.deletePayment = async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.id);
@@ -370,7 +370,9 @@ exports.deletePayment = async (req, res) => {
       });
     }
 
-    await Payment.findByIdAndDelete(req.params.id);
+    payment.is_deleted = true;
+    payment.deleted_at = new Date();
+    await payment.save();
     res.status(200).json({ message: 'Payment deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

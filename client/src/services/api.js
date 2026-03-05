@@ -107,10 +107,10 @@ export const paymentAPI = {
 export const reportAPI = {
   // --- 📄 JSON Reports ---
   // These endpoints return JSON data to display in tables
-  getCompanyPayments: () => api.get('/reports/company-payments'),
-  getRentalPayments: () => api.get('/reports/rental-payments'),
-  getCombinedReport: () => api.get('/reports/combined-report'),
-  getProfitLoss: () => api.get('/reports/profit-loss'),
+  getCompanyPayments: (params) => api.get('/reports/company-payments', { params }),
+  getRentalPayments: (params) => api.get('/reports/rental-payments', { params }),
+  getCombinedReport: (params) => api.get('/reports/combined-report', { params }),
+  getProfitLoss: (params) => api.get('/reports/profit-loss', { params }),
   getVehicleUtilization: () => api.get('/reports/vehicle-utilization'),
   getDriverPerformance: () => api.get('/reports/driver-performance'),
 
@@ -122,17 +122,28 @@ export const reportAPI = {
   downloadLoads: () => api.get('/reports/loads', { responseType: 'blob' }),
 
   // --- 💰 Split Payment Reports (Excel) ---
-  downloadCompanyPayments: () => api.get('/reports/payments/company', { responseType: 'blob' }),
-  downloadRentalPayments: () => api.get('/reports/payments/rental', { responseType: 'blob' }),
-  downloadCombinedReport: () => api.get('/reports/combined-report/excel', { responseType: 'blob' }),
-  downloadProfitLoss: () => api.get('/reports/profit-loss/excel', { responseType: 'blob' }),
+  downloadCompanyPayments: (params) => api.get('/reports/payments/company', { params, responseType: 'blob' }),
+  downloadRentalPayments: (params) => api.get('/reports/payments/rental', { params, responseType: 'blob' }),
+  downloadCombinedReport: (params) => api.get('/reports/combined-report/excel', { params, responseType: 'blob' }),
+  downloadProfitLoss: (params) => api.get('/reports/profit-loss/excel', { params, responseType: 'blob' }),
 
   // Bills (Income & Expense)
   getBillsReport: (params) => api.get('/reports/bills', { params }),
-  downloadBillsReport: () => api.get('/reports/bills/excel', { responseType: 'blob' }),
+  downloadBillsReport: (params) => api.get('/reports/bills/excel', { params, responseType: 'blob' }),
 };
 
 
+
+// ==========================
+// 🤝 Agent Services
+// ==========================
+export const agentAPI = {
+  getAll: () => api.get('/agents'),
+  getById: (id) => api.get(`/agents/${id}`),
+  create: (data) => api.post('/agents', data),
+  update: (id, data) => api.put(`/agents/${id}`, data),
+  delete: (id) => api.delete(`/agents/${id}`),
+};
 
 // ==========================
 // 🔄 Transaction Services

@@ -88,11 +88,14 @@ exports.updateCompany = async (req, res) => {
   }
 };
 
-// Delete company
+// Delete company (soft delete)
 exports.deleteCompany = async (req, res) => {
   try {
-    const company = await Company.findByIdAndDelete(req.params.id);
+    const company = await Company.findById(req.params.id);
     if (!company) return res.status(404).json({ message: 'Company not found' });
+    company.is_deleted = true;
+    company.deleted_at = new Date();
+    await company.save();
     res.status(200).json({ message: 'Company deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

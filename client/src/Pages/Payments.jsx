@@ -287,7 +287,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
       )
     },
     { key: 'payee', label: 'Payee' },
-    { key: 'payer', label: 'Payer' },
+    { key: 'payer', label: 'Driver Name' },
     { key: 'plate_no', label: 'Vehicle Number' },
     { key: 'vehicle_type', label: 'Vehicle Type' },
     {

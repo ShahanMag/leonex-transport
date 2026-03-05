@@ -46,6 +46,13 @@ export default function Settings() {
       color: 'bg-teal-500',
       path: '/terms',
     },
+    {
+      title: 'Agents',
+      description: 'Manage agent records and contact details',
+      icon: '🤝',
+      color: 'bg-indigo-500',
+      path: '/agents',
+    },
   ];
 
   return (
