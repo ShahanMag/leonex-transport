@@ -9,6 +9,29 @@ const api = axios.create({
   },
 });
 
+// Attach token to every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Handle 401 globally → clear session and redirect to login
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userRole');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // ==========================
 // 🏢 Company Services
 // ==========================
@@ -84,10 +107,10 @@ export const paymentAPI = {
 export const reportAPI = {
   // --- 📄 JSON Reports ---
   // These endpoints return JSON data to display in tables
-  getCompanyPayments: () => api.get('/reports/company-payments'),
-  getRentalPayments: () => api.get('/reports/rental-payments'),
-  getCombinedReport: () => api.get('/reports/combined-report'),
-  getProfitLoss: () => api.get('/reports/profit-loss'),
+  getCompanyPayments: (params) => api.get('/reports/company-payments', { params }),
+  getRentalPayments: (params) => api.get('/reports/rental-payments', { params }),
+  getCombinedReport: (params) => api.get('/reports/combined-report', { params }),
+  getProfitLoss: (params) => api.get('/reports/profit-loss', { params }),
   getVehicleUtilization: () => api.get('/reports/vehicle-utilization'),
   getDriverPerformance: () => api.get('/reports/driver-performance'),
 
@@ -99,17 +122,28 @@ export const reportAPI = {
   downloadLoads: () => api.get('/reports/loads', { responseType: 'blob' }),
 
   // --- 💰 Split Payment Reports (Excel) ---
-  downloadCompanyPayments: () => api.get('/reports/payments/company', { responseType: 'blob' }),
-  downloadRentalPayments: () => api.get('/reports/payments/rental', { responseType: 'blob' }),
-  downloadCombinedReport: () => api.get('/reports/combined-report/excel', { responseType: 'blob' }),
-  downloadProfitLoss: () => api.get('/reports/profit-loss/excel', { responseType: 'blob' }),
+  downloadCompanyPayments: (params) => api.get('/reports/payments/company', { params, responseType: 'blob' }),
+  downloadRentalPayments: (params) => api.get('/reports/payments/rental', { params, responseType: 'blob' }),
+  downloadCombinedReport: (params) => api.get('/reports/combined-report/excel', { params, responseType: 'blob' }),
+  downloadProfitLoss: (params) => api.get('/reports/profit-loss/excel', { params, responseType: 'blob' }),
 
   // Bills (Income & Expense)
   getBillsReport: (params) => api.get('/reports/bills', { params }),
-  downloadBillsReport: () => api.get('/reports/bills/excel', { responseType: 'blob' }),
+  downloadBillsReport: (params) => api.get('/reports/bills/excel', { params, responseType: 'blob' }),
 };
 
 
+
+// ==========================
+// 🤝 Agent Services
+// ==========================
+export const agentAPI = {
+  getAll: () => api.get('/agents'),
+  getById: (id) => api.get(`/agents/${id}`),
+  create: (data) => api.post('/agents', data),
+  update: (id, data) => api.put(`/agents/${id}`, data),
+  delete: (id) => api.delete(`/agents/${id}`),
+};
 
 // ==========================
 // 🔄 Transaction Services
@@ -126,6 +160,9 @@ export const transactionAPI = {
 
   // ✅ Update a rental transaction
   update: (id, data) => api.put(`/transactions/rental/${id}`, data),
+
+  // ✅ Delete a rental transaction (load + all linked payments)
+  delete: (id) => api.delete(`/transactions/rental/${id}`),
 };
 
 // ==========================
@@ -173,6 +210,29 @@ export const billAPI = {
 };
 
 // ==========================
+// 📝 Term Services
+// ==========================
+export const termAPI = {
+  getAll: () => api.get('/terms'),
+  getById: (id) => api.get(`/terms/${id}`),
+  create: (data) => api.post('/terms', data),
+  update: (id, data) => api.put(`/terms/${id}`, data),
+  delete: (id) => api.delete(`/terms/${id}`),
+};
+
+// ==========================
+// 📄 Quotation Services
+// ==========================
+export const quotationAPI = {
+  getAll: (params) => api.get('/quotations', { params }),
+  getById: (id) => api.get(`/quotations/${id}`),
+  create: (data) => api.post('/quotations', data),
+  update: (id, data) => api.put(`/quotations/${id}`, data),
+  delete: (id) => api.delete(`/quotations/${id}`),
+  generatePdf: (id) => api.get(`/quotations/${id}/pdf`, { responseType: 'blob' }),
+};
+
+// ==========================
 // 👤 Customer Services
 // ==========================
 export const customerAPI = {
@@ -187,19 +247,21 @@ export const customerAPI = {
 // 🧾 Receipt Services
 // ==========================
 export const receiptAPI = {
-  // Generate company payment summary receipt (returns PDF)
-  generateCompanyReceipt: (paymentId) => `${API_BASE_URL}/receipts/company/${paymentId}`,
+  // Generate company payment summary receipt (returns PDF blob)
+  generateCompanyReceipt: (paymentId) =>
+    api.get(`/receipts/company/${paymentId}`, { responseType: 'blob' }),
 
-  // Generate driver rental payment summary receipt (returns PDF)
-  generateDriverReceipt: (paymentId) => `${API_BASE_URL}/receipts/driver/${paymentId}`,
+  // Generate driver rental payment summary receipt (returns PDF blob)
+  generateDriverReceipt: (paymentId) =>
+    api.get(`/receipts/driver/${paymentId}`, { responseType: 'blob' }),
 
-  // Generate company payment installment receipt (returns PDF)
+  // Generate company payment installment receipt (returns PDF blob)
   generateCompanyInstallmentReceipt: (paymentId, installmentId) =>
-    `${API_BASE_URL}/receipts/company/${paymentId}/installment/${installmentId}`,
+    api.get(`/receipts/company/${paymentId}/installment/${installmentId}`, { responseType: 'blob' }),
 
-  // Generate driver rental payment installment receipt (returns PDF)
+  // Generate driver rental payment installment receipt (returns PDF blob)
   generateDriverInstallmentReceipt: (paymentId, installmentId) =>
-    `${API_BASE_URL}/receipts/driver/${paymentId}/installment/${installmentId}`,
+    api.get(`/receipts/driver/${paymentId}/installment/${installmentId}`, { responseType: 'blob' }),
 };
 
 export default api;

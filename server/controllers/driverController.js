@@ -1,4 +1,5 @@
 const Driver = require('../models/Driver');
+const Load = require('../models/Load');
 const codeGenerator = require('../utils/codeGenerator');
 
 // Get all drivers
@@ -90,11 +91,20 @@ exports.updateDriver = async (req, res) => {
   }
 };
 
-// Delete driver
+// Delete driver (soft delete)
 exports.deleteDriver = async (req, res) => {
   try {
-    const driver = await Driver.findByIdAndDelete(req.params.id);
+    const driver = await Driver.findById(req.params.id);
     if (!driver) return res.status(404).json({ message: 'Driver not found' });
+
+    const usedInLoad = await Load.findOne({ driver_id: req.params.id });
+    if (usedInLoad) {
+      return res.status(400).json({ message: 'Cannot delete driver: this driver is assigned to one or more rentals.' });
+    }
+
+    driver.is_deleted = true;
+    driver.deleted_at = new Date();
+    await driver.save();
     res.status(200).json({ message: 'Driver deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

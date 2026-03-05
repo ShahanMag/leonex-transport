@@ -4,6 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 const connectDB = require("./config/database");
 const errorHandler = require("./middleware/errorHandler");
+const authMiddleware = require("./middleware/auth");
 
 // Import routes
 const companyRoutes = require("./routes/companies");
@@ -19,7 +20,9 @@ const receiptRoutes = require("./routes/receipts");
 const vehicleTypeRoutes = require("./routes/vehicleTypes");
 const customerRoutes = require("./routes/customers");
 const billRoutes = require("./routes/bills");
-
+const quotationRoutes = require('./routes/quotation');
+const termRoutes = require('./routes/term');
+const agentRoutes = require('./routes/agents');
 // Initialize Express app
 const app = express();
 
@@ -62,6 +65,19 @@ app.get("/api/health", (_req, res) => {
   res.status(200).json({ message: "Server is running" });
 });
 
+// Auth middleware — applied to all routes except login and health
+app.use((req, res, next) => {
+  const publicRoutes = [
+    { method: 'POST', path: '/api/users/login' },
+    { method: 'GET',  path: '/api/health' },
+  ];
+  const isPublic = publicRoutes.some(
+    (r) => r.method === req.method && r.path === req.path
+  );
+  if (isPublic || req.method === 'OPTIONS') return next();
+  authMiddleware(req, res, next);
+});
+
 // API Routes
 app.use("/api/companies", companyRoutes);
 app.use("/api/vehicles", vehicleRoutes);
@@ -76,7 +92,9 @@ app.use("/api/receipts", receiptRoutes);
 app.use("/api/vehicle-types", vehicleTypeRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/bills", billRoutes);
-
+app.use('/api/terms', termRoutes);
+app.use('/api/quotations', quotationRoutes);
+app.use('/api/agents', agentRoutes);
 // Error handling middleware
 app.use(errorHandler);
 

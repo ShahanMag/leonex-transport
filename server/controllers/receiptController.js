@@ -6,14 +6,17 @@ const Company = require('../models/Company');
 const Driver = require('../models/Driver');
 const generateCompanyReceiptHTML = require('../templates/companyReceiptTemplate');
 const generateDriverReceiptHTML = require('../templates/driverReceiptTemplate');
+const generateQuotationHTML = require('../templates/quotationTemplate');
+const Quotation = require('../models/Quotation');
+const { generateVehicleReceiptCode, generateDriverReceiptCode } = require('../utils/codeGenerator');
 
 // Pre-load header and footer images as base64 data URIs for Puppeteer PDF templates
 const headerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA header.png')).toString('base64')}`;
 const footerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA Footer.png')).toString('base64')}`;
 
 // Renders on every page via Puppeteer's native header/footer support
-const pdfHeaderTemplate = `<div style="margin:0;padding:0;width:100%;"><img src="${headerBase64}" style="width:100%;height:230px;object-fit:fill;display:block;margin-top:-50px;" /></div>`;
-const pdfFooterTemplate = `<div style="margin:0;padding:0;width:65%;margin-left:auto;margin-right:auto;"><img src="${footerBase64}" style="width:100%;height:220px;object-fit:fill;display:block;margin-bottom:-100px;" /></div>`;
+const pdfHeaderTemplate = `<div style="margin:0;padding:0;width:100%;"><img src="${headerBase64}" style="width:100%;height:150px;object-fit:fill;display:block;" /></div>`;
+const pdfFooterTemplate = `<div style="margin:0;padding:0;width:100%;margin-left:auto;margin-right:auto;"><img src="${footerBase64}" style="width:100%;height:340px;object-fit:fill;display:block;margin-bottom:-20px;margin-top:-100px;" /></div>`;
 
 // Detect environment and use appropriate puppeteer configuration
 const isProduction = process.env.VERCEL || process.env.NODE_ENV === 'production';
@@ -63,11 +66,18 @@ exports.generateCompanyReceipt = async (req, res) => {
       });
     }
 
+    // Auto-assign vehicle receipt code on first print
+    if (!payment.receipt_code) {
+      const code = await generateVehicleReceiptCode();
+      await Payment.findByIdAndUpdate(paymentId, { receipt_code: code });
+      payment.receipt_code = code;
+    }
+
     const company = payment.company_id;
     const driver = payment.driver_id;
 
-    // Generate HTML (summary mode - no installment breakdown)
-    const html = generateCompanyReceiptHTML(payment, company, driver, { showInstallments: false });
+    // Generate HTML with installment breakdown
+    const html = generateCompanyReceiptHTML(payment, company, driver, { showInstallments: true });
 
     // Launch Puppeteer and generate PDF
     const browserOptions = await getBrowserOptions();
@@ -83,10 +93,10 @@ exports.generateCompanyReceipt = async (req, res) => {
       headerTemplate: pdfHeaderTemplate,
       footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '190px',
-        right: '10px',
-        bottom: '130px',
-        left: '10px'
+        top: '180px',
+        right: '40px',
+        bottom: '170px',
+        left: '40px'
       }
     });
 
@@ -126,11 +136,18 @@ exports.generateDriverReceipt = async (req, res) => {
       });
     }
 
+    // Auto-assign driver receipt code on first print
+    if (!payment.receipt_code) {
+      const code = await generateDriverReceiptCode();
+      await Payment.findByIdAndUpdate(paymentId, { receipt_code: code });
+      payment.receipt_code = code;
+    }
+
     const company = payment.company_id;
     const driver = payment.driver_id;
 
-    // Generate HTML (summary mode - no installment breakdown)
-    const html = generateDriverReceiptHTML(payment, company, driver, { showInstallments: false });
+    // Generate HTML with installment breakdown
+    const html = generateDriverReceiptHTML(payment, company, driver, { showInstallments: true });
 
     // Launch Puppeteer and generate PDF
     const browserOptions = await getBrowserOptions();
@@ -146,10 +163,10 @@ exports.generateDriverReceipt = async (req, res) => {
       headerTemplate: pdfHeaderTemplate,
       footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '190px',
-        right: '10px',
-        bottom: '130px',
-        left: '10px'
+        top: '180px',
+        right: '40px',
+        bottom: '170px',
+        left: '40px'
       }
     });
 
@@ -195,6 +212,13 @@ exports.generateCompanyInstallmentReceipt = async (req, res) => {
       return res.status(404).json({ message: 'Installment not found' });
     }
 
+    // Auto-assign vehicle receipt code on first print
+    if (!payment.receipt_code) {
+      const code = await generateVehicleReceiptCode();
+      await Payment.findByIdAndUpdate(paymentId, { receipt_code: code });
+      payment.receipt_code = code;
+    }
+
     const company = payment.company_id;
     const driver = payment.driver_id;
 
@@ -215,10 +239,10 @@ exports.generateCompanyInstallmentReceipt = async (req, res) => {
       headerTemplate: pdfHeaderTemplate,
       footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '190px',
-        right: '10px',
-        bottom: '130px',
-        left: '10px'
+        top: '180px',
+        right: '40px',
+        bottom: '170px',
+        left: '40px'
       }
     });
 
@@ -264,6 +288,13 @@ exports.generateDriverInstallmentReceipt = async (req, res) => {
       return res.status(404).json({ message: 'Installment not found' });
     }
 
+    // Auto-assign driver receipt code on first print
+    if (!payment.receipt_code) {
+      const code = await generateDriverReceiptCode();
+      await Payment.findByIdAndUpdate(paymentId, { receipt_code: code });
+      payment.receipt_code = code;
+    }
+
     const company = payment.company_id;
     const driver = payment.driver_id;
 
@@ -284,10 +315,10 @@ exports.generateDriverInstallmentReceipt = async (req, res) => {
       headerTemplate: pdfHeaderTemplate,
       footerTemplate: pdfFooterTemplate,
       margin: {
-        top: '190px',
-        right: '10px',
-        bottom: '130px',
-        left: '10px'
+        top: '180px',
+        right: '40px',
+        bottom: '170px',
+        left: '40px'
       }
     });
 
@@ -301,5 +332,50 @@ exports.generateDriverInstallmentReceipt = async (req, res) => {
   } catch (error) {
     console.error('Error generating driver installment receipt:', error);
     res.status(500).json({ message: 'Failed to generate receipt', error: error.message });
+  }
+};
+
+// Generate Quotation PDF
+exports.generateQuotationPdf = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const quotation = await Quotation.findById(id).populate('customer').lean();
+
+    if (!quotation || quotation.is_deleted) {
+      return res.status(404).json({ message: 'Quotation not found' });
+    }
+
+    const html = generateQuotationHTML(quotation);
+
+    const browserOptions = await getBrowserOptions();
+    const browser = await puppeteer.launch(browserOptions);
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: pdfHeaderTemplate,
+      footerTemplate: pdfFooterTemplate,
+      margin: {
+        top: '180px',
+        right: '40px',
+        bottom: '170px',
+        left: '40px'
+      }
+    });
+
+    await browser.close();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=quotation-${quotation.quotation_number}.pdf`);
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error('Error generating quotation PDF:', error);
+    res.status(500).json({ message: 'Failed to generate PDF', error: error.message });
   }
 };

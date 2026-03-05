@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { loadAPI, driverAPI, vehicleTypeAPI } from '../services/api';
+import { loadAPI, driverAPI, vehicleTypeAPI, paymentAPI } from '../services/api';
 import Button from '../components/Button';
 import Table from '../components/Table';
 import Pagination from '../components/Pagination';
@@ -8,7 +8,29 @@ import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
 import { formatDate } from '../utils/dateUtils';
 
-const PAGE_SIZE = 10;
+const StatCard = ({ title, value, icon, color = 'blue' }) => {
+  const colorClasses = {
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    red: 'bg-red-500',
+    yellow: 'bg-yellow-500',
+    purple: 'bg-purple-500',
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium mb-1">{title}</p>
+          <p className="text-2xl font-bold text-gray-800">{value}</p>
+        </div>
+        <div className={`${colorClasses[color]} p-3 rounded-lg`}>
+          <span className="text-white text-2xl">{icon}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function Loads() {
   const [loads, setLoads] = useState([]);
@@ -32,12 +54,24 @@ export default function Loads() {
   const [assignValues, setAssignValues] = useState({ driver_id: '' });
   const [errors, setErrors] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [payments, setPayments] = useState([]);
 
   useEffect(() => {
     fetchLoads();
     fetchDrivers();
     fetchVehicleTypes();
+    fetchPayments();
   }, []);
+
+  const fetchPayments = async () => {
+    try {
+      const response = await paymentAPI.getAll();
+      setPayments(response.data);
+    } catch (error) {
+      // non-critical — summary cards will show 0
+    }
+  };
 
   const fetchLoads = async () => {
     try {
@@ -105,6 +139,17 @@ export default function Loads() {
     }
 
     return filtered;
+  };
+
+  const calculateSummary = () => {
+    const filtered = getFilteredLoads();
+    const loadIds = new Set(filtered.map(l => l._id));
+    const linked = payments.filter(p => p.load_id && loadIds.has(p.load_id));
+    const acquisitions = linked.filter(p => p.payment_type === 'vehicle-acquisition');
+    const totalRevenue = acquisitions.reduce((sum, p) => sum + (p.acquisition_amount || 0), 0);
+    const totalCost = acquisitions.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+    const netProfit = totalRevenue - totalCost;
+    return { totalRevenue, totalCost, netProfit, count: filtered.length };
   };
 
   const handleFormChange = (values) => {
@@ -191,21 +236,6 @@ export default function Loads() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (load) => {
-    showConfirm('Are you sure you want to delete this load?', async () => {
-      try {
-        setIsLoading(true);
-        await loadAPI.delete(load._id);
-        showSuccess('Load deleted successfully');
-        fetchLoads();
-      } catch (error) {
-        showError('Failed to delete load');
-      } finally {
-        setIsLoading(false);
-      }
-    });
-  };
-
   const handleOpenAssign = (load) => {
     setAssigningLoadId(load._id);
     setAssignValues({ driver_id: '' });
@@ -250,6 +280,11 @@ export default function Loads() {
       label: 'Driver',
       render: (value) => value?.name || 'Unassigned'
     },
+    {
+      key: 'agent_id',
+      label: 'Agent',
+      render: (value) => value?.name || '-'
+    },
   ];
 
   // Dynamic actions based on load status
@@ -264,13 +299,6 @@ export default function Loads() {
         variant: 'primary',
       });
     }
-
-    // Always show Delete button
-    baseActions.push({
-      label: 'Delete',
-      onClick: () => handleDelete(load),
-      variant: 'danger',
-    });
 
     return baseActions;
   };
@@ -306,14 +334,26 @@ export default function Loads() {
         </select>
       </div>
 
+      {loads.length > 0 && (() => {
+        const summary = calculateSummary();
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <StatCard title="Total Revenue" value={`SAR ${summary.totalRevenue.toLocaleString()}`} icon="💵" color="green" />
+            <StatCard title="Total Cost" value={`SAR ${summary.totalCost.toLocaleString()}`} icon="💸" color="red" />
+            <StatCard title="Net Profit/Loss" value={`SAR ${summary.netProfit.toLocaleString()}`} icon={summary.netProfit >= 0 ? '📈' : '📉'} color={summary.netProfit >= 0 ? 'green' : 'red'} />
+            <StatCard title="Total Transactions" value={summary.count} icon="🔄" color="purple" />
+          </div>
+        );
+      })()}
+
       {(() => {
         const filtered = getFilteredLoads();
-        const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-        const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+        const totalPages = Math.ceil(filtered.length / pageSize);
+        const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
         return (
           <>
-            <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={filtered.length} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} />
-            <Table columns={columns} data={paginated} actions={getActions} isLoading={isLoading} />
+            <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
+            <Table columns={columns} data={paginated} isLoading={isLoading} />
           </>
         );
       })()}

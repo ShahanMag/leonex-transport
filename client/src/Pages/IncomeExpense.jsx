@@ -89,7 +89,7 @@ export default function IncomeExpense() {
   const handleFilterChange = (e) => {
     const val = e.target.value;
     setTypeFilter(val);
-    fetchBills(val || undefined);
+    fetchBills(val);
   };
 
   const resetBillForm = () => {
@@ -483,7 +483,7 @@ export default function IncomeExpense() {
             </div>
 
             {/* Add / Edit installment form */}
-            {activeBill.status !== 'paid' && (
+            {(activeBill.status !== 'paid' || editingInstallId) && (
               <div className="border-t pt-4">
                 <h4 className="text-sm font-semibold text-gray-700 mb-3">
                   {editingInstallId ? 'Edit Payment' : 'Record New Payment'}
@@ -512,7 +512,7 @@ export default function IncomeExpense() {
               </div>
             )}
 
-            {activeBill.status === 'paid' && (
+            {activeBill.status === 'paid' && !editingInstallId && (
               <p className="text-sm text-green-600 font-medium text-center border-t pt-4">
                 Bill is fully paid.
               </p>

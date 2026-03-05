@@ -1,3 +1,5 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 // Get all users
@@ -40,9 +42,11 @@ exports.createUser = async (req, res) => {
       return res.status(400).json({ message: 'Username already exists' });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = new User({
       username,
-      password, // In production, hash this with bcrypt
+      password: hashedPassword,
       role: role || 'user',
       email,
       fullName,
@@ -83,7 +87,7 @@ exports.updateUser = async (req, res) => {
       user.username = username;
     }
 
-    if (password) user.password = password; // In production, hash this
+    if (password) user.password = await bcrypt.hash(password, 10);
     if (role) user.role = role;
     if (email !== undefined) user.email = email;
     if (fullName !== undefined) user.fullName = fullName;
@@ -105,7 +109,7 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// Delete user
+// Delete user (soft delete)
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -113,12 +117,13 @@ exports.deleteUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Prevent deletion of superadmin
     if (user.role === 'superadmin') {
       return res.status(403).json({ message: 'Cannot delete superadmin user' });
     }
 
-    await User.findByIdAndDelete(req.params.id);
+    user.is_deleted = true;
+    user.deleted_at = new Date();
+    await user.save();
 
     res.status(200).json({ message: 'User deleted successfully' });
   } catch (error) {
@@ -141,18 +146,16 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
-    // In production, use bcrypt.compare()
-    if (user.password !== password) {
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
-    // Create dummy token
-    const token = Buffer.from(JSON.stringify({
-      userId: user._id,
-      username: user.username,
-      role: user.role,
-      exp: Date.now() + (24 * 60 * 60 * 1000),
-    })).toString('base64');
+    const token = jwt.sign(
+      { userId: user._id, username: user.username, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+    );
 
     // Return user without password
     const userResponse = user.toObject();
@@ -172,30 +175,41 @@ exports.login = async (req, res) => {
 // Initialize default users (superadmin and admin)
 exports.initializeDefaultUsers = async () => {
   try {
-    const userCount = await User.countDocuments();
+    const hashedPassword = await bcrypt.hash('123456789', 10);
 
-    if (userCount === 0) {
-      const defaultUsers = [
-        {
-          username: 'superadmin',
-          password: '123456789',
-          role: 'superadmin',
-          fullName: 'Super Administrator',
-          email: 'superadmin@EESA.com',
-          isActive: true,
-        },
-        {
-          username: 'admin',
-          password: '123456789',
-          role: 'admin',
-          fullName: 'Administrator',
-          email: 'admin@EESA.com',
-          isActive: true,
-        },
-      ];
+    const defaultUsers = [
+      {
+        username: 'superadmin',
+        password: hashedPassword,
+        role: 'superadmin',
+        fullName: 'Super Administrator',
+        email: 'superadmin@EESA.com',
+        isActive: true,
+      },
+      {
+        username: 'admin',
+        password: hashedPassword,
+        role: 'admin',
+        fullName: 'Administrator',
+        email: 'admin@EESA.com',
+        isActive: true,
+      },
+    ];
 
-      await User.insertMany(defaultUsers);
-      console.log('✅ Default users created: superadmin and admin (password: 123456789)');
+    for (const userData of defaultUsers) {
+      const existing = await User.findOne({ username: userData.username });
+
+      if (!existing) {
+        await User.create(userData);
+        console.log(`✅ Created user: ${userData.username}`);
+      } else if (!existing.password.startsWith('$2')) {
+        // Existing user has a plaintext password — migrate to bcrypt
+        await User.updateOne(
+          { username: userData.username },
+          { password: await bcrypt.hash(existing.password, 10) }
+        );
+        console.log(`✅ Migrated password for: ${userData.username}`);
+      }
     }
   } catch (error) {
     console.error('Error initializing default users:', error);

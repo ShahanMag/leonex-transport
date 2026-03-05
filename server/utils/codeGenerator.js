@@ -2,6 +2,7 @@ const Company = require('../models/Company');
 const Driver = require('../models/Driver');
 const Load = require('../models/Load');
 const Payment = require('../models/Payment');
+const Quotation = require('../models/Quotation');
 
 /**
  * Generate unique company code
@@ -77,6 +78,92 @@ exports.generateReceiptCode = async () => {
     return `ESSA${nextNumber}`;
   } catch (error) {
     console.error('Error generating receipt code:', error);
+    throw error;
+  }
+};
+
+/**
+ * Generate unique vehicle (company acquisition) receipt code
+ * Format: EESA-VEH-YYYY-XXXX (e.g. EESA-VEH-2025-0001)
+ */
+exports.generateVehicleReceiptCode = async () => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const lastPayment = await Payment.findOne({
+      receipt_code: { $regex: `^EESA-VEH-${currentYear}-` },
+    })
+      .select('receipt_code')
+      .sort({ _id: -1 })
+      .exec();
+
+    let nextNumber = 1;
+    if (lastPayment && lastPayment.receipt_code) {
+      const match = lastPayment.receipt_code.match(/EESA-VEH-\d+-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1]) + 1;
+      }
+    }
+
+    return `EESA-VEH-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
+  } catch (error) {
+    console.error('Error generating vehicle receipt code:', error);
+    throw error;
+  }
+};
+
+/**
+ * Generate unique driver rental receipt code
+ * Format: EESA-DRV-YYYY-XXXX (e.g. EESA-DRV-2025-0001)
+ */
+exports.generateDriverReceiptCode = async () => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const lastPayment = await Payment.findOne({
+      receipt_code: { $regex: `^EESA-DRV-${currentYear}-` },
+    })
+      .select('receipt_code')
+      .sort({ _id: -1 })
+      .exec();
+
+    let nextNumber = 1;
+    if (lastPayment && lastPayment.receipt_code) {
+      const match = lastPayment.receipt_code.match(/EESA-DRV-\d+-(\d+)/);
+      if (match) {
+        nextNumber = parseInt(match[1]) + 1;
+      }
+    }
+
+    return `EESA-DRV-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
+  } catch (error) {
+    console.error('Error generating driver receipt code:', error);
+    throw error;
+  }
+};
+
+/**
+ * Generate unique quotation code
+ * Format: EESA-QUO-YYYY-XXXX (e.g. EESA-QUO-2026-0001)
+ */
+exports.generateQuotationCode = async () => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const lastQuotation = await Quotation.findOne({
+      quotation_number: { $regex: `^EESA-QUO-${currentYear}-` },
+      is_deleted: { $ne: true },
+    })
+      .select('quotation_number')
+      .sort({ _id: -1 })
+      .exec();
+
+    let nextNumber = 1;
+    if (lastQuotation && lastQuotation.quotation_number) {
+      const match = lastQuotation.quotation_number.match(/EESA-QUO-\d+-(\d+)/);
+      if (match) nextNumber = parseInt(match[1]) + 1;
+    }
+
+    return `EESA-QUO-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
+  } catch (error) {
+    console.error('Error generating quotation code:', error);
     throw error;
   }
 };

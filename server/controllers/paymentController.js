@@ -9,7 +9,7 @@ exports.getAllPayments = async (req, res) => {
     const payments = await Payment.find()
       .populate('payer_id')
       .populate('payee_id')
-      .populate('load_id')
+      .populate({ path: 'load_id', populate: { path: 'agent_id', select: 'name phone_country_code phone_number' } })
       .populate('related_payment_id');
     res.status(200).json(payments);
   } catch (error) {
@@ -35,7 +35,7 @@ exports.searchPayments = async (req, res) => {
     })
       .populate('payer_id')
       .populate('payee_id')
-      .populate('load_id')
+      .populate({ path: 'load_id', populate: { path: 'agent_id', select: 'name phone_country_code phone_number' } })
       .populate('related_payment_id');
 
     res.status(200).json(payments);
@@ -63,7 +63,7 @@ exports.filterPayments = async (req, res) => {
     const payments = await Payment.find({ status })
       .populate('payer_id')
       .populate('payee_id')
-      .populate('load_id')
+      .populate({ path: 'load_id', populate: { path: 'agent_id', select: 'name phone_country_code phone_number' } })
       .populate('related_payment_id');
 
     res.status(200).json(payments);
@@ -78,7 +78,7 @@ exports.getPaymentById = async (req, res) => {
     const payment = await Payment.findById(req.params.id)
       .populate('payer_id')
       .populate('payee_id')
-      .populate('load_id')
+      .populate({ path: 'load_id', populate: { path: 'agent_id', select: 'name phone_country_code phone_number' } })
       .populate('related_payment_id');
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
     res.status(200).json(payment);
@@ -358,11 +358,21 @@ exports.deleteInstallment = async (req, res) => {
   }
 };
 
-// Delete payment
+// Delete payment (soft delete)
 exports.deletePayment = async (req, res) => {
   try {
-    const payment = await Payment.findByIdAndDelete(req.params.id);
+    const payment = await Payment.findById(req.params.id);
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
+
+    if (payment.load_id) {
+      return res.status(400).json({
+        message: 'Cannot delete a rental payment directly. Delete the full rental transaction instead.',
+      });
+    }
+
+    payment.is_deleted = true;
+    payment.deleted_at = new Date();
+    await payment.save();
     res.status(200).json({ message: 'Payment deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

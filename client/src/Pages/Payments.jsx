@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { paymentAPI, loadAPI, receiptAPI } from '../services/api';
 import Pagination from '../components/Pagination';
 
-const PAGE_SIZE = 10;
 import Button from '../components/Button';
 import Form from '../components/Form';
 import Modal from '../components/Modal';
@@ -220,58 +219,42 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     });
   };
 
-  const handleDeletePayment = async (payment) => {
-    showConfirm('Are you sure you want to delete this payment?', async () => {
-      try {
-        setIsLoading(true);
-        await paymentAPI.delete(payment._id);
-        showSuccess('Payment deleted successfully');
-        fetchPayments();
-      } catch (error) {
-        showError('Failed to delete payment');
-      } finally {
-        setIsLoading(false);
-      }
-    });
-  };
 
-  const handlePrintReceipt = (payment) => {
+  const handlePrintReceipt = async (payment) => {
     try {
-      let receiptUrl;
+      let response;
 
-      // Determine which receipt to generate based on payment type
       if (payment.payment_type === 'vehicle-acquisition') {
-        receiptUrl = receiptAPI.generateCompanyReceipt(payment._id);
+        response = await receiptAPI.generateCompanyReceipt(payment._id);
       } else if (payment.payment_type === 'driver-rental') {
-        receiptUrl = receiptAPI.generateDriverReceipt(payment._id);
+        response = await receiptAPI.generateDriverReceipt(payment._id);
       } else {
         showError('Invalid payment type for receipt generation');
         return;
       }
 
-      // Open receipt in new tab
-      window.open(receiptUrl, '_blank');
+      const blobUrl = URL.createObjectURL(response.data);
+      window.open(blobUrl, '_blank');
     } catch (error) {
       showError('Failed to generate receipt');
     }
   };
 
-  const handlePrintInstallmentReceipt = (payment, installment) => {
+  const handlePrintInstallmentReceipt = async (payment, installment) => {
     try {
-      let receiptUrl;
+      let response;
 
-      // Determine which installment receipt to generate based on payment type
       if (payment.payment_type === 'vehicle-acquisition') {
-        receiptUrl = receiptAPI.generateCompanyInstallmentReceipt(payment._id, installment._id);
+        response = await receiptAPI.generateCompanyInstallmentReceipt(payment._id, installment._id);
       } else if (payment.payment_type === 'driver-rental') {
-        receiptUrl = receiptAPI.generateDriverInstallmentReceipt(payment._id, installment._id);
+        response = await receiptAPI.generateDriverInstallmentReceipt(payment._id, installment._id);
       } else {
         showError('Invalid payment type for receipt generation');
         return;
       }
 
-      // Open installment receipt in new tab
-      window.open(receiptUrl, '_blank');
+      const blobUrl = URL.createObjectURL(response.data);
+      window.open(blobUrl, '_blank');
     } catch (error) {
       showError('Failed to generate installment receipt');
     }
@@ -283,6 +266,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
 
   const [expandedPaymentId, setExpandedPaymentId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   // Reset page when tab or any filter changes
   useEffect(() => {
@@ -303,7 +287,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
       )
     },
     { key: 'payee', label: 'Payee' },
-    { key: 'payer', label: 'Payer' },
+    { key: 'payer', label: 'Driver Name' },
     { key: 'plate_no', label: 'Vehicle Number' },
     { key: 'vehicle_type', label: 'Vehicle Type' },
     {
@@ -359,7 +343,6 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
       setInstallmentErrors({});
       setIsInstallmentOpen(true);
     }, variant: 'success' },
-    { label: 'Delete', onClick: handleDeletePayment, variant: 'danger' },
   ];
 
   // Filter payments based on tab and additional filters
@@ -535,10 +518,11 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
       <div className="mb-8">
         <Pagination
           currentPage={currentPage}
-          totalPages={Math.ceil(displayPayments.length / PAGE_SIZE)}
+          totalPages={Math.ceil(displayPayments.length / pageSize)}
           totalItems={displayPayments.length}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }}
         />
         <div className="overflow-x-auto bg-white rounded-lg shadow mt-3">
           <table className="w-full border-collapse min-w-max">
@@ -553,7 +537,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
               </tr>
             </thead>
             <tbody>
-              {displayPayments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((payment) => (
+              {displayPayments.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((payment) => (
                 <React.Fragment key={payment._id}>
                   {/* Main payment row */}
                   <tr className="border-b hover:bg-gray-50">
@@ -580,12 +564,6 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                           className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors"
                         >
                           Print Receipt
-                        </button>
-                        <button
-                          onClick={() => handleDeletePayment(payment)}
-                          className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs font-medium hover:bg-red-200 transition-colors"
-                        >
-                          Delete
                         </button>
                       </div>
                     </td>

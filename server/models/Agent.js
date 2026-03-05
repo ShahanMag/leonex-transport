@@ -1,23 +1,23 @@
 const mongoose = require('mongoose');
 
-const customerSchema = new mongoose.Schema(
+const agentSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    iqama_id: { type: String, trim: true },
     phone_country_code: { type: String, default: '+966' },
-    phone_number: { type: String, trim: true },
-    email: { type: String, trim: true },
+    phone_number: { type: String, default: '', trim: true },
+    email: { type: String, trim: true, default: '' },
+    location: { type: String, trim: true, default: '' },
     is_deleted: { type: Boolean, default: false },
     deleted_at: { type: Date, default: null },
   },
   { timestamps: true }
 );
 
-customerSchema.pre(/^find/, function (next) {
+agentSchema.pre(/^find/, function (next) {
   if (!Object.prototype.hasOwnProperty.call(this.getQuery(), 'is_deleted')) {
     this.where({ is_deleted: { $ne: true } });
   }
   next();
 });
 
-module.exports = mongoose.model('Customer', customerSchema);
+module.exports = mongoose.model('Agent', agentSchema);
