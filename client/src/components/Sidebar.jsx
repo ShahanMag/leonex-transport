@@ -42,7 +42,7 @@ export default function Sidebar() {
     },
   ];
 
-  const isActive = (path) => path === '/' ? location.pathname === path : location.pathname.startsWith(path);
+  const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");

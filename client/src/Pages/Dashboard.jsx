@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [monthlyData, setMonthlyData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [availableYears, setAvailableYears] = useState([new Date().getFullYear()]);
 
   useEffect(() => {
     fetchStats();
@@ -36,6 +37,18 @@ export default function Dashboard() {
         loads: loads.data.length,
         payments: payments.data.length,
       });
+
+      // Extract unique years from payment transaction dates
+      const years = [...new Set(
+        payments.data
+          .map(p => p.transaction_date || p.date)
+          .filter(Boolean)
+          .map(d => new Date(d).getFullYear())
+      )].sort((a, b) => b - a);
+      if (years.length > 0) {
+        setAvailableYears(years);
+        setSelectedYear(prev => years.includes(prev) ? prev : years[0]);
+      }
     } catch (error) {
       console.error('Failed to fetch stats');
     } finally {
@@ -117,7 +130,7 @@ export default function Dashboard() {
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
             className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
           >
-            {[2023, 2024, 2025].map(year => (
+            {availableYears.map(year => (
               <option key={year} value={year}>{year}</option>
             ))}
           </select>

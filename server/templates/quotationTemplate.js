@@ -1,6 +1,7 @@
 const moment = require('moment-timezone');
 
-const generateQuotationHTML = (quotation) => {
+const generateQuotationHTML = (quotation, options = {}) => {
+  const { watermark = null } = options;
   const customer = quotation.customer || {};
   const quotationDate = quotation.quotation_date
     ? moment(quotation.quotation_date).tz('Asia/Riyadh').format('DD/MM/YYYY')
@@ -142,6 +143,7 @@ const generateQuotationHTML = (quotation) => {
   </style>
 </head>
 <body>
+  ${watermark ? `<div style="position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:-1;pointer-events:none;"><img src="${watermark}" style="width:630px;height:630px;object-fit:contain;" /></div>` : ''}
 
   <!-- 1. Title -->
   <div class="doc-title">Transportation Service Quotation</div>

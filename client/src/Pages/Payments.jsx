@@ -222,6 +222,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
 
   const handlePrintReceipt = async (payment) => {
     try {
+      setPrintingReceiptId(payment._id);
       let response;
 
       if (payment.payment_type === 'vehicle-acquisition') {
@@ -237,11 +238,14 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
       window.open(blobUrl, '_blank');
     } catch (error) {
       showError('Failed to generate receipt');
+    } finally {
+      setPrintingReceiptId(null);
     }
   };
 
   const handlePrintInstallmentReceipt = async (payment, installment) => {
     try {
+      setPrintingInstallmentId(installment._id);
       let response;
 
       if (payment.payment_type === 'vehicle-acquisition') {
@@ -257,6 +261,8 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
       window.open(blobUrl, '_blank');
     } catch (error) {
       showError('Failed to generate installment receipt');
+    } finally {
+      setPrintingInstallmentId(null);
     }
   };
 
@@ -264,6 +270,8 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     return payments.find(p => p._id === selectedPaymentId);
   };
 
+  const [printingReceiptId, setPrintingReceiptId] = useState(null);
+  const [printingInstallmentId, setPrintingInstallmentId] = useState(null);
   const [expandedPaymentId, setExpandedPaymentId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -561,9 +569,10 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                         </button>
                         <button
                           onClick={() => handlePrintReceipt(payment)}
-                          className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors"
+                          disabled={printingReceiptId === payment._id}
+                          className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium hover:bg-blue-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                         >
-                          Print Receipt
+                          {printingReceiptId === payment._id ? 'Printing...' : 'Print Receipt'}
                         </button>
                       </div>
                     </td>
@@ -607,9 +616,10 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                                       <div className="flex gap-2 flex-wrap">
                                         <button
                                           onClick={() => handlePrintInstallmentReceipt(payment, installment)}
-                                          className="px-3 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium hover:bg-purple-200 transition-colors"
+                                          disabled={printingInstallmentId === installment._id}
+                                          className="px-3 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium hover:bg-purple-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
-                                          Print
+                                          {printingInstallmentId === installment._id ? 'Printing...' : 'Print'}
                                         </button>
                                         <button
                                           onClick={() => handleEditInstallment(payment, installment)}

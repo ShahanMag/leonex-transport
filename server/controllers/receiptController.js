@@ -13,6 +13,7 @@ const { generateVehicleReceiptCode, generateDriverReceiptCode } = require('../ut
 // Pre-load header and footer images as base64 data URIs for Puppeteer PDF templates
 const headerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA header.png')).toString('base64')}`;
 const footerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA Footer.png')).toString('base64')}`;
+const watermarkBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/WaterMark.png')).toString('base64')}`;
 
 // Renders on every page via Puppeteer's native header/footer support
 const pdfHeaderTemplate = `<div style="margin:0;padding:0;width:100%;"><img src="${headerBase64}" style="width:100%;height:150px;object-fit:fill;display:block;" /></div>`;
@@ -77,7 +78,7 @@ exports.generateCompanyReceipt = async (req, res) => {
     const driver = payment.driver_id;
 
     // Generate HTML with installment breakdown
-    const html = generateCompanyReceiptHTML(payment, company, driver, { showInstallments: true });
+    const html = generateCompanyReceiptHTML(payment, company, driver, { showInstallments: true, watermark: watermarkBase64 });
 
     // Launch Puppeteer and generate PDF
     const browserOptions = await getBrowserOptions();
@@ -147,7 +148,7 @@ exports.generateDriverReceipt = async (req, res) => {
     const driver = payment.driver_id;
 
     // Generate HTML with installment breakdown
-    const html = generateDriverReceiptHTML(payment, company, driver, { showInstallments: true });
+    const html = generateDriverReceiptHTML(payment, company, driver, { showInstallments: true, watermark: watermarkBase64 });
 
     // Launch Puppeteer and generate PDF
     const browserOptions = await getBrowserOptions();
@@ -223,7 +224,7 @@ exports.generateCompanyInstallmentReceipt = async (req, res) => {
     const driver = payment.driver_id;
 
     // Generate HTML with specific installment
-    const html = generateCompanyReceiptHTML(payment, company, driver, { installment });
+    const html = generateCompanyReceiptHTML(payment, company, driver, { installment, watermark: watermarkBase64 });
 
     // Launch Puppeteer and generate PDF
     const browserOptions = await getBrowserOptions();
@@ -299,7 +300,7 @@ exports.generateDriverInstallmentReceipt = async (req, res) => {
     const driver = payment.driver_id;
 
     // Generate HTML with specific installment
-    const html = generateDriverReceiptHTML(payment, company, driver, { installment });
+    const html = generateDriverReceiptHTML(payment, company, driver, { installment, watermark: watermarkBase64 });
 
     // Launch Puppeteer and generate PDF
     const browserOptions = await getBrowserOptions();
@@ -346,7 +347,7 @@ exports.generateQuotationPdf = async (req, res) => {
       return res.status(404).json({ message: 'Quotation not found' });
     }
 
-    const html = generateQuotationHTML(quotation);
+    const html = generateQuotationHTML(quotation, { watermark: watermarkBase64 });
 
     const browserOptions = await getBrowserOptions();
     const browser = await puppeteer.launch(browserOptions);

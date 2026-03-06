@@ -242,6 +242,7 @@ export default function QuotationForm() {
           </div>
         </div>
 
+        {/* Notes — temporarily hidden
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
           <textarea
@@ -253,6 +254,7 @@ export default function QuotationForm() {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           />
         </div>
+        */}
 
         {/* Transport Rates */}
         <div>
@@ -320,7 +322,25 @@ export default function QuotationForm() {
         {/* Terms */}
         {allTerms.length > 0 && (
           <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Terms & Conditions</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700">Terms & Conditions</h3>
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-blue-600 font-medium">
+                <input
+                  type="checkbox"
+                  checked={selectedTermIds.length === allTerms.length}
+                  ref={el => { if (el) el.indeterminate = selectedTermIds.length > 0 && selectedTermIds.length < allTerms.length; }}
+                  onChange={() => {
+                    if (selectedTermIds.length === allTerms.length) {
+                      setSelectedTermIds([]);
+                    } else {
+                      setSelectedTermIds(allTerms.map(t => String(t._id)));
+                    }
+                  }}
+                  className="accent-blue-600"
+                />
+                Select All
+              </label>
+            </div>
             <div className="border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto space-y-3">
               {allTerms.map((term) => (
                 <label key={term._id} className="flex items-start gap-3 cursor-pointer">

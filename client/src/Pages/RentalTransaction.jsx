@@ -97,6 +97,24 @@ export default function RentalTransaction() {
     agent_location: '',
   });
 
+  const resetForm = () => {
+    setFormValues({
+      company_id: '', company_name: '', company_contact: '', company_address: '',
+      company_email: '', company_phone_country_code: '+91', company_phone_number: '',
+      driver_id: '', driver_name: '', driver_iqama_id: '',
+      driver_phone_country_code: '+966', driver_phone_number: '',
+      vehicle_type: '', plate_no: '', acquisition_cost: '', acquisition_date: '',
+      from_location: '', to_location: '', rental_amount: '', rental_date: '',
+      agent_id: '', agent_name: '', agent_phone_country_code: '+966',
+      agent_phone_number: '', agent_email: '', agent_location: '',
+    });
+    setCompanyType('existing');
+    setDriverType('existing');
+    setAgentType('existing');
+    setEditingId(null);
+    setErrors({});
+  };
+
   useEffect(() => {
     fetchCompanies();
     fetchDrivers();
@@ -386,39 +404,7 @@ export default function RentalTransaction() {
       // Refresh transactions list
       fetchTransactions();
 
-      // Reset form
-      setFormValues({
-        company_id: '',
-        company_name: '',
-        company_contact: '',
-        company_address: '',
-        company_email: '',
-        company_phone_country_code: '+91',
-        company_phone_number: '',
-        driver_id: '',
-        driver_name: '',
-        driver_iqama_id: '',
-        driver_phone_country_code: '+966',
-        driver_phone_number: '',
-        vehicle_type: '',
-        plate_no: '',
-        acquisition_cost: '',
-        acquisition_date: '',
-        from_location: '',
-        to_location: '',
-        rental_amount: '',
-        rental_date: '',
-        agent_id: '',
-        agent_name: '',
-        agent_phone_country_code: '+966',
-        agent_phone_number: '',
-        agent_email: '',
-        agent_location: '',
-      });
-      setCompanyType('existing');
-      setDriverType('existing');
-      setAgentType('existing');
-      setEditingId(null);
+      resetForm();
       setIsModalOpen(false);
 
       console.log('Transaction created:', response.data);
@@ -569,7 +555,7 @@ export default function RentalTransaction() {
             <Button variant="secondary" onClick={() => { setIsBulkModalOpen(true); setBulkRows([]); setBulkResults(null); }}>
               Upload Excel
             </Button>
-            <Button variant="success" onClick={() => setIsModalOpen(true)}>
+            <Button variant="success" onClick={() => { resetForm(); setIsModalOpen(true); }}>
               + New Rental Transaction
             </Button>
           </div>
@@ -588,7 +574,7 @@ export default function RentalTransaction() {
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          setEditingId(null);
+          resetForm();
         }}
         title={editingId ? "Edit Rental Transaction" : "New Rental Transaction"}
         size="xl"
