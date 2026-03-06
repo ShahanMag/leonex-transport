@@ -236,33 +236,35 @@ const generateQuotationHTML = (quotation, options = {}) => {
   <ol>${termsItems}</ol>
   ` : ''}
 
-  <!-- 6. Acceptance -->
-  <div class="section-heading">${termsItems ? '5' : '4'}. Acceptance</div>
-  <p class="acceptance-intro">
-    By signing below, both parties agree to the rates and conditions set out in this quotation.
-  </p>
-  <!-- Contact details -->
-  <div class="sig-grid">
-    <div class="sig-box">
-      <div class="sig-party-label">First Party — EESA Transport Co.</div>
-      <div class="sig-field">Mobile: 0508702137</div>
+  <!-- 6. Acceptance — keep together, only breaks if doesn't fit -->
+  <div style="page-break-inside: avoid;">
+    <div class="section-heading">${termsItems ? '5' : '4'}. Acceptance</div>
+    <p class="acceptance-intro">
+      By signing below, both parties agree to the rates and conditions set out in this quotation.
+    </p>
+    <!-- Contact details -->
+    <div class="sig-grid">
+      <div class="sig-box">
+        <div class="sig-party-label">First Party — EESA Transport Co.</div>
+        <div class="sig-field">Mobile: 0508702137</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-party-label">Second Party — ${customer.name || 'Client'}</div>
+        ${customerPhone ? `<div class="sig-field">Mobile: ${customerPhone}</div>` : ''}
+        ${customer.email ? `<div class="sig-field">Email: ${customer.email}</div>` : ''}
+      </div>
     </div>
-    <div class="sig-box">
-      <div class="sig-party-label">Second Party — ${customer.name || 'Client'}</div>
-      ${customerPhone ? `<div class="sig-field">Mobile: ${customerPhone}</div>` : ''}
-      ${customer.email ? `<div class="sig-field">Email: ${customer.email}</div>` : ''}
-    </div>
-  </div>
 
-  <!-- Signature lines -->
-  <div class="sig-grid" style="margin-top: 60px;">
-    <div class="sig-box">
-      <div class="sig-line"></div>
-      <div class="sig-caption">Signature</div>
-    </div>
-    <div class="sig-box">
-      <div class="sig-line"></div>
-      <div class="sig-caption">Signature</div>
+    <!-- Signature lines -->
+    <div class="sig-grid" style="margin-top: 60px;">
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-caption">Signature</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-caption">Signature</div>
+      </div>
     </div>
   </div>
 
