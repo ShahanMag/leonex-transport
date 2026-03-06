@@ -143,11 +143,15 @@ export default function Loads() {
 
   const calculateSummary = () => {
     const filtered = getFilteredLoads();
-    const loadIds = new Set(filtered.map(l => l._id));
-    const linked = payments.filter(p => p.load_id && loadIds.has(p.load_id));
+    const loadIds = new Set(filtered.map(l => l._id?.toString()));
+    const linked = payments.filter(p => {
+      const lid = p.load_id?._id?.toString() || p.load_id?.toString();
+      return lid && loadIds.has(lid);
+    });
     const acquisitions = linked.filter(p => p.payment_type === 'vehicle-acquisition');
-    const totalRevenue = acquisitions.reduce((sum, p) => sum + (p.acquisition_amount || 0), 0);
-    const totalCost = acquisitions.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+    const rentals = linked.filter(p => p.payment_type === 'driver-rental');
+    const totalRevenue = acquisitions.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+    const totalCost = rentals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
     const netProfit = totalRevenue - totalCost;
     return { totalRevenue, totalCost, netProfit, count: filtered.length };
   };

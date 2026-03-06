@@ -248,9 +248,15 @@ export default function IncomeExpense() {
 
   // ─── Summary ────────────────────────────────────────────────────
 
-  const totalIncome  = bills.filter(b => b.type === 'income').reduce((s, b) => s + b.totalAmount, 0);
-  const totalExpense = bills.filter(b => b.type === 'expense').reduce((s, b) => s + b.totalAmount, 0);
-  const netBalance   = totalIncome - totalExpense;
+  const incomeBills  = bills.filter(b => b.type === 'income');
+  const expenseBills = bills.filter(b => b.type === 'expense');
+  const totalIncome     = incomeBills.reduce((s, b) => s + b.totalAmount, 0);
+  const receivedIncome  = incomeBills.reduce((s, b) => s + (b.paidAmount || 0), 0);
+  const pendingIncome   = incomeBills.reduce((s, b) => s + (b.dues || 0), 0);
+  const totalExpense    = expenseBills.reduce((s, b) => s + b.totalAmount, 0);
+  const paidExpense     = expenseBills.reduce((s, b) => s + (b.paidAmount || 0), 0);
+  const pendingExpense  = expenseBills.reduce((s, b) => s + (b.dues || 0), 0);
+  const netBalance      = totalIncome - totalExpense;
 
   const customerOptions = [
     { value: '', label: '— None —' },
@@ -329,30 +335,53 @@ export default function IncomeExpense() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
-          <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📥</span></div>
-          <div>
-            <p className="text-sm text-gray-500">Total Income</p>
-            <p className="text-xl font-bold text-green-600">{totalIncome.toLocaleString()} SAR</p>
+      <div className="space-y-3 mb-6">
+        {/* Income Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-500">
+            <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📥</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Total Income</p>
+              <p className="text-xl font-bold text-green-600">{totalIncome.toLocaleString()} SAR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-300">
+            <div className="bg-green-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Received Income</p>
+              <p className="text-xl font-bold text-green-500">{receivedIncome.toLocaleString()} SAR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-yellow-400">
+            <div className="bg-yellow-400 p-3 rounded-lg"><span className="text-white text-xl">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Pending Income</p>
+              <p className="text-xl font-bold text-yellow-500">{pendingIncome.toLocaleString()} SAR</p>
+            </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
-          <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📤</span></div>
-          <div>
-            <p className="text-sm text-gray-500">Total Expense</p>
-            <p className="text-xl font-bold text-red-600">{totalExpense.toLocaleString()} SAR</p>
+        {/* Expense Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-500">
+            <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📤</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Total Expense</p>
+              <p className="text-xl font-bold text-red-600">{totalExpense.toLocaleString()} SAR</p>
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
-          <div className={`${netBalance >= 0 ? 'bg-blue-500' : 'bg-orange-500'} p-3 rounded-lg`}>
-            <span className="text-white text-xl">{netBalance >= 0 ? '📈' : '📉'}</span>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-300">
+            <div className="bg-red-300 p-3 rounded-lg"><span className="text-white text-xl">💸</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Paid Expense</p>
+              <p className="text-xl font-bold text-red-500">{paidExpense.toLocaleString()} SAR</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Net Balance</p>
-            <p className={`text-xl font-bold ${netBalance >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-              {netBalance.toLocaleString()} SAR
-            </p>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-400">
+            <div className="bg-orange-400 p-3 rounded-lg"><span className="text-white text-xl">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Pending Expense</p>
+              <p className="text-xl font-bold text-orange-500">{pendingExpense.toLocaleString()} SAR</p>
+            </div>
           </div>
         </div>
       </div>

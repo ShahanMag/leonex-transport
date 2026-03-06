@@ -13,7 +13,7 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
         )
           .tz("Asia/Riyadh")
           .format("DD/MM/YYYY")}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${installment.notes || "-"}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><span class="status-badge status-paid">PAID</span></td>
       </tr>`
     : showInstallments &&
         payment.installments &&
@@ -29,7 +29,7 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
           )
             .tz("Asia/Riyadh")
             .format("DD/MM/YYYY")}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${inst.notes || "-"}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><span class="status-badge status-paid">PAID</span></td>
         </tr>
       `,
           )
@@ -165,7 +165,7 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
               <th style="width: 10%;">#</th>
               <th style="width: 30%;">Amount</th>
               <th style="width: 30%;">Date</th>
-              <th style="width: 30%;">Notes</th>
+              <th style="width: 30%;">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -189,14 +189,6 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
           <div class="summary-row">
             <span class="summary-label">Total Due:</span>
             <span class="summary-value" style="color: #dc2626;">SAR ${payment.total_due.toLocaleString()}</span>
-          </div>
-          <div class="summary-row total-row">
-            <span class="summary-label">Payment Status:</span>
-            <span class="summary-value">
-              <span class="status-badge status-${payment.status}">
-                ${payment.status.toUpperCase()}
-              </span>
-            </span>
           </div>
         </div>
 

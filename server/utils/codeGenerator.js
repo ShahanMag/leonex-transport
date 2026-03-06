@@ -62,9 +62,9 @@ exports.generateDriverCode = async () => {
  */
 exports.generateReceiptCode = async () => {
   try {
-    const lastPayment = await Payment.findOne({ receipt_code: { $exists: true, $ne: null } })
+    const lastPayment = await Payment.findOne({ receipt_code: { $regex: '^ESSA' }, is_deleted: { $in: [true, false, null] } })
       .select('receipt_code')
-      .sort({ _id: -1 })
+      .sort({ receipt_code: -1 })
       .exec();
 
     let nextNumber = 1001;
@@ -91,9 +91,10 @@ exports.generateVehicleReceiptCode = async () => {
     const currentYear = new Date().getFullYear();
     const lastPayment = await Payment.findOne({
       receipt_code: { $regex: `^EESA-VEH-${currentYear}-` },
+      is_deleted: { $in: [true, false, null] },
     })
       .select('receipt_code')
-      .sort({ _id: -1 })
+      .sort({ receipt_code: -1 })
       .exec();
 
     let nextNumber = 1;
@@ -120,9 +121,10 @@ exports.generateDriverReceiptCode = async () => {
     const currentYear = new Date().getFullYear();
     const lastPayment = await Payment.findOne({
       receipt_code: { $regex: `^EESA-DRV-${currentYear}-` },
+      is_deleted: { $in: [true, false, null] },
     })
       .select('receipt_code')
-      .sort({ _id: -1 })
+      .sort({ receipt_code: -1 })
       .exec();
 
     let nextNumber = 1;
@@ -175,9 +177,11 @@ exports.generateQuotationCode = async () => {
 exports.generateRentalCode = async () => {
   try {
     const currentYear = new Date().getFullYear();
-    const lastLoad = await Load.findOne()
+    const prefix = `RNT-${currentYear}-`;
+
+    const lastLoad = await Load.findOne({ rental_code: { $regex: `^${prefix}` }, is_deleted: { $in: [true, false, null] } })
       .select('rental_code')
-      .sort({ _id: -1 })
+      .sort({ rental_code: -1 })
       .exec();
 
     let nextNumber = 1;
@@ -188,7 +192,7 @@ exports.generateRentalCode = async () => {
       }
     }
 
-    return `RNT-${currentYear}-${String(nextNumber).padStart(3, '0')}`;
+    return `${prefix}${String(nextNumber).padStart(3, '0')}`;
   } catch (error) {
     console.error('Error generating rental code:', error);
     throw error;

@@ -131,7 +131,6 @@ exports.createRentalTransaction = async (req, res) => {
     // 3. Rental amount is provided directly, no calculation needed
 
     // 5. Create Load record (needed first to get rental_code for acquisition payment)
-    const rental_code = await codeGenerator.generateRentalCode();
     // Validate agent if provided
     if (agent_id) {
       const agentExists = await Agent.findById(agent_id).lean();
@@ -140,20 +139,29 @@ exports.createRentalTransaction = async (req, res) => {
       }
     }
 
-    const load = new Load({
-      rental_code,
-      vehicle_type,
-      company_id: company._id,
-      driver_id: driver._id,
-      agent_id: agent_id || null,
-      from_location,
-      to_location,
-      rental_amount,
-      rental_date: new Date(rental_date),
-      status: 'pending',
-    });
-
-    const savedLoad = await load.save({ session: session || undefined });
+    let savedLoad;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const rental_code = await codeGenerator.generateRentalCode();
+      try {
+        savedLoad = await new Load({
+          rental_code,
+          vehicle_type,
+          company_id: company._id,
+          driver_id: driver._id,
+          agent_id: agent_id || null,
+          from_location,
+          to_location,
+          rental_amount,
+          rental_date: new Date(rental_date),
+          status: 'pending',
+        }).save({ session: session || undefined });
+        break;
+      } catch (err) {
+        if (err.code === 11000 && attempt < 4) continue;
+        throw err;
+      }
+    }
+    const rental_code = savedLoad.rental_code;
 
     // 4. Create Acquisition Payment (Company → Supplier)
     const acquisitionReceiptCode = await codeGenerator.generateReceiptCode();

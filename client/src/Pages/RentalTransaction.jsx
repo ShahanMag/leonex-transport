@@ -360,7 +360,7 @@ export default function RentalTransaction() {
 
       // Agent (optional) — create new agent first if needed
       if (agentType === 'existing') {
-        if (formValues.agent_id) payload.agent_id = formValues.agent_id;
+        payload.agent_id = formValues.agent_id || null;
       } else if (agentType === 'new' && formValues.agent_name) {
         const newAgent = await agentAPI.create({
           name: formValues.agent_name,
@@ -1165,6 +1165,14 @@ export default function RentalTransaction() {
                   <p className="text-sm text-gray-600">Status</p>
                   <p className="text-base font-medium text-gray-900">{viewData.status || 'N/A'}</p>
                 </div>
+                <div>
+                  <p className="text-sm text-gray-600">Purchase Date</p>
+                  <p className="text-base font-medium text-gray-900">
+                    {viewData.payments?.acquisition?.transaction_date
+                      ? new Date(viewData.payments.acquisition.transaction_date).toLocaleDateString()
+                      : 'N/A'}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1221,6 +1229,39 @@ export default function RentalTransaction() {
                 </div>
               </div>
             </div>
+
+            {/* Agent Info */}
+            {viewData.agent && (
+              <div className="border-b pb-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Agent Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Agent Name</p>
+                    <p className="text-base font-medium text-gray-900">{viewData.agent.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Phone</p>
+                    <p className="text-base font-medium text-gray-900">
+                      {viewData.agent.phone_country_code && viewData.agent.phone_number
+                        ? `${viewData.agent.phone_country_code} ${viewData.agent.phone_number}`
+                        : 'N/A'}
+                    </p>
+                  </div>
+                  {viewData.agent.email && (
+                    <div>
+                      <p className="text-sm text-gray-600">Email</p>
+                      <p className="text-base font-medium text-gray-900">{viewData.agent.email}</p>
+                    </div>
+                  )}
+                  {viewData.agent.location && (
+                    <div>
+                      <p className="text-sm text-gray-600">Location</p>
+                      <p className="text-base font-medium text-gray-900">{viewData.agent.location}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Financial Info */}
             <div>
