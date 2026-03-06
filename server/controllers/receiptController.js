@@ -95,9 +95,9 @@ exports.generateCompanyReceipt = async (req, res) => {
       footerTemplate: pdfFooterTemplate,
       margin: {
         top: '180px',
-        right: '40px',
+        right: '48px',
         bottom: '170px',
-        left: '40px'
+        left: '48px'
       }
     });
 
@@ -165,9 +165,9 @@ exports.generateDriverReceipt = async (req, res) => {
       footerTemplate: pdfFooterTemplate,
       margin: {
         top: '180px',
-        right: '40px',
+        right: '48px',
         bottom: '170px',
-        left: '40px'
+        left: '48px'
       }
     });
 
@@ -241,9 +241,9 @@ exports.generateCompanyInstallmentReceipt = async (req, res) => {
       footerTemplate: pdfFooterTemplate,
       margin: {
         top: '180px',
-        right: '40px',
+        right: '48px',
         bottom: '170px',
-        left: '40px'
+        left: '48px'
       }
     });
 
@@ -317,9 +317,9 @@ exports.generateDriverInstallmentReceipt = async (req, res) => {
       footerTemplate: pdfFooterTemplate,
       margin: {
         top: '180px',
-        right: '40px',
+        right: '48px',
         bottom: '170px',
-        left: '40px'
+        left: '48px'
       }
     });
 
@@ -363,9 +363,9 @@ exports.generateQuotationPdf = async (req, res) => {
       footerTemplate: pdfFooterTemplate,
       margin: {
         top: '180px',
-        right: '40px',
+        right: '48px',
         bottom: '170px',
-        left: '40px'
+        left: '48px'
       }
     });
 
