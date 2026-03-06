@@ -34,9 +34,11 @@ const generateQuotationHTML = (quotation, options = {}) => {
 <head>
   <meta charset="UTF-8">
   <title>Transportation Service Quotation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; font-size: 13px; color: #1f2937; padding: 20px 30px; }
+    body { font-family: Arial, 'Noto Sans Arabic', sans-serif; font-size: 13px; color: #1f2937; padding: 20px 30px; }
 
     .doc-title {
       text-align: center;

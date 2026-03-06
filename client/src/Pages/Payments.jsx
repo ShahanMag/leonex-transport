@@ -294,14 +294,14 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
         </button>
       )
     },
-    { key: 'payee', label: 'Payee' },
+    { key: 'payee', label: 'Payee', render: () => 'EESA Transport Co.' },
     { key: 'payer', label: 'Driver Name' },
     { key: 'plate_no', label: 'Vehicle Number' },
     { key: 'vehicle_type', label: 'Vehicle Type' },
     {
       key: 'total_amount',
       label: 'Amount',
-      render: (amount) => `₹${amount?.toLocaleString() || 0}`
+      render: (amount) => `SR ${amount?.toLocaleString() || 0}`
     },
     {
       key: 'transaction_date',
@@ -311,12 +311,12 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     {
       key: 'total_paid',
       label: 'Paid',
-      render: (amount) => `₹${amount?.toLocaleString() || 0}`
+      render: (amount) => `SR ${amount?.toLocaleString() || 0}`
     },
     {
       key: 'total_due',
       label: 'Due',
-      render: (amount) => `₹${amount?.toLocaleString() || 0}`
+      render: (amount) => `SR ${amount?.toLocaleString() || 0}`
     },
     {
       key: 'payment_type',
@@ -496,19 +496,19 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <StatCard
               title="Total Amount"
-              value={`SAR ${summary.totalAmount.toLocaleString()}`}
+              value={`SR ${summary.totalAmount.toLocaleString()}`}
               icon="💰"
               color="blue"
             />
             <StatCard
               title="Total Paid"
-              value={`SAR ${summary.totalPaid.toLocaleString()}`}
+              value={`SR ${summary.totalPaid.toLocaleString()}`}
               icon="✅"
               color="green"
             />
             <StatCard
               title="Total Due"
-              value={`SAR ${summary.totalDue.toLocaleString()}`}
+              value={`SR ${summary.totalDue.toLocaleString()}`}
               icon="⏳"
               color="red"
             />
@@ -585,7 +585,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                         <div className="space-y-3">
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">
-                              <strong>Progress:</strong> ₹{payment.total_paid?.toLocaleString() || 0} / ₹{payment.total_amount?.toLocaleString() || 0}
+                              <strong>Progress:</strong> SR {payment.total_paid?.toLocaleString() || 0} / SR {payment.total_amount?.toLocaleString() || 0}
                             </span>
                             <span className="text-gray-600">
                               <strong>{payment.total_amount > 0 ? Math.round((payment.total_paid / payment.total_amount) * 100) : 0}%</strong>
@@ -607,7 +607,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                                 {payment.installments.map((installment, idx) => (
                                   <tr key={installment._id} className="border-b border-gray-200 hover:bg-gray-50">
                                     <td className="px-4 py-2 text-gray-800">{idx + 1}</td>
-                                    <td className="px-4 py-2 text-gray-800">₹{installment.amount?.toLocaleString() || 0}</td>
+                                    <td className="px-4 py-2 text-gray-800">SR {installment.amount?.toLocaleString() || 0}</td>
                                     <td className="px-4 py-2 text-gray-800">
                                       {installment.paid_date ? formatDate(installment.paid_date) : 'N/A'}
                                     </td>
@@ -703,13 +703,13 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
           <div className="space-y-4">
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">
-                <strong>Total Amount:</strong> ₹{selectedPayment.total_amount?.toLocaleString() || 0}
+                <strong>Total Amount:</strong> SR {selectedPayment.total_amount?.toLocaleString() || 0}
               </p>
               <p className="text-sm text-gray-600">
-                <strong>Already Paid:</strong> ₹{selectedPayment.total_paid?.toLocaleString() || 0}
+                <strong>Already Paid:</strong> SR {selectedPayment.total_paid?.toLocaleString() || 0}
               </p>
               <p className="text-sm text-gray-600">
-                <strong>Remaining Due:</strong> ₹{selectedPayment.total_due?.toLocaleString() || 0}
+                <strong>Remaining Due:</strong> SR {selectedPayment.total_due?.toLocaleString() || 0}
               </p>
             </div>
 
@@ -719,7 +719,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                   name: 'amount',
                   label: 'Amount to Pay',
                   type: 'number',
-                  placeholder: `Max: ₹${selectedPayment.total_due || 0}`,
+                  placeholder: `Max: SR ${selectedPayment.total_due || 0}`,
                   required: true,
                 },
                 {

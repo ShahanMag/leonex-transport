@@ -342,9 +342,9 @@ export default function Loads() {
         const summary = calculateSummary();
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <StatCard title="Total Revenue" value={`SAR ${summary.totalRevenue.toLocaleString()}`} icon="💵" color="green" />
-            <StatCard title="Total Cost" value={`SAR ${summary.totalCost.toLocaleString()}`} icon="💸" color="red" />
-            <StatCard title="Net Profit/Loss" value={`SAR ${summary.netProfit.toLocaleString()}`} icon={summary.netProfit >= 0 ? '📈' : '📉'} color={summary.netProfit >= 0 ? 'green' : 'red'} />
+            <StatCard title="Total Revenue" value={`SR ${summary.totalRevenue.toLocaleString()}`} icon="💵" color="green" />
+            <StatCard title="Total Cost" value={`SR ${summary.totalCost.toLocaleString()}`} icon="💸" color="red" />
+            <StatCard title="Net Profit/Loss" value={`SR ${summary.netProfit.toLocaleString()}`} icon={summary.netProfit >= 0 ? '📈' : '📉'} color={summary.netProfit >= 0 ? 'green' : 'red'} />
             <StatCard title="Total Transactions" value={summary.count} icon="🔄" color="purple" />
           </div>
         );

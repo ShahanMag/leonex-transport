@@ -312,8 +312,8 @@ export default function RentalTransaction() {
 
     // Vehicle & Acquisition validation
     if (!formValues.vehicle_type) newErrors.vehicle_type = 'Vehicle type is required';
-    if (!formValues.acquisition_cost) newErrors.acquisition_cost = 'Acquisition cost is required';
-    if (formValues.acquisition_cost && isNaN(formValues.acquisition_cost)) {
+    if (formValues.acquisition_cost === '' || formValues.acquisition_cost === null || formValues.acquisition_cost === undefined) newErrors.acquisition_cost = 'Acquisition cost is required';
+    if (formValues.acquisition_cost !== '' && isNaN(formValues.acquisition_cost)) {
       newErrors.acquisition_cost = 'Acquisition cost must be a number';
     }
     if (!formValues.acquisition_date) newErrors.acquisition_date = 'Acquisition date is required';
@@ -321,8 +321,8 @@ export default function RentalTransaction() {
     // Load & Rental validation
     if (!formValues.from_location) newErrors.from_location = 'From location is required';
     if (!formValues.to_location) newErrors.to_location = 'To location is required';
-    if (!formValues.rental_amount) newErrors.rental_amount = 'Rental amount is required';
-    if (formValues.rental_amount && isNaN(formValues.rental_amount)) {
+    if (formValues.rental_amount === '' || formValues.rental_amount === null || formValues.rental_amount === undefined) newErrors.rental_amount = 'Rental amount is required';
+    if (formValues.rental_amount !== '' && isNaN(formValues.rental_amount)) {
       newErrors.rental_amount = 'Rental amount must be a number';
     }
     if (!formValues.rental_date) newErrors.rental_date = 'Rental date is required';
@@ -440,8 +440,6 @@ export default function RentalTransaction() {
 
   const countryCodeOptions = [
     { value: '+91', label: '+91 (India)' },
-    { value: '+1', label: '+1 (USA/Canada)' },
-    { value: '+44', label: '+44 (UK)' },
     { value: '+966', label: '+966 (Saudi Arabia)' },
     { value: '+971', label: '+971 (UAE)' },
   ];
@@ -875,19 +873,19 @@ export default function RentalTransaction() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
               <StatCard
                 title="Total Revenue"
-                value={`SAR ${summary.totalRevenue.toLocaleString()}`}
+                value={`SR ${summary.totalRevenue.toLocaleString()}`}
                 icon="💵"
                 color="green"
               />
               <StatCard
                 title="Total Cost"
-                value={`SAR ${summary.totalCost.toLocaleString()}`}
+                value={`SR ${summary.totalCost.toLocaleString()}`}
                 icon="💸"
                 color="red"
               />
               <StatCard
                 title="Net Profit/Loss"
-                value={`SAR ${summary.netProfit.toLocaleString()}`}
+                value={`SR ${summary.netProfit.toLocaleString()}`}
                 icon={summary.netProfit >= 0 ? '📈' : '📉'}
                 color={summary.netProfit >= 0 ? 'green' : 'red'}
               />
@@ -923,18 +921,16 @@ export default function RentalTransaction() {
             <table className="w-full border-collapse min-w-max">
               <thead>
                 <tr className="bg-gray-100 border-b">
-                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">#</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Date</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Rental Code</th>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Rental Date</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Name</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Company</th>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Driver</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Agent</th>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Vehicle Number</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">From</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">To</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Vehicle Type</th>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Revenue</th>
-                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Cost</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Company Amount</th>
+                  <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Driver Cost</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Net Profit/Loss</th>
                   <th className="px-3 md:px-6 py-3 text-left text-xs md:text-sm font-semibold text-gray-800 whitespace-nowrap">Actions</th>
                 </tr>
@@ -948,20 +944,18 @@ export default function RentalTransaction() {
 
                   return (
                     <tr key={transaction._id} className="border-b hover:bg-gray-50">
-                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{(currentPage - 1) * pageSize + i + 1}</td>
-                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.load_id?.rental_code || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.acquisition_date ? formatDate(transaction.acquisition_date) : 'N/A'}</td>
-                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{transaction.load_id?.rental_code || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.payer || 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.company_id?.name || transaction.payee || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.load_id?.agent_id?.name || '-'}</td>
-                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.plate_no || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.from_location || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.to_location || 'N/A'}</td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700">{transaction.vehicle_type || 'N/A'}</td>
-                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{revenue ? `${revenue.toLocaleString()} SAR` : 'N/A'}</td>
-                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{cost ? `${cost.toLocaleString()} SAR` : 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{revenue ? `${revenue.toLocaleString()} SR` : 'N/A'}</td>
+                      <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm text-gray-700 whitespace-nowrap">{cost ? `${cost.toLocaleString()} SR` : 'N/A'}</td>
                       <td className={`px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm font-semibold whitespace-nowrap ${isProfitable ? 'text-green-600' : 'text-red-600'}`}>
-                        {revenue && cost ? `${netProfit.toLocaleString()} SAR` : 'N/A'}
+                        {revenue && cost ? `${netProfit.toLocaleString()} SR` : 'N/A'}
                       </td>
                       <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm">
                         <div className="flex gap-1 md:gap-2">
@@ -1257,7 +1251,7 @@ export default function RentalTransaction() {
                   <p className="text-sm text-gray-600">Revenue (Acquisition Payment)</p>
                   <p className="text-base font-medium text-green-600">
                     {viewData.payments?.acquisition?.total_amount
-                      ? `${viewData.payments.acquisition.total_amount.toLocaleString()} SAR`
+                      ? `${viewData.payments.acquisition.total_amount.toLocaleString()} SR`
                       : 'N/A'}
                   </p>
                 </div>
@@ -1265,7 +1259,7 @@ export default function RentalTransaction() {
                   <p className="text-sm text-gray-600">Cost (Rental Payment)</p>
                   <p className="text-base font-medium text-red-600">
                     {viewData.payments?.rental?.total_amount
-                      ? `${viewData.payments.rental.total_amount.toLocaleString()} SAR`
+                      ? `${viewData.payments.rental.total_amount.toLocaleString()} SR`
                       : 'N/A'}
                   </p>
                 </div>
@@ -1277,7 +1271,7 @@ export default function RentalTransaction() {
                       : 'text-red-600'
                   }`}>
                     {viewData.payments?.acquisition && viewData.payments?.rental
-                      ? `${((viewData.payments.acquisition.total_amount || 0) - (viewData.payments.rental.total_amount || 0)).toLocaleString()} SAR`
+                      ? `${((viewData.payments.acquisition.total_amount || 0) - (viewData.payments.rental.total_amount || 0)).toLocaleString()} SR`
                       : 'N/A'}
                   </p>
                 </div>

@@ -97,14 +97,14 @@ export default function IncomeExpenseReport() {
           <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📥</span></div>
           <div>
             <p className="text-sm text-gray-500">Total Income</p>
-            <p className="text-xl font-bold text-green-600">{(summary.totalIncome || 0).toLocaleString()} SAR</p>
+            <p className="text-xl font-bold text-green-600">{(summary.totalIncome || 0).toLocaleString()} SR</p>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
           <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📤</span></div>
           <div>
             <p className="text-sm text-gray-500">Total Expense</p>
-            <p className="text-xl font-bold text-red-600">{(summary.totalExpense || 0).toLocaleString()} SAR</p>
+            <p className="text-xl font-bold text-red-600">{(summary.totalExpense || 0).toLocaleString()} SR</p>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
@@ -114,7 +114,7 @@ export default function IncomeExpenseReport() {
           <div>
             <p className="text-sm text-gray-500">Net Balance</p>
             <p className={`text-xl font-bold ${(summary.netBalance || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-              {(summary.netBalance || 0).toLocaleString()} SAR
+              {(summary.netBalance || 0).toLocaleString()} SR
             </p>
           </div>
         </div>
@@ -122,7 +122,7 @@ export default function IncomeExpenseReport() {
           <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
           <div>
             <p className="text-sm text-gray-500">Total Due</p>
-            <p className="text-xl font-bold text-purple-600">{(summary.totalDue || 0).toLocaleString()} SAR</p>
+            <p className="text-xl font-bold text-purple-600">{(summary.totalDue || 0).toLocaleString()} SR</p>
           </div>
         </div>
       </div>
@@ -228,9 +228,9 @@ export default function IncomeExpenseReport() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-800">{b.name}</td>
                     <td className="px-4 py-3 text-sm text-gray-800">{b.customer || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{b.totalAmount?.toLocaleString()} SAR</td>
-                    <td className="px-4 py-3 text-sm text-green-700 font-medium whitespace-nowrap">{b.paidAmount?.toLocaleString()} SAR</td>
-                    <td className="px-4 py-3 text-sm text-red-700 font-medium whitespace-nowrap">{b.dues?.toLocaleString()} SAR</td>
+                    <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{b.totalAmount?.toLocaleString()} SR</td>
+                    <td className="px-4 py-3 text-sm text-green-700 font-medium whitespace-nowrap">{b.paidAmount?.toLocaleString()} SR</td>
+                    <td className="px-4 py-3 text-sm text-red-700 font-medium whitespace-nowrap">{b.dues?.toLocaleString()} SR</td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[b.status] || ''}`}>
                         {b.status}

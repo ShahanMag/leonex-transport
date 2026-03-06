@@ -26,7 +26,7 @@ export default function Sidebar() {
           icon: "🚚",
           highlight: true,
         },
-        { path: "/loads", label: "Rentals", icon: "📦" },
+        // { path: "/loads", label: "Rentals", icon: "📦" },
         { path: "/quotations", label: "Quotations", icon: "📄" },
         { path: "/payments", label: "Payments", icon: "💰" },
         { path: "/reports", label: "Reports", icon: "📈" },

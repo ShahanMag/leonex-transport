@@ -284,17 +284,17 @@ export default function IncomeExpense() {
     {
       key: 'totalAmount',
       label: 'Total',
-      render: (val) => val != null ? `${val.toLocaleString()} SAR` : '-',
+      render: (val) => val != null ? `${val.toLocaleString()} SR` : '-',
     },
     {
       key: 'paidAmount',
       label: 'Paid',
-      render: (val) => val != null ? `${val.toLocaleString()} SAR` : '-',
+      render: (val) => val != null ? `${val.toLocaleString()} SR` : '-',
     },
     {
       key: 'dues',
       label: 'Dues',
-      render: (val) => val != null ? `${val.toLocaleString()} SAR` : '-',
+      render: (val) => val != null ? `${val.toLocaleString()} SR` : '-',
     },
     {
       key: 'status',
@@ -342,21 +342,21 @@ export default function IncomeExpense() {
             <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📥</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Total Income</p>
-              <p className="text-xl font-bold text-green-600">{totalIncome.toLocaleString()} SAR</p>
+              <p className="text-xl font-bold text-green-600">{totalIncome.toLocaleString()} SR</p>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-300">
             <div className="bg-green-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Received Income</p>
-              <p className="text-xl font-bold text-green-500">{receivedIncome.toLocaleString()} SAR</p>
+              <p className="text-xl font-bold text-green-500">{receivedIncome.toLocaleString()} SR</p>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-yellow-400">
             <div className="bg-yellow-400 p-3 rounded-lg"><span className="text-white text-xl">⏳</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Pending Income</p>
-              <p className="text-xl font-bold text-yellow-500">{pendingIncome.toLocaleString()} SAR</p>
+              <p className="text-xl font-bold text-yellow-500">{pendingIncome.toLocaleString()} SR</p>
             </div>
           </div>
         </div>
@@ -366,21 +366,21 @@ export default function IncomeExpense() {
             <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📤</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Total Expense</p>
-              <p className="text-xl font-bold text-red-600">{totalExpense.toLocaleString()} SAR</p>
+              <p className="text-xl font-bold text-red-600">{totalExpense.toLocaleString()} SR</p>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-300">
             <div className="bg-red-300 p-3 rounded-lg"><span className="text-white text-xl">💸</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Paid Expense</p>
-              <p className="text-xl font-bold text-red-500">{paidExpense.toLocaleString()} SAR</p>
+              <p className="text-xl font-bold text-red-500">{paidExpense.toLocaleString()} SR</p>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-400">
             <div className="bg-orange-400 p-3 rounded-lg"><span className="text-white text-xl">⏳</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Pending Expense</p>
-              <p className="text-xl font-bold text-orange-500">{pendingExpense.toLocaleString()} SAR</p>
+              <p className="text-xl font-bold text-orange-500">{pendingExpense.toLocaleString()} SR</p>
             </div>
           </div>
         </div>
@@ -466,15 +466,15 @@ export default function IncomeExpense() {
             <div className="grid grid-cols-3 gap-3 bg-gray-50 rounded-lg p-4 text-center">
               <div>
                 <p className="text-xs text-gray-500 mb-1">Total</p>
-                <p className="font-bold text-gray-800">{activeBill.totalAmount?.toLocaleString()} SAR</p>
+                <p className="font-bold text-gray-800">{activeBill.totalAmount?.toLocaleString()} SR</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Paid</p>
-                <p className="font-bold text-green-600">{activeBill.paidAmount?.toLocaleString()} SAR</p>
+                <p className="font-bold text-green-600">{activeBill.paidAmount?.toLocaleString()} SR</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Dues</p>
-                <p className="font-bold text-red-600">{activeBill.dues?.toLocaleString()} SAR</p>
+                <p className="font-bold text-red-600">{activeBill.dues?.toLocaleString()} SR</p>
               </div>
               <div className="col-span-3">
                 <span className={`px-3 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[activeBill.status] || ''}`}>
@@ -493,7 +493,7 @@ export default function IncomeExpense() {
                   {activeBill.installments.map((inst) => (
                     <div key={inst._id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3">
                       <div>
-                        <p className="text-sm font-semibold text-gray-800">{inst.amount?.toLocaleString()} SAR</p>
+                        <p className="text-sm font-semibold text-gray-800">{inst.amount?.toLocaleString()} SR</p>
                         <p className="text-xs text-gray-500">{inst.paid_date ? formatDate(inst.paid_date) : '-'}</p>
                         {inst.notes && <p className="text-xs text-gray-400 mt-0.5">{inst.notes}</p>}
                       </div>
@@ -519,7 +519,7 @@ export default function IncomeExpense() {
                 </h4>
                 <Form
                   fields={[
-                    { name: 'amount',   label: 'Amount (SAR)', type: 'number', placeholder: '0', required: true },
+                    { name: 'amount',   label: 'Amount (SR)', type: 'number', placeholder: '0', required: true },
                     { name: 'paid_date', label: 'Payment Date', type: 'date',   required: true },
                     { name: 'notes',    label: 'Notes',        placeholder: 'Optional note' },
                   ]}

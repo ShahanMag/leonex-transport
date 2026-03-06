@@ -142,7 +142,7 @@ export default function Dashboard() {
             <XAxis dataKey="month" />
             <YAxis />
             <Tooltip
-              formatter={(value) => `${value.toLocaleString()} SAR`}
+              formatter={(value) => `${value.toLocaleString()} SR`}
               contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc' }}
             />
             <Legend />

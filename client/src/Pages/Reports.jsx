@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { reportAPI, companyAPI, driverAPI, agentAPI } from '../services/api';
 import Button from '../components/Button';
 import { showError, showSuccess } from '../utils/toast';
@@ -40,9 +40,82 @@ const StatusBadge = ({ status }) => (
 // ─── Config: which filters each report uses ───────────────────────────────────
 const REPORT_FILTERS = {
   'company-payments': { status: true, company: true, driver: false, agent: false, date: true },
-  'rental-payments':  { status: true, company: false, driver: true,  agent: false, date: true },
+  'rental-payments':  { status: true, company: true,  driver: true,  agent: false, date: true },
   'combined-report':  { status: true, company: true,  driver: true,  agent: true,  date: true },
   'profit-loss':      { status: false, company: true, driver: true,  agent: true,  date: true },
+};
+
+// ─── Searchable Select ────────────────────────────────────────────────────────
+const SearchableSelect = ({ label, value, onChange, options, placeholder = 'All' }) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
+
+  const select = (val) => {
+    onChange(val);
+    setSearch('');
+    setOpen(false);
+  };
+
+  return (
+    <div className="flex flex-col gap-1" ref={ref}>
+      <label className="text-xs text-gray-500 font-medium">{label}</label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="w-44 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
+        >
+          <span className={value ? 'text-gray-800' : 'text-gray-400'}>{value || placeholder}</span>
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {open && (
+          <div className="absolute z-50 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg">
+            <div className="p-2">
+              <input
+                autoFocus
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <ul className="max-h-48 overflow-y-auto">
+              <li
+                onClick={() => select('')}
+                className="px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 cursor-pointer"
+              >
+                {placeholder}
+              </li>
+              {filtered.map(o => (
+                <li
+                  key={o}
+                  onClick={() => select(o)}
+                  className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 ${value === o ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-800'}`}
+                >
+                  {o}
+                </li>
+              ))}
+              {filtered.length === 0 && (
+                <li className="px-3 py-2 text-sm text-gray-400">No results</li>
+              )}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const STATUS_OPTIONS = ['paid', 'partial', 'unpaid'];
@@ -154,9 +227,9 @@ export default function Reports() {
         const totalDue    = data.reduce((s, p) => s + (p.total_due    || 0), 0);
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <StatCard title="Total Amount"   value={`SAR ${totalAmount.toLocaleString()}`} icon="💰" color="blue" />
-            <StatCard title="Total Paid"     value={`SAR ${totalPaid.toLocaleString()}`}   icon="✅" color="green" />
-            <StatCard title="Total Due"      value={`SAR ${totalDue.toLocaleString()}`}    icon="⏳" color="red" />
+            <StatCard title="Total Amount"   value={`SR ${totalAmount.toLocaleString()}`} icon="💰" color="blue" />
+            <StatCard title="Total Paid"     value={`SR ${totalPaid.toLocaleString()}`}   icon="✅" color="green" />
+            <StatCard title="Total Due"      value={`SR ${totalDue.toLocaleString()}`}    icon="⏳" color="red" />
             <StatCard title="Total Payments" value={data.length}                            icon="📋" color="purple" />
           </div>
         );
@@ -167,9 +240,9 @@ export default function Reports() {
         const netProfit    = data.reduce((s, i) => s + (i.net_profit || 0), 0);
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <StatCard title="Total Revenue"    value={`SAR ${totalRevenue.toLocaleString()}`} icon="💵" color="green" />
-            <StatCard title="Total Cost"       value={`SAR ${totalCost.toLocaleString()}`}    icon="💸" color="red" />
-            <StatCard title="Net Profit/Loss"  value={`SAR ${netProfit.toLocaleString()}`}    icon={netProfit >= 0 ? '📈' : '📉'} color={netProfit >= 0 ? 'green' : 'red'} />
+            <StatCard title="Total Revenue"    value={`SR ${totalRevenue.toLocaleString()}`} icon="💵" color="green" />
+            <StatCard title="Total Cost"       value={`SR ${totalCost.toLocaleString()}`}    icon="💸" color="red" />
+            <StatCard title="Net Profit/Loss"  value={`SR ${netProfit.toLocaleString()}`}    icon={netProfit >= 0 ? '📈' : '📉'} color={netProfit >= 0 ? 'green' : 'red'} />
             <StatCard title="Transactions"     value={data.length}                             icon="🔄" color="purple" />
           </div>
         );
@@ -181,9 +254,9 @@ export default function Reports() {
         const avgMargin    = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(2) : 0;
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <StatCard title="Total Revenue"   value={`SAR ${totalRevenue.toLocaleString()}`} icon="💵" color="green" />
-            <StatCard title="Total Cost"      value={`SAR ${totalCost.toLocaleString()}`}    icon="💸" color="red" />
-            <StatCard title="Net Profit/Loss" value={`SAR ${netProfit.toLocaleString()}`}    icon={netProfit >= 0 ? '📈' : '📉'} color={netProfit >= 0 ? 'green' : 'red'} />
+            <StatCard title="Total Revenue"   value={`SR ${totalRevenue.toLocaleString()}`} icon="💵" color="green" />
+            <StatCard title="Total Cost"      value={`SR ${totalCost.toLocaleString()}`}    icon="💸" color="red" />
+            <StatCard title="Net Profit/Loss" value={`SR ${netProfit.toLocaleString()}`}    icon={netProfit >= 0 ? '📈' : '📉'} color={netProfit >= 0 ? 'green' : 'red'} />
             <StatCard title="Avg Margin"      value={`${avgMargin}%`}                        icon="📊" color={netProfit >= 0 ? 'blue' : 'yellow'} />
           </div>
         );
@@ -220,64 +293,36 @@ export default function Reports() {
           </>
         )}
         {cfg.status && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">Status</label>
-            <select
-              value={filters.status}
-              onChange={e => setFilter('status', e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="">All</option>
-              {STATUS_OPTIONS.map(s => (
-                <option key={s} value={s} className="capitalize">{s}</option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            label="Status"
+            value={filters.status}
+            onChange={v => setFilter('status', v)}
+            options={STATUS_OPTIONS}
+          />
         )}
         {cfg.company && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">Company</label>
-            <select
-              value={filters.company}
-              onChange={e => setFilter('company', e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="">All</option>
-              {companyOptions.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            label="Company"
+            value={filters.company}
+            onChange={v => setFilter('company', v)}
+            options={companyOptions}
+          />
         )}
         {cfg.driver && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">Driver</label>
-            <select
-              value={filters.driver}
-              onChange={e => setFilter('driver', e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="">All</option>
-              {driverOptions.map(d => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            label="Driver"
+            value={filters.driver}
+            onChange={v => setFilter('driver', v)}
+            options={driverOptions}
+          />
         )}
         {cfg.agent && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">Agent</label>
-            <select
-              value={filters.agent}
-              onChange={e => setFilter('agent', e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="">All</option>
-              {agentOptions.map(a => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            label="Agent"
+            value={filters.agent}
+            onChange={v => setFilter('agent', v)}
+            options={agentOptions}
+          />
         )}
         <div className="flex gap-2 items-end pb-0.5">
           <Button variant="primary" onClick={handleApply} disabled={isLoading}>
@@ -343,6 +388,7 @@ export default function Reports() {
           <thead>
             <tr className="bg-gray-100 border-b">
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Type</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Date</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Company</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Driver</th>
               {isRental && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Iqama ID</th>}
@@ -350,21 +396,20 @@ export default function Reports() {
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Paid</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Due</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Date</th>
             </tr>
           </thead>
           <tbody>
             {data.map((p, i) => (
               <tr key={i} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3 text-xs text-gray-800">{p.payment_type}</td>
+                <td className="px-4 py-3 text-xs text-gray-800">{p.payment_type === 'vehicle-acquisition' ? 'Vehicle Rental' : p.payment_type}</td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{p.transaction_date ? formatDate(p.transaction_date) : '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{p.company}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{p.driver || '-'}</td>
                 {isRental && <td className="px-4 py-3 text-xs text-gray-800">{p.iqama_id || '-'}</td>}
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">SAR {p.total_amount?.toLocaleString()}</td>
-                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">SAR {p.total_paid?.toLocaleString()}</td>
-                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">SAR {p.total_due?.toLocaleString()}</td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">SR {p.total_amount?.toLocaleString()}</td>
+                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">SR {p.total_paid?.toLocaleString()}</td>
+                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">SR {p.total_due?.toLocaleString()}</td>
                 <td className="px-4 py-3 text-xs"><StatusBadge status={p.status} /></td>
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{p.transaction_date ? formatDate(p.transaction_date) : '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -394,16 +439,16 @@ export default function Reports() {
                 <td className="px-4 py-3 text-xs text-gray-800">{item.agent || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.from_location || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.to_location || '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">SAR {item.revenue?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">SAR {item.revenue_paid?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">SAR {item.revenue_due?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">SR {item.revenue?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">SR {item.revenue_paid?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">SR {item.revenue_due?.toLocaleString() || 0}</td>
                 <td className="px-4 py-3 text-xs"><StatusBadge status={item.revenue_status} /></td>
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">SAR {item.cost?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">SAR {item.cost_paid?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">SAR {item.cost_due?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">SR {item.cost?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">SR {item.cost_paid?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">SR {item.cost_due?.toLocaleString() || 0}</td>
                 <td className="px-4 py-3 text-xs"><StatusBadge status={item.cost_status} /></td>
                 <td className={`px-4 py-3 text-xs font-bold whitespace-nowrap ${profit ? 'text-green-600' : 'text-red-600'}`}>
-                  SAR {item.net_profit?.toLocaleString() || 0}
+                  SR {item.net_profit?.toLocaleString() || 0}
                 </td>
               </tr>
             );
@@ -432,10 +477,10 @@ export default function Reports() {
                 <td className="px-4 py-3 text-xs text-gray-800">{item.company || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.driver || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.agent || '-'}</td>
-                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">SAR {item.revenue?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">SAR {item.cost?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">SR {item.revenue?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">SR {item.cost?.toLocaleString() || 0}</td>
                 <td className={`px-4 py-3 text-xs font-bold whitespace-nowrap ${profit ? 'text-green-600' : 'text-red-600'}`}>
-                  SAR {item.net_profit?.toLocaleString() || 0}
+                  SR {item.net_profit?.toLocaleString() || 0}
                 </td>
                 <td className={`px-4 py-3 text-xs font-medium whitespace-nowrap ${profit ? 'text-green-600' : 'text-red-600'}`}>
                   {item.profit_margin || '0%'}

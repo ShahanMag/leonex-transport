@@ -71,6 +71,7 @@ exports.createQuotation = async (req, res) => {
       transport_rates,
       term_ids,
       quotation_date,
+      valid_until,
       notes
     } = req.body;
 
@@ -79,6 +80,9 @@ exports.createQuotation = async (req, res) => {
 
     if (!quotation_date)
       return res.status(400).json({ message: 'Quotation date is required' });
+
+    if (!valid_until)
+      return res.status(400).json({ message: 'Valid until date is required' });
 
     const quotation_number = await generateQuotationCode();
 
@@ -95,10 +99,7 @@ exports.createQuotation = async (req, res) => {
     if (emptyRow)
       return res.status(400).json({ message: 'Every transport rate row must have From and To cities' });
 
-    // Auto-compute valid_until = quotation_date + 15 days
     const baseDate = quotation_date ? new Date(quotation_date) : new Date();
-    const valid_until = new Date(baseDate);
-    valid_until.setDate(valid_until.getDate() + 15);
 
     // 🔥 Snapshot Terms
     let selectedTerms = [];
@@ -145,6 +146,7 @@ exports.updateQuotation = async (req, res) => {
       term_ids,
       status,
       quotation_date,
+      valid_until,
       notes
     } = req.body;
 
@@ -158,13 +160,11 @@ exports.updateQuotation = async (req, res) => {
     if (status !== undefined)
       quotation.status = status;
 
-    if (quotation_date) {
-      const baseDate = new Date(quotation_date);
-      const valid_until = new Date(baseDate);
-      valid_until.setDate(valid_until.getDate() + 15);
-      quotation.quotation_date = baseDate;
-      quotation.valid_until = valid_until;
-    }
+    if (quotation_date)
+      quotation.quotation_date = new Date(quotation_date);
+
+    if (valid_until)
+      quotation.valid_until = new Date(valid_until);
 
     if (notes !== undefined)
       quotation.notes = notes;

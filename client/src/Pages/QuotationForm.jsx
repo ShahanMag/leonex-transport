@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { quotationAPI, customerAPI, termAPI } from '../services/api';
 import Button from '../components/Button';
-import CitySelect from '../components/CitySelect';
 import { showSuccess, showError } from '../utils/toast';
 
 const STATUS_OPTIONS = ['Draft', 'Sent', 'Approved', 'Rejected'];
@@ -18,10 +17,10 @@ const add15Days = (dateStr) => {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   d.setDate(d.getDate() + 15);
-  return d.toLocaleDateString('en-GB');
+  return d.toISOString().slice(0, 10);
 };
 
-const defaultForm = { customer: '', status: 'Draft', quotation_date: today(), notes: '' };
+const defaultForm = { customer: '', status: 'Draft', quotation_date: today(), valid_until: add15Days(today()), notes: '' };
 
 export default function QuotationForm() {
   const { id } = useParams();
@@ -64,6 +63,7 @@ export default function QuotationForm() {
         customer: q.customer?._id || q.customer || '',
         status: q.status || 'Draft',
         quotation_date: q.quotation_date ? q.quotation_date.slice(0, 10) : today(),
+        valid_until: q.valid_until ? q.valid_until.slice(0, 10) : add15Days(q.quotation_date?.slice(0, 10) || today()),
         notes: q.notes || '',
       });
       setTransportRates(
@@ -91,6 +91,7 @@ export default function QuotationForm() {
     const newErrors = {};
     if (!formValues.customer) newErrors.customer = 'Customer is required';
     if (!formValues.quotation_date) newErrors.quotation_date = 'Quotation date is required';
+    if (!formValues.valid_until) newErrors.valid_until = 'Valid until date is required';
 
     const newRowErrors = transportRates.map((r) => ({
       from_location: !r.from_location.trim(),
@@ -120,6 +121,7 @@ export default function QuotationForm() {
           })),
         term_ids: selectedTermIds,
         quotation_date: formValues.quotation_date,
+        valid_until: formValues.valid_until,
         notes: formValues.notes,
       };
 
@@ -235,10 +237,20 @@ export default function QuotationForm() {
             {errors.quotation_date && <p className="text-red-500 text-xs mt-1">{errors.quotation_date}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
-            <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-600">
-              {add15Days(formValues.quotation_date) || '—'}
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Valid Until <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="date"
+              value={formValues.valid_until}
+              onChange={(e) => {
+                setFormValues((v) => ({ ...v, valid_until: e.target.value }));
+                if (e.target.value) setErrors((prev) => ({ ...prev, valid_until: undefined }));
+              }}
+              disabled={isLoading}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm ${errors.valid_until ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-500'}`}
+            />
+            {errors.valid_until && <p className="text-red-500 text-xs mt-1">{errors.valid_until}</p>}
           </div>
         </div>
 
@@ -282,12 +294,13 @@ export default function QuotationForm() {
                   <tr key={idx} className="border-t border-gray-100">
                     {['from_location', 'to_location'].map((field) => (
                       <td key={field} className="px-2 py-2">
-                        <CitySelect
+                        <input
+                          type="text"
                           value={row[field]}
-                          onChange={(val) => updateRow(idx, field, val)}
+                          onChange={(e) => updateRow(idx, field, e.target.value)}
                           placeholder={field === 'from_location' ? 'From city' : 'To city'}
                           disabled={isLoading}
-                          error={!!rowErrors[idx]?.[field]}
+                          className={`w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 ${rowErrors[idx]?.[field] ? 'border-red-400' : 'border-gray-300'}`}
                         />
                       </td>
                     ))}

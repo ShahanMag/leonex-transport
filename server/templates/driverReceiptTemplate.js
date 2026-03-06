@@ -3,18 +3,21 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
   const saudiTime = moment().tz("Asia/Riyadh").format("DD/MM/YYYY HH:mm");
   const { showInstallments = false, installment = null, watermark = null } = options;
 
-  // If printing a specific installment, show only that one
+  // If printing a specific installment, show all installments up to and including that one
   const installmentsRows = installment
-    ? `<tr>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">1</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${installment.amount.toLocaleString()}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(
-          installment.paid_date || installment.date,
-        )
-          .tz("Asia/Riyadh")
-          .format("DD/MM/YYYY")}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><span class="status-badge status-paid">PAID</span></td>
-      </tr>`
+    ? (() => {
+        const idx = payment.installments
+          ? payment.installments.findIndex(i => i._id.toString() === installment._id.toString())
+          : -1;
+        const upTo = idx >= 0 ? payment.installments.slice(0, idx + 1) : [installment];
+        return upTo.map((inst, index) => `
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${index + 1}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${inst.amount.toLocaleString()}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(inst.paid_date || inst.date).tz("Asia/Riyadh").format("DD/MM/YYYY")}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><span class="status-badge status-paid">PAID</span></td>
+          </tr>`).join('');
+      })()
     : showInstallments &&
         payment.installments &&
         payment.installments.length > 0
@@ -42,25 +45,27 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
     <head>
       <meta charset="UTF-8">
       <title>Driver Rental Payment Receipt</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; padding: 15px; color: #1f2937; font-size: 13px; }
+        body { font-family: Arial, 'Noto Sans Arabic', sans-serif; padding: 15px; color: #1f2937; font-size: 11px; }
         .receipt-container { max-width: 800px; margin: 0 auto; }
-        .receipt-info { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .receipt-info { display: flex; justify-content: space-between; margin-bottom: 10px; }
         .info-block { flex: 1; }
-        .info-label { font-weight: bold; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
-        .info-value { color: #1f2937; font-size: 13px; margin-bottom: 5px; }
-        .section-title { font-size: 11px; font-weight: bold; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin: 14px 0 6px 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; }
-        .details-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 16px; margin-bottom: 10px; }
-        .detail-item .label { font-size: 11px; color: #374151; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
-        .detail-item .value { font-size: 13px; color: #1f2937; font-weight: 500; margin-top: 1px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-        th { background-color: #f9fafb; padding: 6px 8px; text-align: left; font-weight: 600; color: #6b7280; border-bottom: 1px solid #e5e7eb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
-        td { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; font-size: 13px; color: #374151; }
-        .summary-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; border-bottom: 1px solid #f3f4f6; }
+        .info-label { font-weight: bold; color: #6b7280; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+        .info-value { color: #1f2937; font-size: 11px; margin-bottom: 4px; }
+        .section-title { font-size: 10px; font-weight: bold; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin: 12px 0 5px 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; }
+        .details-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px 14px; margin-bottom: 8px; }
+        .detail-item .label { font-size: 10px; color: #374151; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+        .detail-item .value { font-size: 11px; color: #1f2937; font-weight: 500; margin-top: 1px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        th { background-color: #f9fafb; padding: 5px 7px; text-align: left; font-weight: 600; color: #6b7280; border-bottom: 1px solid #e5e7eb; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
+        td { padding: 5px 7px; border-bottom: 1px solid #f3f4f6; font-size: 11px; color: #374151; }
+        .summary-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; border-bottom: 1px solid #f3f4f6; }
         .summary-label { color: #6b7280; }
         .summary-value { font-weight: 600; color: #1f2937; }
-        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-weight: bold; font-size: 10px; }
+        .status-badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-weight: bold; font-size: 9px; }
         .status-paid { background-color: #d1fae5; color: #065f46; }
         .status-partial { background-color: #fef3c7; color: #92400e; }
         .status-unpaid { background-color: #fee2e2; color: #991b1b; }
@@ -71,8 +76,8 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
       <div class="receipt-container">
         <!-- Company Details -->
         <div style="margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #e5e7eb;">
-          <div style="font-size: 15px; font-weight: bold; color: #1e40af;">EESA Transport Co. &nbsp;/&nbsp; شركة عيسى للنقل</div>
-          <div style="font-size: 12px; color: #4b5563; margin-top: 4px;">
+          <div style="font-size: 13px; font-weight: bold; color: #1e40af;">EESA Transport Co. &nbsp;/&nbsp; شركة عيسى للنقل</div>
+          <div style="font-size: 10px; color: #4b5563; margin-top: 3px;">
             C.R: 1010569210 &nbsp;&nbsp;·&nbsp;&nbsp; Mobile: 0508702137 &nbsp;&nbsp;·&nbsp;&nbsp; VAT No.: 300756371300003
           </div>
         </div>
@@ -140,35 +145,38 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
             : ""
         }
 
-        <!-- Payment Summary -->
-        <div style="margin-top: 12px; border-top: 1px solid #e5e7eb; padding-top: 10px;">
-          <div class="summary-row">
-            <span class="summary-label">Total Amount</span>
-            <span class="summary-value">SAR ${payment.total_amount.toLocaleString()}</span>
+        <!-- Payment Summary + Signatures: never split across pages -->
+        <div style="page-break-inside: avoid;">
+          <!-- Payment Summary -->
+          <div style="margin-top: 12px; border-top: 1px solid #e5e7eb; padding-top: 10px;">
+            <div class="summary-row">
+              <span class="summary-label">Total Amount</span>
+              <span class="summary-value">SAR ${payment.total_amount.toLocaleString()}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Total Paid</span>
+              <span class="summary-value" style="color: #059669;">SAR ${payment.total_paid.toLocaleString()}</span>
+            </div>
+            <div class="summary-row" style="border-bottom: none;">
+              <span class="summary-label">Total Due</span>
+              <span class="summary-value" style="color: #dc2626;">SAR ${payment.total_due.toLocaleString()}</span>
+            </div>
           </div>
-          <div class="summary-row">
-            <span class="summary-label">Total Paid</span>
-            <span class="summary-value" style="color: #059669;">SAR ${payment.total_paid.toLocaleString()}</span>
-          </div>
-          <div class="summary-row" style="border-bottom: none;">
-            <span class="summary-label">Total Due</span>
-            <span class="summary-value" style="color: #dc2626;">SAR ${payment.total_due.toLocaleString()}</span>
-          </div>
-        </div>
 
-        <!-- Signatures -->
-        <div style="display: flex; justify-content: space-between; margin-top: 40px; padding: 0 10px;">
-          <div style="text-align: center; width: 40%;">
-            <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 40px;"></div>
-            <p style="font-size: 13px; font-weight: bold; color: #374151;">التوقيع المعتمد</p>
-            <p style="font-size: 12px; color: #374151;">Authorized Signature</p>
-            <p style="font-size: 11px; color: #6b7280; margin-top: 2px;">شركة عيسى للنقل / EESA Transport</p>
-          </div>
-          <div style="text-align: center; width: 40%;">
-            <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 40px;"></div>
-            <p style="font-size: 13px; font-weight: bold; color: #374151;">توقيع العميل</p>
-            <p style="font-size: 12px; color: #374151;">Customer Signature</p>
-            <p style="font-size: 11px; color: #6b7280; margin-top: 2px;">${driver?.name || ""}</p>
+          <!-- Signatures -->
+          <div style="display: flex; justify-content: space-between; margin-top: 40px; padding: 0 10px;">
+            <div style="text-align: center; width: 40%;">
+              <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 40px;"></div>
+              <p style="font-size: 11px; font-weight: bold; color: #374151;">التوقيع المعتمد</p>
+              <p style="font-size: 10px; color: #374151;">Authorized Signature</p>
+              <p style="font-size: 10px; color: #6b7280; margin-top: 2px;">شركة عيسى للنقل / EESA Transport</p>
+            </div>
+            <div style="text-align: center; width: 40%;">
+              <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 40px;"></div>
+              <p style="font-size: 11px; font-weight: bold; color: #374151;">توقيع العميل</p>
+              <p style="font-size: 10px; color: #374151;">Customer Signature</p>
+              <p style="font-size: 10px; color: #6b7280; margin-top: 2px;">${driver?.name || ""}</p>
+            </div>
           </div>
         </div>
 
