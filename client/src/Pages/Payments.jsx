@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { paymentAPI, loadAPI, receiptAPI } from '../services/api';
+import { paymentAPI, loadAPI, receiptAPI, agentAPI } from '../services/api';
 import Pagination from '../components/Pagination';
 
 import Button from '../components/Button';
@@ -45,6 +45,8 @@ export default function Payments() {
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
   const [companyDriverFilter, setCompanyDriverFilter] = useState('');
+  const [agentFilter, setAgentFilter] = useState('');
+  const [agents, setAgents] = useState([]);
 
   // Installment registration modal
   const [isInstallmentOpen, setIsInstallmentOpen] = useState(false);
@@ -70,6 +72,7 @@ export default function Payments() {
   useEffect(() => {
     fetchPayments();
     fetchLoads();
+    agentAPI.getAll().then(res => setAgents(res.data)).catch(() => {});
   }, []);
 
   const fetchPayments = async () => {
@@ -279,7 +282,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
   // Reset page when tab or any filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, statusFilter, startDateFilter, endDateFilter, companyDriverFilter, searchQuery]);
+  }, [activeTab, statusFilter, startDateFilter, endDateFilter, companyDriverFilter, agentFilter, searchQuery]);
 
   const columns = [
     {
@@ -295,7 +298,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
       )
     },
     { key: 'payee', label: 'Payee', render: () => 'EESA Transport Co.' },
-    { key: 'payer', label: 'Driver Name' },
+    { key: 'payer', label: activeTab === 'vehicle-acquisition' ? 'Company Name' : 'Driver Name' },
     { key: 'plate_no', label: 'Vehicle Number' },
     { key: 'vehicle_type', label: 'Vehicle Type' },
     {
@@ -381,6 +384,13 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     });
   }
 
+  if (agentFilter && activeTab === 'driver-rental') {
+    displayPayments = displayPayments.filter(p => {
+      const agentName = p.load_id?.agent_id?.name?.toLowerCase() || '';
+      return agentName.includes(agentFilter.toLowerCase());
+    });
+  }
+
   const vehicleAcqCount = payments.filter(p => p.payment_type === 'vehicle-acquisition').length;
   const driverRentalCount = payments.filter(p => p.payment_type === 'driver-rental').length;
 
@@ -462,13 +472,25 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
             onChange={(e) => setCompanyDriverFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-64"
           />
+          {activeTab === 'driver-rental' && (
+            <select
+              value={agentFilter}
+              onChange={(e) => setAgentFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">All Agents</option>
+              {agents.map(agent => (
+                <option key={agent._id} value={agent.name}>{agent.name}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
       <div className="mb-6 flex gap-2 border-b border-gray-200">
         <button
-          onClick={() => setActiveTab('vehicle-acquisition')}
+          onClick={() => { setActiveTab('vehicle-acquisition'); setAgentFilter(''); }}
           className={`px-4 py-3 font-medium transition-colors border-b-2 ${
             activeTab === 'vehicle-acquisition'
               ? 'text-blue-600 border-blue-600'
