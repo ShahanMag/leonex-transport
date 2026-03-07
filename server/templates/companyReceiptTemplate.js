@@ -74,14 +74,6 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
     <body>
       ${watermark ? `<div style="position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:-1;pointer-events:none;"><img src="${watermark}" style="width:630px;height:630px;object-fit:contain;" /></div>` : ''}
       <div class="receipt-container">
-        <!-- Company Details -->
-        <div style="margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #e5e7eb;">
-          <div style="font-size: 13px; font-weight: bold; color: #1e40af;">EESA Transport Co. &nbsp;/&nbsp; شركة عيسى للنقل</div>
-          <div style="font-size: 10px; color: #4b5563; margin-top: 3px;">
-            C.R: 1010569210 &nbsp;&nbsp;·&nbsp;&nbsp; Mobile: 0508702137 &nbsp;&nbsp;·&nbsp;&nbsp; VAT No.: 300756371300003
-          </div>
-        </div>
-
         <!-- Receipt Info -->
         <div class="receipt-info">
           <div class="info-block">

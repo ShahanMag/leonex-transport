@@ -118,9 +118,158 @@ const SearchableSelect = ({ label, value, onChange, options, placeholder = 'All'
   );
 };
 
+// ─── Multi Searchable Select ──────────────────────────────────────────────────
+const MultiSearchableSelect = ({ label, value = [], onChange, options, placeholder = 'All' }) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
+
+  const toggle = (val) => {
+    onChange(value.includes(val) ? value.filter(v => v !== val) : [...value, val]);
+  };
+
+  const displayLabel = value.length === 0 ? placeholder : value.length === 1 ? value[0] : `${value.length} selected`;
+
+  return (
+    <div className="flex flex-col gap-1" ref={ref}>
+      <label className="text-xs text-gray-500 font-medium">{label}</label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className="w-44 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
+        >
+          <span className={value.length ? 'text-gray-800 truncate' : 'text-gray-400'}>{displayLabel}</span>
+          <svg className="w-4 h-4 text-gray-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {open && (
+          <div className="absolute z-50 mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-lg" onMouseDown={e => e.stopPropagation()}>
+            <div className="p-2">
+              <input
+                autoFocus
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            {value.length > 0 && (
+              <div className="px-3 pb-2">
+                <button
+                  onClick={() => onChange([])}
+                  className="text-xs text-red-500 hover:text-red-700"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+            <ul className="max-h-48 overflow-y-auto">
+              {filtered.map(o => (
+                <li
+                  key={o}
+                  onClick={() => toggle(o)}
+                  className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 flex items-center gap-2 ${value.includes(o) ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-800'}`}
+                >
+                  <input type="checkbox" checked={value.includes(o)} onChange={() => {}} className="pointer-events-none" />
+                  {o}
+                </li>
+              ))}
+              {filtered.length === 0 && (
+                <li className="px-3 py-2 text-sm text-gray-400">No results</li>
+              )}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const STATUS_OPTIONS = ['paid', 'partial', 'unpaid'];
 
-const EMPTY_FILTERS = { status: '', company: '', driver: '', agent: '', startDate: '', endDate: '' };
+// ─── Filter Panel (defined outside Reports to prevent remount on state change) ─
+const FilterPanel = ({ activeReport, filters, setFilter, companyOptions, driverOptions, agentOptions, onApply, onReset, isLoading }) => {
+  const cfg = REPORT_FILTERS[activeReport] || {};
+  return (
+    <div className="mb-4 flex flex-wrap gap-3 items-end">
+      {cfg.date && (
+        <>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 font-medium">Start Date</label>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={e => setFilter('startDate', e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 font-medium">End Date</label>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={e => setFilter('endDate', e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </>
+      )}
+      {cfg.status && (
+        <SearchableSelect
+          label="Status"
+          value={filters.status}
+          onChange={v => setFilter('status', v)}
+          options={STATUS_OPTIONS}
+        />
+      )}
+      {cfg.company && (
+        <MultiSearchableSelect
+          label="Company"
+          value={filters.company}
+          onChange={v => setFilter('company', v)}
+          options={companyOptions}
+        />
+      )}
+      {cfg.driver && (
+        <SearchableSelect
+          label="Driver"
+          value={filters.driver}
+          onChange={v => setFilter('driver', v)}
+          options={driverOptions}
+        />
+      )}
+      {cfg.agent && (
+        <SearchableSelect
+          label="Agent"
+          value={filters.agent}
+          onChange={v => setFilter('agent', v)}
+          options={agentOptions}
+        />
+      )}
+      <div className="flex gap-2 items-end pb-0.5">
+        <Button variant="primary" onClick={onApply} disabled={isLoading}>
+          Apply
+        </Button>
+        <Button variant="secondary" onClick={onReset} disabled={isLoading}>
+          Reset
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const EMPTY_FILTERS = { status: '', company: [], driver: '', agent: '', startDate: '', endDate: '' };
 
 export default function Reports() {
   const [activeReport, setActiveReport] = useState('company-payments');
@@ -157,7 +306,7 @@ export default function Reports() {
 
     const cfg = REPORT_FILTERS[reportType] || {};
     if (cfg.status  && f.status)  params.status    = f.status;
-    if (cfg.company && f.company) params.companies = f.company;
+    if (cfg.company && f.company.length) params.companies = f.company.join(',');
     if (cfg.driver  && f.driver)  params.drivers   = f.driver;
     if (cfg.agent   && f.agent)   params.agents    = f.agent;
     return params;
@@ -266,75 +415,6 @@ export default function Reports() {
   };
 
   // ─── Filter Panel ───────────────────────────────────────────────────────────
-  const FilterPanel = () => {
-    const cfg = REPORT_FILTERS[activeReport] || {};
-    return (
-      <div className="mb-4 flex flex-wrap gap-3 items-end">
-        {cfg.date && (
-          <>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500 font-medium">Start Date</label>
-              <input
-                type="date"
-                value={filters.startDate}
-                onChange={e => setFilter('startDate', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500 font-medium">End Date</label>
-              <input
-                type="date"
-                value={filters.endDate}
-                onChange={e => setFilter('endDate', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </>
-        )}
-        {cfg.status && (
-          <SearchableSelect
-            label="Status"
-            value={filters.status}
-            onChange={v => setFilter('status', v)}
-            options={STATUS_OPTIONS}
-          />
-        )}
-        {cfg.company && (
-          <SearchableSelect
-            label="Company"
-            value={filters.company}
-            onChange={v => setFilter('company', v)}
-            options={companyOptions}
-          />
-        )}
-        {cfg.driver && (
-          <SearchableSelect
-            label="Driver"
-            value={filters.driver}
-            onChange={v => setFilter('driver', v)}
-            options={driverOptions}
-          />
-        )}
-        {cfg.agent && (
-          <SearchableSelect
-            label="Agent"
-            value={filters.agent}
-            onChange={v => setFilter('agent', v)}
-            options={agentOptions}
-          />
-        )}
-        <div className="flex gap-2 items-end pb-0.5">
-          <Button variant="primary" onClick={handleApply} disabled={isLoading}>
-            Apply
-          </Button>
-          <Button variant="secondary" onClick={handleReset} disabled={isLoading}>
-            Reset
-          </Button>
-        </div>
-      </div>
-    );
-  };
 
   // ─── Tabs ───────────────────────────────────────────────────────────────────
   const ReportTabs = () => (
@@ -423,7 +503,7 @@ export default function Reports() {
       <table className="w-full min-w-max">
         <thead>
           <tr className="bg-gray-100 border-b">
-            {['Rental Code','Company','Driver','Agent','From','To','Revenue','Rev. Paid','Rev. Due','Rev. Status','Cost','Cost Paid','Cost Due','Cost Status','Net Profit/Loss'].map(h => (
+            {['Rental Code','Date','Company','Driver','Agent','From','To','Vehicle Cost','Vehicle Paid','Vehicle Due','Vehicle Payment Status','Driver Cost','Driver Paid','Driver Due','Driver Payment Status','Net Profit/Loss'].map(h => (
               <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">{h}</th>
             ))}
           </tr>
@@ -434,6 +514,7 @@ export default function Reports() {
             return (
               <tr key={i} className="border-b hover:bg-gray-50">
                 <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{item.rental_code || '-'}</td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{item.rental_date ? formatDate(item.rental_date) : '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.company || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.driver || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.agent || '-'}</td>
@@ -527,7 +608,17 @@ export default function Reports() {
 
       <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
         <ReportTabs />
-        <FilterPanel />
+        <FilterPanel
+          activeReport={activeReport}
+          filters={filters}
+          setFilter={setFilter}
+          companyOptions={companyOptions}
+          driverOptions={driverOptions}
+          agentOptions={agentOptions}
+          onApply={handleApply}
+          onReset={handleReset}
+          isLoading={isLoading}
+        />
         <DownloadRow />
         <SummaryCards />
         {renderReport()}
