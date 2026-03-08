@@ -11,13 +11,15 @@ const Quotation = require('../models/Quotation');
 const { generateVehicleReceiptCode, generateDriverReceiptCode } = require('../utils/codeGenerator');
 
 // Pre-load header and footer images as base64 data URIs for Puppeteer PDF templates
-const headerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA header 2.PNG')).toString('base64')}`;
-const footerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA Footer.png')).toString('base64')}`;
-const watermarkBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/WaterMark.png')).toString('base64')}`;
+const headerBase64          = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA header 2.PNG')).toString('base64')}`;
+const quotationHeaderBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA header.png')).toString('base64')}`;
+const footerBase64          = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA Footer.png')).toString('base64')}`;
+const watermarkBase64       = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/WaterMark.png')).toString('base64')}`;
 
 // Renders on every page via Puppeteer's native header/footer support
-const pdfHeaderTemplate = `<div style="margin:0;padding:0;width:100%;"><img src="${headerBase64}" style="width:100%;height:150px;object-fit:fill;display:block;" /></div>`;
-const pdfFooterTemplate = `<div style="margin:0;padding:0;width:100%;margin-left:auto;margin-right:auto;"><img src="${footerBase64}" style="width:100%;height:340px;object-fit:fill;display:block;margin-bottom:-20px;margin-top:-100px;" /></div>`;
+const pdfHeaderTemplate           = `<div style="margin:0;padding:0;width:100%;"><img src="${headerBase64}" style="width:100%;height:150px;object-fit:fill;display:block;" /></div>`;
+const quotationPdfHeaderTemplate  = `<div style="margin:0;padding:0;width:100%;"><img src="${quotationHeaderBase64}" style="width:100%;height:150px;object-fit:fill;display:block;" /></div>`;
+const pdfFooterTemplate           = `<div style="margin:0;padding:0;width:100%;margin-left:auto;margin-right:auto;"><img src="${footerBase64}" style="width:100%;height:340px;object-fit:fill;display:block;margin-bottom:-20px;margin-top:-100px;" /></div>`;
 
 // Detect environment and use appropriate puppeteer configuration
 const isProduction = process.env.VERCEL || process.env.NODE_ENV === 'production';
@@ -359,7 +361,7 @@ exports.generateQuotationPdf = async (req, res) => {
       format: 'A4',
       printBackground: true,
       displayHeaderFooter: true,
-      headerTemplate: pdfHeaderTemplate,
+      headerTemplate: quotationPdfHeaderTemplate,
       footerTemplate: pdfFooterTemplate,
       margin: {
         top: '180px',

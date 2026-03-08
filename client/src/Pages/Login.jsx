@@ -89,11 +89,11 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-500">
+        {/* <div className="mt-6 text-center text-sm text-gray-500">
           <p className="font-semibold mb-1">Default Accounts:</p>
           <p>superadmin / 123456789</p>
           <p>admin / 123456789</p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

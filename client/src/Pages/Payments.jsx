@@ -299,6 +299,11 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     },
     { key: 'payee', label: 'Payee', render: () => 'EESA Transport Co.' },
     { key: 'payer', label: activeTab === 'vehicle-acquisition' ? 'Company Name' : 'Driver Name' },
+    ...(activeTab === 'driver-rental' ? [{
+      key: 'agent',
+      label: 'Agent',
+      render: (_, payment) => payment.load_id?.agent_id?.name || '-'
+    }] : []),
     { key: 'plate_no', label: 'Vehicle Number' },
     { key: 'vehicle_type', label: 'Vehicle Type' },
     {

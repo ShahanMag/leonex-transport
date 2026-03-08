@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { reportAPI, companyAPI, customerAPI } from '../services/api';
 import Button from '../components/Button';
+import MultiSelect from '../components/MultiSelect';
 import { showError, showSuccess } from '../utils/toast';
 import { formatDate } from '../utils/dateUtils';
 
@@ -11,7 +12,7 @@ export default function InvoicesReport() {
 
   const [companies, setCompanies]   = useState([]);
   const [customers, setCustomers]   = useState([]);
-  const [companyFilter, setCompanyFilter]   = useState('');
+  const [companyFilter, setCompanyFilter]   = useState([]); // array of selected IDs
   const [customerFilter, setCustomerFilter] = useState('');
   const [startDate, setStartDate]   = useState('');
   const [endDate, setEndDate]       = useState('');
@@ -24,10 +25,10 @@ export default function InvoicesReport() {
 
   const buildParams = () => {
     const params = {};
-    if (companyFilter)  params.company_id  = companyFilter;
-    if (customerFilter) params.customer_id = customerFilter;
-    if (startDate)      params.startDate   = startDate;
-    if (endDate)        params.endDate     = endDate;
+    if (companyFilter.length > 0) params.company_ids = companyFilter.join(',');
+    if (customerFilter)           params.customer_id  = customerFilter;
+    if (startDate)                params.startDate    = startDate;
+    if (endDate)                  params.endDate      = endDate;
     return params;
   };
 
@@ -46,7 +47,7 @@ export default function InvoicesReport() {
   const handleApplyFilters = () => fetchReport(buildParams());
 
   const handleReset = () => {
-    setCompanyFilter('');
+    setCompanyFilter([]);
     setCustomerFilter('');
     setStartDate('');
     setEndDate('');
@@ -146,16 +147,12 @@ export default function InvoicesReport() {
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Company</label>
-            <select
+            <MultiSelect
+              options={companies.map(c => ({ value: c._id, label: c.name }))}
               value={companyFilter}
-              onChange={e => setCompanyFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Companies</option>
-              {companies.map(c => (
-                <option key={c._id} value={c._id}>{c.name}</option>
-              ))}
-            </select>
+              onChange={setCompanyFilter}
+              placeholder="All Companies"
+            />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Customer</label>

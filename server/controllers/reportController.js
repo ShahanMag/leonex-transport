@@ -752,14 +752,14 @@ exports.getCombinedReportExcel = async (req, res) => {
       { header: 'From', key: 'From', width: 20 },
       { header: 'To', key: 'To', width: 20 },
       { header: 'Vehicle Type', key: 'VehicleType', width: 20 },
-      { header: 'Revenue', key: 'Revenue', width: 15 },
-      { header: 'Revenue Paid', key: 'RevenuePaid', width: 15 },
-      { header: 'Revenue Due', key: 'RevenueDue', width: 15 },
-      { header: 'Revenue Status', key: 'RevenueStatus', width: 15 },
-      { header: 'Cost', key: 'Cost', width: 15 },
-      { header: 'Cost Paid', key: 'CostPaid', width: 15 },
-      { header: 'Cost Due', key: 'CostDue', width: 15 },
-      { header: 'Cost Status', key: 'CostStatus', width: 15 },
+      { header: 'Vehicle Cost', key: 'Revenue', width: 15 },
+      { header: 'Vehicle Paid', key: 'RevenuePaid', width: 15 },
+      { header: 'Vehicle Due', key: 'RevenueDue', width: 15 },
+      { header: 'Vehicle Payment Status', key: 'RevenueStatus', width: 20 },
+      { header: 'Driver Cost', key: 'Cost', width: 15 },
+      { header: 'Driver Paid', key: 'CostPaid', width: 15 },
+      { header: 'Driver Due', key: 'CostDue', width: 15 },
+      { header: 'Driver Payment Status', key: 'CostStatus', width: 20 },
       { header: 'Net Profit/Loss', key: 'NetProfit', width: 18 },
       { header: 'Rental Date', key: 'RentalDate', width: 15 },
     ];
@@ -1001,9 +1001,14 @@ exports.getBillsReportExcel = async (req, res) => {
  * =========================== */
 exports.getInvoicesReportJSON = async (req, res) => {
   try {
-    const { company_id, customer_id, startDate, endDate } = req.query;
+    const { company_id, company_ids, customer_id, startDate, endDate } = req.query;
     const filter = {};
-    if (company_id)  filter.company_id  = company_id;
+    if (company_ids) {
+      const ids = company_ids.split(',').filter(Boolean);
+      filter.company_id = ids.length === 1 ? ids[0] : { $in: ids };
+    } else if (company_id) {
+      filter.company_id = company_id;
+    }
     if (customer_id) filter.customer_id = customer_id;
     if (startDate || endDate) {
       filter.date = {};
@@ -1053,9 +1058,14 @@ exports.getInvoicesReportJSON = async (req, res) => {
  * =========================== */
 exports.getInvoicesReportExcel = async (req, res) => {
   try {
-    const { company_id, customer_id, startDate, endDate } = req.query;
+    const { company_id, company_ids, customer_id, startDate, endDate } = req.query;
     const filter = {};
-    if (company_id)  filter.company_id  = company_id;
+    if (company_ids) {
+      const ids = company_ids.split(',').filter(Boolean);
+      filter.company_id = ids.length === 1 ? ids[0] : { $in: ids };
+    } else if (company_id) {
+      filter.company_id = company_id;
+    }
     if (customer_id) filter.customer_id = customer_id;
     if (startDate || endDate) {
       filter.date = {};
