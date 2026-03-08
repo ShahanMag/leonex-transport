@@ -1018,23 +1018,24 @@ exports.getInvoicesReportJSON = async (req, res) => {
       .lean();
 
     const totalAmount     = invoices.reduce((s, inv) => s + inv.amount, 0);
-    const totalVAT        = invoices.reduce((s, inv) => s + inv.amount * 0.15, 0);
-    const totalCommission = invoices.reduce((s, inv) => s + inv.amount * (inv.commission_pct / 100), 0);
+    const totalVAT        = invoices.reduce((s, inv) => s + inv.amount * 0.15 / 1.15, 0);
+    const totalCommission = invoices.reduce((s, inv) => s + (inv.amount / 1.15) * (inv.commission_pct / 100), 0);
     const totalBalance    = totalAmount - totalVAT - totalCommission;
 
     const data = invoices.map(inv => ({
-      _id:               inv._id,
-      invoice_number:    inv.invoice_number,
-      company:           inv.company_id?.name || '-',
-      customer:          inv.customer_id?.name || '-',
-      date:              inv.date,
-      amount:            inv.amount,
-      vat_amount:        inv.amount * 0.15,
-      commission_pct:    inv.commission_pct,
-      commission_amount: inv.amount * (inv.commission_pct / 100),
-      balance:           inv.amount - inv.amount * 0.15 - inv.amount * (inv.commission_pct / 100),
-      notes:             inv.notes || '-',
-      description:       inv.description || '-',
+      _id:                inv._id,
+      invoice_number:     inv.invoice_number,
+      company:            inv.company_id?.name || '-',
+      customer:           inv.customer_id?.name || '-',
+      date:               inv.date,
+      amount:             inv.amount,
+      vat_amount:         inv.amount * 0.15 / 1.15,
+      amount_without_vat: inv.amount / 1.15,
+      commission_pct:     inv.commission_pct,
+      commission_amount:  (inv.amount / 1.15) * (inv.commission_pct / 100),
+      balance:            inv.amount - (inv.amount * 0.15 / 1.15) - (inv.amount / 1.15) * (inv.commission_pct / 100),
+      notes:              inv.notes || '-',
+      description:        inv.description || '-',
     }));
 
     res.status(200).json({
@@ -1069,17 +1070,18 @@ exports.getInvoicesReportExcel = async (req, res) => {
       .lean();
 
     const columns = [
-      { header: '#',               key: 'No',         width: 6  },
-      { header: 'Invoice No.',     key: 'InvoiceNo',  width: 20 },
-      { header: 'Company',         key: 'Company',    width: 25 },
-      { header: 'Customer',        key: 'Customer',   width: 25 },
-      { header: 'Date',            key: 'Date',       width: 15 },
-      { header: 'Amount',          key: 'Amount',     width: 15 },
-      { header: 'VAT (15%)',       key: 'VAT',        width: 15 },
-      { header: 'Commission %',    key: 'CommPct',    width: 15 },
-      { header: 'Commission Amt',  key: 'CommAmt',    width: 15 },
-      { header: 'Balance',         key: 'Balance',    width: 15 },
-      { header: 'Notes',           key: 'Notes',      width: 30 },
+      { header: '#',               key: 'No',        width: 6  },
+      { header: 'Invoice No.',     key: 'InvoiceNo', width: 20 },
+      { header: 'Company',         key: 'Company',   width: 25 },
+      { header: 'Customer',        key: 'Customer',  width: 25 },
+      { header: 'Date',            key: 'Date',      width: 15 },
+      { header: 'Amount',          key: 'Amount',    width: 15 },
+      { header: 'VAT (15%)',       key: 'VAT',       width: 15 },
+      { header: 'Amt w/o VAT',     key: 'AmtNoVAT',  width: 15 },
+      { header: 'Commission %',    key: 'CommPct',   width: 15 },
+      { header: 'Commission Amt',  key: 'CommAmt',   width: 15 },
+      { header: 'Balance',         key: 'Balance',   width: 15 },
+      { header: 'Notes',           key: 'Notes',     width: 30 },
     ];
 
     const data = invoices.map((inv, idx) => ({
@@ -1089,10 +1091,11 @@ exports.getInvoicesReportExcel = async (req, res) => {
       Customer:  inv.customer_id?.name || '-',
       Date:      inv.date ? moment(inv.date).format('YYYY-MM-DD') : '-',
       Amount:    inv.amount,
-      VAT:       inv.amount * 0.15,
+      VAT:       inv.amount * 0.15 / 1.15,
+      AmtNoVAT:  inv.amount / 1.15,
       CommPct:   inv.commission_pct,
-      CommAmt:   inv.amount * (inv.commission_pct / 100),
-      Balance:   inv.amount - inv.amount * 0.15 - inv.amount * (inv.commission_pct / 100),
+      CommAmt:   (inv.amount / 1.15) * (inv.commission_pct / 100),
+      Balance:   inv.amount - (inv.amount * 0.15 / 1.15) - (inv.amount / 1.15) * (inv.commission_pct / 100),
       Notes:     inv.notes || '-',
     }));
 

@@ -69,17 +69,22 @@ invoiceSchema.pre(/^find/, function (next) {
   next();
 });
 
-// Virtuals
+// Virtuals — amount is the invoice total (VAT-inclusive)
 invoiceSchema.virtual('vat_amount').get(function () {
-  return this.amount * 0.15;
+  return this.amount * 0.15 / 1.15;
+});
+
+invoiceSchema.virtual('amount_without_vat').get(function () {
+  return this.amount / 1.15;
 });
 
 invoiceSchema.virtual('commission_amount').get(function () {
-  return this.amount * (this.commission_pct / 100);
+  return (this.amount / 1.15) * (this.commission_pct / 100);
 });
 
 invoiceSchema.virtual('balance').get(function () {
-  return this.amount - this.amount * 0.15 - this.amount * (this.commission_pct / 100);
+  const amtNoVat = this.amount / 1.15;
+  return this.amount - (this.amount * 0.15 / 1.15) - amtNoVat * (this.commission_pct / 100);
 });
 
 invoiceSchema.set('toJSON', { virtuals: true });

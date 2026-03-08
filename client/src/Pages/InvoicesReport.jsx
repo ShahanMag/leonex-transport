@@ -197,6 +197,7 @@ export default function InvoicesReport() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Date</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Amount</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">VAT (15%)</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Amt w/o VAT</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Comm %</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Commission</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Balance</th>
@@ -212,9 +213,10 @@ export default function InvoicesReport() {
                     <td className="px-4 py-3 text-sm text-gray-800">{inv.customer || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{inv.date ? formatDate(inv.date) : '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{inv.amount?.toLocaleString()} SR</td>
-                    <td className="px-4 py-3 text-sm text-orange-700 whitespace-nowrap">{inv.vat_amount?.toLocaleString()} SR</td>
+                    <td className="px-4 py-3 text-sm text-orange-700 whitespace-nowrap">{inv.vat_amount?.toLocaleString(undefined, { maximumFractionDigits: 2 })} SR</td>
+                    <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{inv.amount_without_vat?.toLocaleString(undefined, { maximumFractionDigits: 2 })} SR</td>
                     <td className="px-4 py-3 text-sm text-gray-800">{inv.commission_pct}%</td>
-                    <td className="px-4 py-3 text-sm text-purple-700 whitespace-nowrap">{inv.commission_amount?.toLocaleString()} SR</td>
+                    <td className="px-4 py-3 text-sm text-purple-700 whitespace-nowrap">{inv.commission_amount?.toLocaleString(undefined, { maximumFractionDigits: 2 })} SR</td>
                     <td className="px-4 py-3 text-sm font-semibold text-green-700 whitespace-nowrap">{inv.balance?.toLocaleString()} SR</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{inv.notes || '-'}</td>
                   </tr>

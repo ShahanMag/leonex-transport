@@ -205,19 +205,22 @@ export default function Invoices() {
   // ─── Summary ────────────────────────────────────────────────────
 
   const totalAmount     = invoices.reduce((s, inv) => s + inv.amount, 0);
-  const totalVAT        = invoices.reduce((s, inv) => s + (inv.vat_amount        ?? inv.amount * 0.15), 0);
-  const totalCommission = invoices.reduce((s, inv) => s + (inv.commission_amount ?? inv.amount * (inv.commission_pct / 100)), 0);
-  const totalBalance    = invoices.reduce((s, inv) => s + (inv.balance           ?? inv.amount - inv.amount * 0.15 - inv.amount * (inv.commission_pct / 100)), 0);
+  const totalVAT        = invoices.reduce((s, inv) => s + (inv.vat_amount        ?? inv.amount * 0.15 / 1.15), 0);
+  const totalCommission = invoices.reduce((s, inv) => s + (inv.commission_amount ?? (inv.amount / 1.15) * (inv.commission_pct / 100)), 0);
+  const totalBalance    = invoices.reduce((s, inv) => s + (inv.balance           ?? inv.amount - (inv.amount * 0.15 / 1.15) - (inv.amount / 1.15) * (inv.commission_pct / 100)), 0);
 
-  // Form preview
-  const previewAmount  = parseFloat(form.amount)         || 0;
-  const previewCommPct = parseFloat(form.commission_pct) || 0;
-  const previewVAT     = previewAmount * 0.15;
-  const previewCommAmt = previewAmount * (previewCommPct / 100);
-  const previewBalance = previewAmount - previewVAT - previewCommAmt;
+  // Form preview — amount is VAT-inclusive
+  const previewAmount      = parseFloat(form.amount)         || 0;
+  const previewCommPct     = parseFloat(form.commission_pct) || 0;
+  const previewAmountNoVAT = previewAmount / 1.15;
+  const previewVAT         = previewAmount * 0.15 / 1.15;
+  const previewCommAmt     = previewAmountNoVAT * (previewCommPct / 100);
+  const previewBalance     = previewAmount - previewVAT - previewCommAmt;
 
   const companyOptions  = [{ value: '', label: '— None —' }, ...companies.map(c => ({ value: c._id, label: c.name }))];
   const customerOptions = [{ value: '', label: '— None —' }, ...customers.map(c => ({ value: c._id, label: c.name }))];
+
+  const fmt = (n) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
   const columns = [
     { key: 'invoice_number', label: 'Invoice No.' },
@@ -225,11 +228,12 @@ export default function Invoices() {
     { key: 'customer_id', label: 'Customer', render: (val) => val?.name || '-' },
     { key: 'date',   label: 'Date',   render: (val) => val ? formatDate(val) : '-' },
     { key: 'amount', label: 'Amount', render: (val) => val != null ? `${val.toLocaleString()} SR` : '-' },
-    { key: 'vat_amount',        label: 'VAT (15%)',  render: (val, row) => `${(val ?? row.amount * 0.15).toLocaleString()} SR` },
-    { key: 'commission_amount', label: 'Commission', render: (val, row) => `${(val ?? row.amount * (row.commission_pct / 100)).toLocaleString()} SR` },
+    { key: 'vat_amount',       label: 'VAT (15%)',   render: (val, row) => `${fmt(val ?? row.amount * 0.15 / 1.15)} SR` },
+    { key: 'amount_without_vat', label: 'Amt w/o VAT', render: (val, row) => `${fmt(val ?? row.amount / 1.15)} SR` },
+    { key: 'commission_amount', label: 'Commission',  render: (val, row) => `${fmt(val ?? (row.amount / 1.15) * (row.commission_pct / 100))} SR` },
     { key: 'balance', label: 'Balance', render: (val, row) => {
-      const b = val ?? (row.amount - row.amount * 0.15 - row.amount * (row.commission_pct / 100));
-      return <span className="font-semibold text-green-700">{b.toLocaleString()} SR</span>;
+      const b = val ?? (row.amount - (row.amount * 0.15 / 1.15) - (row.amount / 1.15) * (row.commission_pct / 100));
+      return <span className="font-semibold text-green-700">{fmt(b)} SR</span>;
     }},
     { key: 'notes', label: 'Notes', render: (val) => val || '-' },
   ];
@@ -341,18 +345,22 @@ export default function Invoices() {
 
         {/* Live computed preview */}
         {previewAmount > 0 && (
-          <div className="mt-4 bg-gray-50 rounded-lg p-4 grid grid-cols-3 gap-3 text-center border">
+          <div className="mt-4 bg-gray-50 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-center border">
             <div>
               <p className="text-xs text-gray-500 mb-1">VAT (15%)</p>
-              <p className="font-bold text-orange-600">{previewVAT.toLocaleString()} SR</p>
+              <p className="font-bold text-orange-600">{fmt(previewVAT)} SR</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Amt w/o VAT</p>
+              <p className="font-bold text-gray-700">{fmt(previewAmountNoVAT)} SR</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">Commission</p>
-              <p className="font-bold text-purple-600">{previewCommAmt.toLocaleString()} SR</p>
+              <p className="font-bold text-purple-600">{fmt(previewCommAmt)} SR</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 mb-1">Net Balance</p>
-              <p className="font-bold text-green-600">{previewBalance.toLocaleString()} SR</p>
+              <p className="font-bold text-green-600">{fmt(previewBalance)} SR</p>
             </div>
           </div>
         )}
