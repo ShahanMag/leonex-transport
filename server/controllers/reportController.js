@@ -746,6 +746,7 @@ exports.getCombinedReportExcel = async (req, res) => {
 
     const columns = [
       { header: 'Rental Code', key: 'RentalCode', width: 20 },
+      { header: 'Rental Date', key: 'RentalDate', width: 15 },
       { header: 'Company', key: 'Company', width: 25 },
       { header: 'Driver', key: 'Driver', width: 25 },
       { header: 'Agent', key: 'Agent', width: 25 },
@@ -761,7 +762,6 @@ exports.getCombinedReportExcel = async (req, res) => {
       { header: 'Driver Due', key: 'CostDue', width: 15 },
       { header: 'Driver Payment Status', key: 'CostStatus', width: 20 },
       { header: 'Net Profit/Loss', key: 'NetProfit', width: 18 },
-      { header: 'Rental Date', key: 'RentalDate', width: 15 },
     ];
 
     await generateExcel('Combined Report', columns, data, res);

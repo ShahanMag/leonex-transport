@@ -334,7 +334,7 @@ export default function Invoices() {
             { name: 'customer_id', label: 'Customer (optional)', type: 'select', options: customerOptions },
             { name: 'amount', label: 'Amount (SR)', type: 'number', placeholder: '0', required: true },
             { name: 'commission_pct', label: 'Commission %', type: 'number', placeholder: '0', required: true },
-            { name: 'description', label: 'Description', placeholder: 'Optional description' },
+
             { name: 'notes', label: 'Notes', placeholder: 'Optional notes' },
           ]}
           values={form}

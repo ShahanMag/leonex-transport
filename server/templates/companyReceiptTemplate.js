@@ -49,7 +49,7 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
       <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, 'Noto Sans Arabic', sans-serif; padding: 15px; color: #1f2937; font-size: 11px; line-height: 1; }
+        body { font-family: Arial, 'Noto Sans Arabic', sans-serif; padding: 15px; color: #1f2937; font-size: 11px; line-height: 1.1; }
         .receipt-container { max-width: 800px; margin: 0 auto; }
         .receipt-info { display: flex; justify-content: space-between; margin-bottom: 10px; }
         .info-block { flex: 1; }
