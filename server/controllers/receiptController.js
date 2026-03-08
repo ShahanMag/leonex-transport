@@ -123,7 +123,7 @@ exports.generateDriverReceipt = async (req, res) => {
     const payment = await Payment.findById(paymentId)
       .populate('company_id')
       .populate('driver_id')
-      .populate('load_id')
+      .populate({ path: 'load_id', populate: { path: 'agent_id' } })
       .lean();
 
     if (!payment) {
@@ -269,7 +269,7 @@ exports.generateDriverInstallmentReceipt = async (req, res) => {
     const payment = await Payment.findById(paymentId)
       .populate('company_id')
       .populate('driver_id')
-      .populate('load_id')
+      .populate({ path: 'load_id', populate: { path: 'agent_id' } })
       .lean();
 
     if (!payment) {

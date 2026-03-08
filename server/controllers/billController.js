@@ -15,6 +15,8 @@ function recalculate(bill) {
 exports.getAllBills = async (req, res) => {
   try {
     const filter = {};
+    const country = req.query.country || 'saudi';
+    filter.country = country;
     if (req.query.type) filter.type = req.query.type;
     if (req.query.status) filter.status = req.query.status;
 
@@ -40,7 +42,7 @@ exports.getBillById = async (req, res) => {
 
 exports.createBill = async (req, res) => {
   try {
-    const { type, name, totalAmount, date, customer_id } = req.body;
+    const { type, name, totalAmount, date, customer_id, country } = req.body;
 
     if (!type || !name || totalAmount === undefined) {
       return res.status(400).json({ message: 'type, name and totalAmount are required' });
@@ -55,6 +57,7 @@ exports.createBill = async (req, res) => {
       installments: [],
       date: date ? new Date(date) : new Date(),
       customer_id: customer_id || null,
+      country: country || 'saudi',
     });
 
     const saved = await bill.save();
@@ -67,7 +70,7 @@ exports.createBill = async (req, res) => {
 
 exports.updateBill = async (req, res) => {
   try {
-    const { type, name, totalAmount, date, customer_id } = req.body;
+    const { type, name, totalAmount, date, customer_id, country } = req.body;
 
     const bill = await Bill.findById(req.params.id);
     if (!bill) return res.status(404).json({ message: 'Bill not found' });
@@ -76,6 +79,7 @@ exports.updateBill = async (req, res) => {
     if (name !== undefined) bill.name = name.trim();
     if (date !== undefined) bill.date = new Date(date);
     if (customer_id !== undefined) bill.customer_id = customer_id || null;
+    if (country !== undefined) bill.country = country;
 
     if (totalAmount !== undefined) {
       if (totalAmount < bill.paidAmount) {

@@ -61,6 +61,11 @@ const billSchema = new mongoose.Schema(
       ref: 'Customer',
       default: null,
     },
+    country: {
+      type: String,
+      enum: { values: ['saudi', 'india'], message: 'Country must be either saudi or india' },
+      default: 'saudi',
+    },
     isDeleted: {
       type: Boolean,
       default: false,
@@ -80,6 +85,7 @@ billSchema.index({ customer_id: 1 });
 billSchema.index({ date: -1 });
 billSchema.index({ type: 1, date: -1 });
 billSchema.index({ isDeleted: 1 });
+billSchema.index({ country: 1, type: 1, date: -1 });
 
 // Auto-exclude soft-deleted docs from find queries
 billSchema.pre(/^find/, function (next) {

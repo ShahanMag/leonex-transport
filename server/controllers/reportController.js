@@ -872,10 +872,11 @@ exports.getProfitLossReportExcel = async (req, res) => {
  * =========================== */
 exports.getBillsReportJSON = async (req, res) => {
   try {
-    const { type, status, customer, startDate, endDate } = req.query;
+    const { type, status, customer, startDate, endDate, country } = req.query;
     const filter = {};
     if (type) filter.type = type;
     if (status) filter.status = status;
+    if (country) filter.country = country;
     if (startDate || endDate) {
       filter.date = {};
       if (startDate) filter.date.$gte = new Date(startDate);
@@ -928,10 +929,11 @@ exports.getBillsReportJSON = async (req, res) => {
  * =========================== */
 exports.getBillsReportExcel = async (req, res) => {
   try {
-    const { type, status, customer, startDate, endDate } = req.query;
+    const { type, status, customer, startDate, endDate, country } = req.query;
     const filter = {};
     if (type) filter.type = type;
     if (status) filter.status = status;
+    if (country) filter.country = country;
     if (startDate || endDate) {
       filter.date = {};
       if (startDate) filter.date.$gte = new Date(startDate);

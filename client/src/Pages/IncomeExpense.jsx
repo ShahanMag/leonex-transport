@@ -8,14 +8,6 @@ import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
 import { formatDate } from '../utils/dateUtils';
 
-const emptyBillForm = {
-  type: 'expense',
-  name: '',
-  totalAmount: '',
-  date: '',
-  customer_id: '',
-};
-
 const emptyInstallmentForm = {
   amount: '',
   paid_date: '',
@@ -28,6 +20,20 @@ const STATUS_STYLES = {
   unpaid:  'bg-red-100 text-red-800',
 };
 
+const COUNTRY_CONFIG = {
+  saudi: { label: 'Saudi Arabia', symbol: 'SR' },
+  india: { label: 'India',        symbol: '₹'  },
+};
+
+const getEmptyBillForm = (country = 'saudi') => ({
+  type: 'expense',
+  name: '',
+  totalAmount: '',
+  date: '',
+  customer_id: '',
+  country,
+});
+
 export default function IncomeExpense() {
   const [bills, setBills] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -36,7 +42,7 @@ export default function IncomeExpense() {
   // Bill create/edit modal
   const [isBillOpen, setIsBillOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [billForm, setBillForm] = useState(emptyBillForm);
+  const [billForm, setBillForm] = useState(getEmptyBillForm());
   const [billErrors, setBillErrors] = useState({});
 
   // Installments modal
@@ -49,18 +55,21 @@ export default function IncomeExpense() {
 
   const navigate = useNavigate();
 
-  // Filter
+  // Filters
   const [typeFilter, setTypeFilter] = useState('');
+  const [activeCountry, setActiveCountry] = useState('saudi');
 
   useEffect(() => {
     fetchBills();
     fetchCustomers();
   }, []);
 
-  const fetchBills = async (type = typeFilter) => {
+  const fetchBills = async (type = typeFilter, country = activeCountry) => {
     try {
       setIsLoading(true);
-      const response = await billAPI.getAll(type || undefined);
+      const params = { country };
+      if (type) params.type = type;
+      const response = await billAPI.getAll(params);
       setBills(response.data);
     } catch {
       showError('Failed to fetch bills');
@@ -89,11 +98,17 @@ export default function IncomeExpense() {
   const handleFilterChange = (e) => {
     const val = e.target.value;
     setTypeFilter(val);
-    fetchBills(val);
+    fetchBills(val, activeCountry);
+  };
+
+  const handleTabChange = (country) => {
+    setActiveCountry(country);
+    setTypeFilter('');
+    fetchBills('', country);
   };
 
   const resetBillForm = () => {
-    setBillForm(emptyBillForm);
+    setBillForm(getEmptyBillForm(activeCountry));
     setBillErrors({});
     setEditingId(null);
   };
@@ -110,6 +125,7 @@ export default function IncomeExpense() {
       totalAmount: bill.totalAmount ?? '',
       date: bill.date ? new Date(bill.date).toISOString().split('T')[0] : '',
       customer_id: bill.customer_id?._id || bill.customer_id || '',
+      country: bill.country || 'saudi',
     });
     setEditingId(bill._id);
     setIsBillOpen(true);
@@ -136,6 +152,7 @@ export default function IncomeExpense() {
         totalAmount: parseFloat(billForm.totalAmount),
         date: billForm.date,
         customer_id: billForm.customer_id || null,
+        country: billForm.country || activeCountry,
       };
       if (editingId) {
         await billAPI.update(editingId, payload);
@@ -256,12 +273,13 @@ export default function IncomeExpense() {
   const totalExpense    = expenseBills.reduce((s, b) => s + b.totalAmount, 0);
   const paidExpense     = expenseBills.reduce((s, b) => s + (b.paidAmount || 0), 0);
   const pendingExpense  = expenseBills.reduce((s, b) => s + (b.dues || 0), 0);
-  const netBalance      = totalIncome - totalExpense;
 
   const customerOptions = [
     { value: '', label: '— None —' },
     ...customers.map(c => ({ value: c._id, label: c.name })),
   ];
+
+  const currencySymbol = COUNTRY_CONFIG[activeCountry].symbol;
 
   // ─── Table ──────────────────────────────────────────────────────
 
@@ -284,17 +302,17 @@ export default function IncomeExpense() {
     {
       key: 'totalAmount',
       label: 'Total',
-      render: (val) => val != null ? `${val.toLocaleString()} SR` : '-',
+      render: (val) => val != null ? `${val.toLocaleString()} ${currencySymbol}` : '-',
     },
     {
       key: 'paidAmount',
       label: 'Paid',
-      render: (val) => val != null ? `${val.toLocaleString()} SR` : '-',
+      render: (val) => val != null ? `${val.toLocaleString()} ${currencySymbol}` : '-',
     },
     {
       key: 'dues',
       label: 'Dues',
-      render: (val) => val != null ? `${val.toLocaleString()} SR` : '-',
+      render: (val) => val != null ? `${val.toLocaleString()} ${currencySymbol}` : '-',
     },
     {
       key: 'status',
@@ -334,6 +352,23 @@ export default function IncomeExpense() {
         </div>
       </div>
 
+      {/* Country Tabs */}
+      <div className="flex border-b border-gray-200 mb-6">
+        {Object.entries(COUNTRY_CONFIG).map(([key, cfg]) => (
+          <button
+            key={key}
+            onClick={() => handleTabChange(key)}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeCountry === key
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {cfg.label}
+          </button>
+        ))}
+      </div>
+
       {/* Summary Cards */}
       <div className="space-y-3 mb-6">
         {/* Income Row */}
@@ -342,21 +377,21 @@ export default function IncomeExpense() {
             <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📥</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Total Income</p>
-              <p className="text-xl font-bold text-green-600">{totalIncome.toLocaleString()} SR</p>
+              <p className="text-xl font-bold text-green-600">{totalIncome.toLocaleString()} {currencySymbol}</p>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-300">
             <div className="bg-green-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Received Income</p>
-              <p className="text-xl font-bold text-green-500">{receivedIncome.toLocaleString()} SR</p>
+              <p className="text-xl font-bold text-green-500">{receivedIncome.toLocaleString()} {currencySymbol}</p>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-yellow-400">
             <div className="bg-yellow-400 p-3 rounded-lg"><span className="text-white text-xl">⏳</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Pending Income</p>
-              <p className="text-xl font-bold text-yellow-500">{pendingIncome.toLocaleString()} SR</p>
+              <p className="text-xl font-bold text-yellow-500">{pendingIncome.toLocaleString()} {currencySymbol}</p>
             </div>
           </div>
         </div>
@@ -366,21 +401,21 @@ export default function IncomeExpense() {
             <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📤</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Total Expense</p>
-              <p className="text-xl font-bold text-red-600">{totalExpense.toLocaleString()} SR</p>
+              <p className="text-xl font-bold text-red-600">{totalExpense.toLocaleString()} {currencySymbol}</p>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-300">
             <div className="bg-red-300 p-3 rounded-lg"><span className="text-white text-xl">💸</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Paid Expense</p>
-              <p className="text-xl font-bold text-red-500">{paidExpense.toLocaleString()} SR</p>
+              <p className="text-xl font-bold text-red-500">{paidExpense.toLocaleString()} {currencySymbol}</p>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-400">
             <div className="bg-orange-400 p-3 rounded-lg"><span className="text-white text-xl">⏳</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Pending Expense</p>
-              <p className="text-xl font-bold text-orange-500">{pendingExpense.toLocaleString()} SR</p>
+              <p className="text-xl font-bold text-orange-500">{pendingExpense.toLocaleString()} {currencySymbol}</p>
             </div>
           </div>
         </div>
@@ -420,6 +455,15 @@ export default function IncomeExpense() {
       >
         <Form
           fields={[
+            {
+              name: 'country',
+              label: 'Country',
+              type: 'select',
+              options: [
+                { value: 'saudi', label: 'Saudi Arabia' },
+                { value: 'india', label: 'India' },
+              ],
+            },
             {
               name: 'type',
               label: 'Type',
@@ -466,15 +510,15 @@ export default function IncomeExpense() {
             <div className="grid grid-cols-3 gap-3 bg-gray-50 rounded-lg p-4 text-center">
               <div>
                 <p className="text-xs text-gray-500 mb-1">Total</p>
-                <p className="font-bold text-gray-800">{activeBill.totalAmount?.toLocaleString()} SR</p>
+                <p className="font-bold text-gray-800">{activeBill.totalAmount?.toLocaleString()} {currencySymbol}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Paid</p>
-                <p className="font-bold text-green-600">{activeBill.paidAmount?.toLocaleString()} SR</p>
+                <p className="font-bold text-green-600">{activeBill.paidAmount?.toLocaleString()} {currencySymbol}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Dues</p>
-                <p className="font-bold text-red-600">{activeBill.dues?.toLocaleString()} SR</p>
+                <p className="font-bold text-red-600">{activeBill.dues?.toLocaleString()} {currencySymbol}</p>
               </div>
               <div className="col-span-3">
                 <span className={`px-3 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[activeBill.status] || ''}`}>
@@ -493,7 +537,7 @@ export default function IncomeExpense() {
                   {activeBill.installments.map((inst) => (
                     <div key={inst._id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3">
                       <div>
-                        <p className="text-sm font-semibold text-gray-800">{inst.amount?.toLocaleString()} SR</p>
+                        <p className="text-sm font-semibold text-gray-800">{inst.amount?.toLocaleString()} {currencySymbol}</p>
                         <p className="text-xs text-gray-500">{inst.paid_date ? formatDate(inst.paid_date) : '-'}</p>
                         {inst.notes && <p className="text-xs text-gray-400 mt-0.5">{inst.notes}</p>}
                       </div>
@@ -519,7 +563,7 @@ export default function IncomeExpense() {
                 </h4>
                 <Form
                   fields={[
-                    { name: 'amount',   label: 'Amount (SR)', type: 'number', placeholder: '0', required: true },
+                    { name: 'amount',   label: `Amount (${currencySymbol})`, type: 'number', placeholder: '0', required: true },
                     { name: 'paid_date', label: 'Payment Date', type: 'date',   required: true },
                     { name: 'notes',    label: 'Notes',        placeholder: 'Optional note' },
                   ]}

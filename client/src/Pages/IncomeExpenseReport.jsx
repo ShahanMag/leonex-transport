@@ -10,12 +10,18 @@ const STATUS_STYLES = {
   unpaid:  'bg-red-100 text-red-800',
 };
 
+const COUNTRY_CONFIG = {
+  saudi: { label: 'Saudi Arabia', symbol: 'SR' },
+  india: { label: 'India',        symbol: '₹'  },
+};
+
 export default function IncomeExpenseReport() {
   const [reportData, setReportData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
 
   // Filters
+  const [activeCountry, setActiveCountry]   = useState('saudi');
   const [typeFilter, setTypeFilter]         = useState('');
   const [statusFilter, setStatusFilter]     = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
@@ -29,14 +35,26 @@ export default function IncomeExpenseReport() {
     fetchReport();
   }, []);
 
-  const buildParams = () => {
-    const params = {};
+  const buildParams = (country = activeCountry) => {
+    const params = { country };
     if (typeFilter)     params.type     = typeFilter;
     if (statusFilter)   params.status   = statusFilter;
     if (customerFilter) params.customer = customerFilter;
     if (startDate)      params.startDate = startDate;
     if (endDate)        params.endDate   = endDate;
     return params;
+  };
+
+  const currencySymbol = COUNTRY_CONFIG[activeCountry].symbol;
+
+  const handleTabChange = (country) => {
+    setActiveCountry(country);
+    setTypeFilter('');
+    setStatusFilter('');
+    setCustomerFilter('');
+    setStartDate('');
+    setEndDate('');
+    fetchReport({ country });
   };
 
   const fetchReport = async (params) => {
@@ -51,7 +69,7 @@ export default function IncomeExpenseReport() {
     }
   };
 
-  const handleApplyFilters = () => fetchReport();
+  const handleApplyFilters = () => fetchReport(buildParams());
 
   const handleDownload = async () => {
     try {
@@ -97,14 +115,14 @@ export default function IncomeExpenseReport() {
           <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📥</span></div>
           <div>
             <p className="text-sm text-gray-500">Total Income</p>
-            <p className="text-xl font-bold text-green-600">{(summary.totalIncome || 0).toLocaleString()} SR</p>
+            <p className="text-xl font-bold text-green-600">{(summary.totalIncome || 0).toLocaleString()} {currencySymbol}</p>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
           <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📤</span></div>
           <div>
             <p className="text-sm text-gray-500">Total Expense</p>
-            <p className="text-xl font-bold text-red-600">{(summary.totalExpense || 0).toLocaleString()} SR</p>
+            <p className="text-xl font-bold text-red-600">{(summary.totalExpense || 0).toLocaleString()} {currencySymbol}</p>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
@@ -114,7 +132,7 @@ export default function IncomeExpenseReport() {
           <div>
             <p className="text-sm text-gray-500">Net Balance</p>
             <p className={`text-xl font-bold ${(summary.netBalance || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-              {(summary.netBalance || 0).toLocaleString()} SR
+              {(summary.netBalance || 0).toLocaleString()} {currencySymbol}
             </p>
           </div>
         </div>
@@ -122,9 +140,26 @@ export default function IncomeExpenseReport() {
           <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
           <div>
             <p className="text-sm text-gray-500">Total Due</p>
-            <p className="text-xl font-bold text-purple-600">{(summary.totalDue || 0).toLocaleString()} SR</p>
+            <p className="text-xl font-bold text-purple-600">{(summary.totalDue || 0).toLocaleString()} {currencySymbol}</p>
           </div>
         </div>
+      </div>
+
+      {/* Country Tabs */}
+      <div className="flex border-b border-gray-200 mb-6">
+        {Object.entries(COUNTRY_CONFIG).map(([key, cfg]) => (
+          <button
+            key={key}
+            onClick={() => handleTabChange(key)}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeCountry === key
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {cfg.label}
+          </button>
+        ))}
       </div>
 
       {/* Filters */}
@@ -189,7 +224,7 @@ export default function IncomeExpenseReport() {
           <Button variant="primary" onClick={handleApplyFilters} disabled={isLoading}>
             Apply
           </Button>
-          <Button variant="secondary" onClick={() => { setTypeFilter(''); setStatusFilter(''); setCustomerFilter(''); setStartDate(''); setEndDate(''); fetchReport({}); }}>
+          <Button variant="secondary" onClick={() => { setTypeFilter(''); setStatusFilter(''); setCustomerFilter(''); setStartDate(''); setEndDate(''); fetchReport({ country: activeCountry }); }}>
             Reset
           </Button>
         </div>
@@ -228,9 +263,9 @@ export default function IncomeExpenseReport() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-800">{b.name}</td>
                     <td className="px-4 py-3 text-sm text-gray-800">{b.customer || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{b.totalAmount?.toLocaleString()} SR</td>
-                    <td className="px-4 py-3 text-sm text-green-700 font-medium whitespace-nowrap">{b.paidAmount?.toLocaleString()} SR</td>
-                    <td className="px-4 py-3 text-sm text-red-700 font-medium whitespace-nowrap">{b.dues?.toLocaleString()} SR</td>
+                    <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{b.totalAmount?.toLocaleString()} {currencySymbol}</td>
+                    <td className="px-4 py-3 text-sm text-green-700 font-medium whitespace-nowrap">{b.paidAmount?.toLocaleString()} {currencySymbol}</td>
+                    <td className="px-4 py-3 text-sm text-red-700 font-medium whitespace-nowrap">{b.dues?.toLocaleString()} {currencySymbol}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[b.status] || ''}`}>
                         {b.status}

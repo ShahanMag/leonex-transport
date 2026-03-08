@@ -94,6 +94,7 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
           <div class="detail-item"><div class="label">Driver Name</div><div class="value">${driver?.name || "N/A"}</div></div>
           <div class="detail-item"><div class="label">Iqama ID</div><div class="value">${driver?.iqama_id || "N/A"}</div></div>
           <div class="detail-item"><div class="label">Phone</div><div class="value">${driver?.phone_country_code || ""} ${driver?.phone_number || "N/A"}</div></div>
+          ${payment.load_id?.agent_id?.name ? `<div class="detail-item"><div class="label">Agent</div><div class="value">${payment.load_id.agent_id.name}</div></div>` : ''}
         </div>
 
         <!-- Company Details -->

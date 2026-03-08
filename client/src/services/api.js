@@ -199,7 +199,7 @@ export const vehicleTypeAPI = {
 // 💵 Bill (Income/Expense) Services
 // ==========================
 export const billAPI = {
-  getAll: (type) => api.get('/bills', { params: type ? { type } : {} }),
+  getAll: (params = {}) => api.get('/bills', { params }),
   getById: (id) => api.get(`/bills/${id}`),
   create: (data) => api.post('/bills', data),
   update: (id, data) => api.put(`/bills/${id}`, data),
