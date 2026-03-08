@@ -11,7 +11,7 @@ const Quotation = require('../models/Quotation');
 const { generateVehicleReceiptCode, generateDriverReceiptCode } = require('../utils/codeGenerator');
 
 // Pre-load header and footer images as base64 data URIs for Puppeteer PDF templates
-const headerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA header 2.png')).toString('base64')}`;
+const headerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA header 2.PNG')).toString('base64')}`;
 const footerBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/EESA Footer.png')).toString('base64')}`;
 const watermarkBase64 = `data:image/png;base64,${fs.readFileSync(path.join(__dirname, '../assets/WaterMark.png')).toString('base64')}`;
 
