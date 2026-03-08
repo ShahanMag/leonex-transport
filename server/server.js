@@ -23,6 +23,7 @@ const billRoutes = require("./routes/bills");
 const quotationRoutes = require('./routes/quotation');
 const termRoutes = require('./routes/term');
 const agentRoutes = require('./routes/agents');
+const invoiceRoutes = require('./routes/invoices');
 // Initialize Express app
 const app = express();
 
@@ -95,6 +96,7 @@ app.use("/api/bills", billRoutes);
 app.use('/api/terms', termRoutes);
 app.use('/api/quotations', quotationRoutes);
 app.use('/api/agents', agentRoutes);
+app.use('/api/invoices', invoiceRoutes);
 // Error handling middleware
 app.use(errorHandler);
 

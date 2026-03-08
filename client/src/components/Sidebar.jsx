@@ -38,6 +38,8 @@ export default function Sidebar() {
       items: [
         { path: "/income-expense", label: "Income & Expense", icon: "💵" },
         { path: "/income-expense/report", label: "I&E Report", icon: "📊" },
+        { path: "/invoices", label: "Invoices", icon: "🧾" },
+        { path: "/invoices/report", label: "Invoices Report", icon: "📋" },
       ],
     },
   ];

@@ -21,6 +21,8 @@ import Agents from "./Pages/Agents";
 import Quotations from "./Pages/Quotations";
 import QuotationDetail from "./Pages/QuotationDetail";
 import QuotationForm from "./Pages/QuotationForm";
+import Invoices from "./Pages/Invoices";
+import InvoicesReport from "./Pages/InvoicesReport";
 import './App.css';
 
 // Protected Route Component
@@ -255,6 +257,26 @@ function App() {
             <ProtectedRoute>
               <AppLayout>
                 <QuotationDetail />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/invoices"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <Invoices />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/invoices/report"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <InvoicesReport />
               </AppLayout>
             </ProtectedRoute>
           }

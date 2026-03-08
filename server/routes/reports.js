@@ -22,4 +22,8 @@ router.get('/loads', reportController.getLoadReport);
 router.get('/bills', reportController.getBillsReportJSON);
 router.get('/bills/excel', reportController.getBillsReportExcel);
 
+// 🧾 Invoices report
+router.get('/invoices', reportController.getInvoicesReportJSON);
+router.get('/invoices/excel', reportController.getInvoicesReportExcel);
+
 module.exports = router;

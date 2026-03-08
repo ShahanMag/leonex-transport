@@ -7,6 +7,7 @@ const Load = require('../models/Load');
 const Payment = require('../models/Payment');
 const Bill = require('../models/Bill');
 const Customer = require('../models/Customer');
+const Invoice = require('../models/Invoice');
 
 /**
  * 🧩 Helper: Generate Excel file
@@ -992,5 +993,112 @@ exports.getBillsReportExcel = async (req, res) => {
   } catch (err) {
     console.error('Bills report Excel error:', err);
     res.status(500).json({ message: 'Failed to generate bills report' });
+  }
+};
+
+/* ===========================
+ * 🧾 INVOICES REPORT (JSON)
+ * =========================== */
+exports.getInvoicesReportJSON = async (req, res) => {
+  try {
+    const { company_id, customer_id, startDate, endDate } = req.query;
+    const filter = {};
+    if (company_id)  filter.company_id  = company_id;
+    if (customer_id) filter.customer_id = customer_id;
+    if (startDate || endDate) {
+      filter.date = {};
+      if (startDate) filter.date.$gte = new Date(startDate);
+      if (endDate)   filter.date.$lte = new Date(endDate + 'T23:59:59.999Z');
+    }
+
+    const invoices = await Invoice.find(filter)
+      .populate('company_id', 'name')
+      .populate('customer_id', 'name')
+      .sort({ date: -1 })
+      .lean();
+
+    const totalAmount     = invoices.reduce((s, inv) => s + inv.amount, 0);
+    const totalVAT        = invoices.reduce((s, inv) => s + inv.amount * 0.15, 0);
+    const totalCommission = invoices.reduce((s, inv) => s + inv.amount * (inv.commission_pct / 100), 0);
+    const totalBalance    = totalAmount - totalVAT - totalCommission;
+
+    const data = invoices.map(inv => ({
+      _id:               inv._id,
+      invoice_number:    inv.invoice_number,
+      company:           inv.company_id?.name || '-',
+      customer:          inv.customer_id?.name || '-',
+      date:              inv.date,
+      amount:            inv.amount,
+      vat_amount:        inv.amount * 0.15,
+      commission_pct:    inv.commission_pct,
+      commission_amount: inv.amount * (inv.commission_pct / 100),
+      balance:           inv.amount - inv.amount * 0.15 - inv.amount * (inv.commission_pct / 100),
+      notes:             inv.notes || '-',
+      description:       inv.description || '-',
+    }));
+
+    res.status(200).json({
+      summary: { totalAmount, totalVAT, totalCommission, totalBalance },
+      data,
+    });
+  } catch (err) {
+    console.error('Invoices report JSON error:', err);
+    res.status(500).json({ message: 'Failed to load invoices report' });
+  }
+};
+
+/* ===========================
+ * 🧾 INVOICES REPORT (Excel)
+ * =========================== */
+exports.getInvoicesReportExcel = async (req, res) => {
+  try {
+    const { company_id, customer_id, startDate, endDate } = req.query;
+    const filter = {};
+    if (company_id)  filter.company_id  = company_id;
+    if (customer_id) filter.customer_id = customer_id;
+    if (startDate || endDate) {
+      filter.date = {};
+      if (startDate) filter.date.$gte = new Date(startDate);
+      if (endDate)   filter.date.$lte = new Date(endDate + 'T23:59:59.999Z');
+    }
+
+    const invoices = await Invoice.find(filter)
+      .populate('company_id', 'name')
+      .populate('customer_id', 'name')
+      .sort({ date: -1 })
+      .lean();
+
+    const columns = [
+      { header: '#',               key: 'No',         width: 6  },
+      { header: 'Invoice No.',     key: 'InvoiceNo',  width: 20 },
+      { header: 'Company',         key: 'Company',    width: 25 },
+      { header: 'Customer',        key: 'Customer',   width: 25 },
+      { header: 'Date',            key: 'Date',       width: 15 },
+      { header: 'Amount',          key: 'Amount',     width: 15 },
+      { header: 'VAT (15%)',       key: 'VAT',        width: 15 },
+      { header: 'Commission %',    key: 'CommPct',    width: 15 },
+      { header: 'Commission Amt',  key: 'CommAmt',    width: 15 },
+      { header: 'Balance',         key: 'Balance',    width: 15 },
+      { header: 'Notes',           key: 'Notes',      width: 30 },
+    ];
+
+    const data = invoices.map((inv, idx) => ({
+      No:        idx + 1,
+      InvoiceNo: inv.invoice_number,
+      Company:   inv.company_id?.name || '-',
+      Customer:  inv.customer_id?.name || '-',
+      Date:      inv.date ? moment(inv.date).format('YYYY-MM-DD') : '-',
+      Amount:    inv.amount,
+      VAT:       inv.amount * 0.15,
+      CommPct:   inv.commission_pct,
+      CommAmt:   inv.amount * (inv.commission_pct / 100),
+      Balance:   inv.amount - inv.amount * 0.15 - inv.amount * (inv.commission_pct / 100),
+      Notes:     inv.notes || '-',
+    }));
+
+    await generateExcel('Invoices Report', columns, data, res);
+  } catch (err) {
+    console.error('Invoices report Excel error:', err);
+    res.status(500).json({ message: 'Failed to generate invoices report' });
   }
 };

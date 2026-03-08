@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import { quotationAPI, customerAPI, termAPI } from '../services/api';
 import Button from '../components/Button';
 import { showSuccess, showError } from '../utils/toast';
@@ -22,6 +23,16 @@ const add15Days = (dateStr) => {
 
 const defaultForm = { customer: '', status: 'Draft', quotation_date: today(), valid_until: add15Days(today()), notes: '' };
 
+function downloadRatesTemplate() {
+  const headers = ['From', 'To', '4m Dyna (SAR)', '6m Dyna (SAR)', 'FSR (SAR)', 'Trailer (SAR)'];
+  const example = ['Riyadh', 'Jeddah', 500, 700, 900, 1200];
+  const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+  ws['!cols'] = headers.map(() => ({ wch: 18 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Transport Rates');
+  XLSX.writeFile(wb, 'QuotationRates_Template.xlsx');
+}
+
 export default function QuotationForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -37,6 +48,7 @@ export default function QuotationForm() {
   const [errors, setErrors] = useState({});
   const [rowErrors, setRowErrors] = useState([]);
   const [quotationNumber, setQuotationNumber] = useState('');
+  const rateFileRef = useRef(null);
 
   useEffect(() => {
     loadDropdowns();
@@ -84,6 +96,38 @@ export default function QuotationForm() {
       navigate('/quotations');
     } finally {
       setIsFetching(false);
+    }
+  };
+
+  const handleRateFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ''; // allow re-selecting same file
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (rawRows.length === 0) { showError('No data rows found in the file.'); return; }
+
+      const parsed = rawRows
+        .map(r => ({
+          from_location: String(r['From'] ?? r['from_location'] ?? r['FROM'] ?? '').trim(),
+          to_location:   String(r['To']   ?? r['to_location']   ?? r['TO']   ?? '').trim(),
+          rate_4m_dyna:  r['4m Dyna (SAR)'] ?? r['rate_4m_dyna'] ?? r['4m Dyna'] ?? '',
+          rate_6m_dyna:  r['6m Dyna (SAR)'] ?? r['rate_6m_dyna'] ?? r['6m Dyna'] ?? '',
+          rate_fsr:      r['FSR (SAR)']     ?? r['rate_fsr']     ?? r['FSR']     ?? '',
+          rate_trailer:  r['Trailer (SAR)'] ?? r['rate_trailer'] ?? r['Trailer'] ?? '',
+        }))
+        .filter(r => r.from_location || r.to_location); // skip fully blank rows
+
+      if (parsed.length === 0) { showError('No valid rows found. Ensure From/To columns are filled.'); return; }
+
+      setTransportRates(parsed);
+      setRowErrors([]);
+      showSuccess(`${parsed.length} row${parsed.length !== 1 ? 's' : ''} loaded from file`);
+    } catch {
+      showError('Failed to read the Excel file.');
     }
   };
 
@@ -272,12 +316,37 @@ export default function QuotationForm() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-gray-700">Transport Rates</h3>
-            <button
-              onClick={addRow}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              + Add Row
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={downloadRatesTemplate}
+                className="text-sm text-gray-500 hover:text-gray-700 font-medium"
+                title="Download Excel template"
+              >
+                📥 Template
+              </button>
+              <button
+                type="button"
+                onClick={() => rateFileRef.current?.click()}
+                className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+                title="Upload Excel to replace table rows"
+              >
+                📤 Upload Rows
+              </button>
+              <input
+                ref={rateFileRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleRateFileUpload}
+              />
+              <button
+                onClick={addRow}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                + Add Row
+              </button>
+            </div>
           </div>
           {errors.transport_rates && <p className="text-red-500 text-xs mb-2">{errors.transport_rates}</p>}
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
