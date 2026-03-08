@@ -53,12 +53,12 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
         .receipt-container { max-width: 800px; margin: 0 auto; }
         .receipt-info { display: flex; justify-content: space-between; margin-bottom: 10px; }
         .info-block { flex: 1; }
-        .info-label { font-weight: bold; color: #6b7280; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
-        .info-value { color: #1f2937; font-size: 11px; margin-bottom: 4px; }
+        .info-label { font-weight: bold; color: #6b7280; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 3px; }
+        .info-value { color: #1f2937; font-size: 11px; margin-bottom: 8px; }
         .section-title { font-size: 10px; font-weight: bold; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin: 12px 0 5px 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px; }
-        .details-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px 14px; margin-bottom: 8px; }
-        .detail-item .label { font-size: 10px; color: #374151; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
-        .detail-item .value { font-size: 11px; color: #1f2937; font-weight: 500; margin-top: 1px; }
+        .details-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 14px; margin-bottom: 8px; }
+        .detail-item .label { font-size: 10px; color: #374151; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 3px; }
+        .detail-item .value { font-size: 11px; color: #1f2937; font-weight: 500; margin-top: 2px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
         th { background-color: #f9fafb; padding: 5px 7px; text-align: left; font-weight: 600; color: #6b7280; border-bottom: 1px solid #e5e7eb; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; }
         td { padding: 5px 7px; border-bottom: 1px solid #f3f4f6; font-size: 11px; color: #374151; }
