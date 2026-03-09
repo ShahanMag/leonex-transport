@@ -13,7 +13,7 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
         return upTo.map((inst, index) => `
           <tr>
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${index + 1}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${inst.amount.toLocaleString()}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${inst.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(inst.paid_date || inst.date).tz("Asia/Riyadh").format("DD/MM/YYYY")}</td>
             <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;"><span class="status-badge status-paid">PAID</span></td>
           </tr>`).join('');
@@ -26,7 +26,7 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
             (inst, index) => `
         <tr>
           <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${index + 1}</td>
-          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${inst.amount.toLocaleString()}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">SAR ${inst.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${moment(
             inst.paid_date || inst.date,
           )
@@ -49,7 +49,7 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
       <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, 'Noto Sans Arabic', sans-serif; padding: 15px; color: #1f2937; font-size: 11px; line-height: 1.1; }
+        body { font-family: Arial, 'Noto Sans Arabic', sans-serif; padding: 15px; color: #1f2937; font-size: 11px; line-height: 1.2; }
         .receipt-container { max-width: 800px; margin: 0 auto; }
         .receipt-info { display: flex; justify-content: space-between; margin-bottom: 10px; }
         .info-block { flex: 1; }
@@ -137,6 +137,7 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
             ${installmentsRows}
           </tbody>
         </table>
+        <div style="margin-bottom: 10px;"></div>
         `
             : ""
         }
@@ -147,15 +148,15 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
           <div style="margin-top: 12px; border-top: 1px solid #e5e7eb; padding-top: 10px;">
             <div class="summary-row">
               <span class="summary-label">Total Amount</span>
-              <span class="summary-value">SAR ${payment.total_amount.toLocaleString()}</span>
+              <span class="summary-value">SAR ${payment.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div class="summary-row">
               <span class="summary-label">Total Paid</span>
-              <span class="summary-value" style="color: #059669;">SAR ${payment.total_paid.toLocaleString()}</span>
+              <span class="summary-value" style="color: #059669;">SAR ${payment.total_paid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
             <div class="summary-row" style="border-bottom: none;">
               <span class="summary-label">Total Due</span>
-              <span class="summary-value" style="color: #dc2626;">SAR ${payment.total_due.toLocaleString()}</span>
+              <span class="summary-value" style="color: #dc2626;">SAR ${payment.total_due.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
 

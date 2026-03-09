@@ -281,28 +281,28 @@ export default function Invoices() {
           <div className="bg-blue-500 p-3 rounded-lg"><span className="text-white text-xl">💰</span></div>
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-wide">Total Amount</p>
-            <p className="text-xl font-bold text-blue-600">{totalAmount.toLocaleString()} SR</p>
+            <p className="text-xl font-bold text-blue-600">{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR</p>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-500">
           <div className="bg-orange-500 p-3 rounded-lg"><span className="text-white text-xl">🏛️</span></div>
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-wide">Total VAT (15%)</p>
-            <p className="text-xl font-bold text-orange-600">{totalVAT.toLocaleString()} SR</p>
+            <p className="text-xl font-bold text-orange-600">{totalVAT.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR</p>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-500">
           <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📊</span></div>
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-wide">Total Commission</p>
-            <p className="text-xl font-bold text-purple-600">{totalCommission.toLocaleString()} SR</p>
+            <p className="text-xl font-bold text-purple-600">{totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR</p>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-500">
           <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📈</span></div>
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-wide">Net Balance</p>
-            <p className="text-xl font-bold text-green-600">{totalBalance.toLocaleString()} SR</p>
+            <p className="text-xl font-bold text-green-600">{totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR</p>
           </div>
         </div>
       </div>
