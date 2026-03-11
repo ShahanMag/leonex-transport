@@ -11,7 +11,13 @@ const quotationSchema = new mongoose.Schema(
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Customer',
-      required: true,
+      default: null,
+    },
+
+    company: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Company',
+      default: null,
     },
 
     // 🔥 Transport Table Rows

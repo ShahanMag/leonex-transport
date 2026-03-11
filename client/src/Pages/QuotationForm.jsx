@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { quotationAPI, customerAPI, termAPI } from '../services/api';
+import { quotationAPI, customerAPI, companyAPI, termAPI } from '../services/api';
 import Button from '../components/Button';
 import { showSuccess, showError } from '../utils/toast';
 
@@ -21,7 +21,7 @@ const add15Days = (dateStr) => {
   return d.toISOString().slice(0, 10);
 };
 
-const defaultForm = { customer: '', status: 'Draft', quotation_date: today(), valid_until: add15Days(today()), notes: '' };
+const defaultForm = { clientType: 'customer', customer: '', company: '', status: 'Draft', quotation_date: today(), valid_until: add15Days(today()), notes: '' };
 
 function downloadRatesTemplate() {
   const headers = ['From', 'To', '4m Dyna (SAR)', '6m Dyna (SAR)', 'FSR (SAR)', 'Trailer (SAR)'];
@@ -41,6 +41,7 @@ export default function QuotationForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(isEdit);
   const [customers, setCustomers] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [allTerms, setAllTerms] = useState([]);
   const [formValues, setFormValues] = useState(defaultForm);
   const [transportRates, setTransportRates] = useState([emptyRow()]);
@@ -57,8 +58,9 @@ export default function QuotationForm() {
 
   const loadDropdowns = async () => {
     try {
-      const [custRes, termRes] = await Promise.all([customerAPI.getAll(), termAPI.getAll()]);
+      const [custRes, compRes, termRes] = await Promise.all([customerAPI.getAll(), companyAPI.getAll(), termAPI.getAll()]);
       setCustomers(custRes.data || []);
+      setCompanies(compRes.data || []);
       setAllTerms((termRes.data || []).filter((t) => t.is_active));
     } catch {
       showError('Failed to load form data');
@@ -71,8 +73,11 @@ export default function QuotationForm() {
       const res = await quotationAPI.getById(id);
       const q = res.data;
       setQuotationNumber(q.quotation_number);
+      const hasCompany = !!(q.company?._id || q.company);
       setFormValues({
+        clientType: hasCompany ? 'company' : 'customer',
         customer: q.customer?._id || q.customer || '',
+        company: q.company?._id || q.company || '',
         status: q.status || 'Draft',
         quotation_date: q.quotation_date ? q.quotation_date.slice(0, 10) : today(),
         valid_until: q.valid_until ? q.valid_until.slice(0, 10) : add15Days(q.quotation_date?.slice(0, 10) || today()),
@@ -133,7 +138,8 @@ export default function QuotationForm() {
 
   const handleSubmit = async () => {
     const newErrors = {};
-    if (!formValues.customer) newErrors.customer = 'Customer is required';
+    if (formValues.clientType === 'customer' && !formValues.customer) newErrors.customer = 'Customer is required';
+    if (formValues.clientType === 'company' && !formValues.company) newErrors.company = 'Company is required';
     if (!formValues.quotation_date) newErrors.quotation_date = 'Quotation date is required';
     if (!formValues.valid_until) newErrors.valid_until = 'Valid until date is required';
 
@@ -169,12 +175,20 @@ export default function QuotationForm() {
         notes: formValues.notes,
       };
 
+      if (formValues.clientType === 'customer') {
+        payload.customer = formValues.customer;
+        payload.company = null;
+      } else {
+        payload.company = formValues.company;
+        payload.customer = null;
+      }
+
       if (isEdit) {
         await quotationAPI.update(id, { ...payload, status: formValues.status });
         showSuccess('Quotation updated successfully');
         navigate(`/quotations/${id}`);
       } else {
-        const res = await quotationAPI.create({ ...payload, customer: formValues.customer });
+        const res = await quotationAPI.create(payload);
         showSuccess('Quotation created successfully');
         navigate(`/quotations/${res.data._id}`);
       }
@@ -232,24 +246,58 @@ export default function QuotationForm() {
         {/* Basic fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Customer <span className="text-red-500">*</span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Client Type</label>
             <select
-              value={formValues.customer}
+              value={formValues.clientType}
               onChange={(e) => {
-                setFormValues((v) => ({ ...v, customer: e.target.value }));
-                if (e.target.value) setErrors((prev) => ({ ...prev, customer: undefined }));
+                setFormValues((v) => ({ ...v, clientType: e.target.value, customer: '', company: '' }));
+                setErrors((prev) => ({ ...prev, customer: undefined, company: undefined }));
               }}
               disabled={isEdit || isLoading}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm disabled:bg-gray-100 ${errors.customer ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-500'}`}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100"
             >
-              <option value="">-- Select Customer --</option>
-              {customers.map((c) => (
-                <option key={c._id} value={c._id}>{c.name}</option>
-              ))}
+              <option value="customer">Customer</option>
+              <option value="company">Company</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {formValues.clientType === 'customer' ? 'Customer' : 'Company'} <span className="text-red-500">*</span>
+            </label>
+            {formValues.clientType === 'customer' ? (
+              <select
+                value={formValues.customer}
+                onChange={(e) => {
+                  setFormValues((v) => ({ ...v, customer: e.target.value }));
+                  if (e.target.value) setErrors((prev) => ({ ...prev, customer: undefined }));
+                }}
+                disabled={isEdit || isLoading}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm disabled:bg-gray-100 ${errors.customer ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-500'}`}
+              >
+                <option value="">-- Select Customer --</option>
+                {customers.map((c) => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={formValues.company}
+                onChange={(e) => {
+                  setFormValues((v) => ({ ...v, company: e.target.value }));
+                  if (e.target.value) setErrors((prev) => ({ ...prev, company: undefined }));
+                }}
+                disabled={isEdit || isLoading}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm disabled:bg-gray-100 ${errors.company ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-blue-500'}`}
+              >
+                <option value="">-- Select Company --</option>
+                {companies.map((c) => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
+              </select>
+            )}
             {errors.customer && <p className="text-red-500 text-xs mt-1">{errors.customer}</p>}
+            {errors.company && <p className="text-red-500 text-xs mt-1">{errors.company}</p>}
           </div>
 
           <div>

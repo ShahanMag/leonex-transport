@@ -344,7 +344,7 @@ exports.generateQuotationPdf = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const quotation = await Quotation.findById(id).populate('customer').lean();
+    const quotation = await Quotation.findById(id).populate('customer').populate('company').lean();
 
     if (!quotation || quotation.is_deleted) {
       return res.status(404).json({ message: 'Quotation not found' });

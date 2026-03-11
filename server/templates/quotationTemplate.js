@@ -3,6 +3,14 @@ const moment = require('moment-timezone');
 const generateQuotationHTML = (quotation, options = {}) => {
   const { watermark = null } = options;
   const customer = quotation.customer || {};
+  const company = quotation.company || {};
+  const isCompany = !!quotation.company;
+  const clientName = isCompany ? (company.name || '—') : (customer.name || '—');
+  const clientPhone = isCompany
+    ? [company.phone_country_code, company.phone_number].filter(Boolean).join(' ')
+    : [customer.phone_country_code, customer.phone_number].filter(Boolean).join(' ');
+  const clientEmail = isCompany ? (company.email || '') : (customer.email || '');
+  const clientContact = isCompany ? (company.contact || '') : '';
   const quotationDate = quotation.quotation_date
     ? moment(quotation.quotation_date).tz('Asia/Riyadh').format('DD/MM/YYYY')
     : moment().tz('Asia/Riyadh').format('DD/MM/YYYY');
@@ -25,9 +33,7 @@ const generateQuotationHTML = (quotation, options = {}) => {
     .map((t, i) => `<li>${t.description || ''}</li>`)
     .join('');
 
-  const customerPhone = [customer.phone_country_code, customer.phone_number]
-    .filter(Boolean)
-    .join(' ');
+  // clientPhone computed above
 
   return `<!DOCTYPE html>
 <html>
@@ -169,9 +175,10 @@ const generateQuotationHTML = (quotation, options = {}) => {
     </div>
     <div class="party-box">
       <div class="party-label">Second Party (Client)</div>
-      <div class="party-row"><span class="party-val">${customer.name || '—'}</span></div>
-      ${customer.email ? `<div class="party-row"><span class="party-key">Email: </span><span class="party-val">${customer.email}</span></div>` : ''}
-      ${customerPhone ? `<div class="party-row"><span class="party-key">Phone: </span><span class="party-val">${customerPhone}</span></div>` : ''}
+      <div class="party-row"><span class="party-val">${clientName}</span></div>
+      ${clientContact ? `<div class="party-row"><span class="party-key">Contact: </span><span class="party-val">${clientContact}</span></div>` : ''}
+      ${clientEmail ? `<div class="party-row"><span class="party-key">Email: </span><span class="party-val">${clientEmail}</span></div>` : ''}
+      ${clientPhone ? `<div class="party-row"><span class="party-key">Phone: </span><span class="party-val">${clientPhone}</span></div>` : ''}
     </div>
   </div>
 
@@ -251,9 +258,9 @@ const generateQuotationHTML = (quotation, options = {}) => {
         <div class="sig-field">Mobile: 0508702137</div>
       </div>
       <div class="sig-box">
-        <div class="sig-party-label">Second Party — ${customer.name || 'Client'}</div>
-        ${customerPhone ? `<div class="sig-field">Mobile: ${customerPhone}</div>` : ''}
-        ${customer.email ? `<div class="sig-field">Email: ${customer.email}</div>` : ''}
+        <div class="sig-party-label">Second Party — ${clientName}</div>
+        ${clientPhone ? `<div class="sig-field">Mobile: ${clientPhone}</div>` : ''}
+        ${clientEmail ? `<div class="sig-field">Email: ${clientEmail}</div>` : ''}
       </div>
     </div>
 

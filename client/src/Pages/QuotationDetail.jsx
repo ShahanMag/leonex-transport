@@ -78,6 +78,14 @@ export default function QuotationDetail() {
   if (!quotation) return null;
 
   const customer = quotation.customer;
+  const company = quotation.company;
+  const isCompany = !!company;
+  const clientName = isCompany ? company?.name : customer?.name;
+  const clientPhone = isCompany
+    ? [company?.phone_country_code, company?.phone_number].filter(Boolean).join(' ')
+    : [customer?.phone_country_code, customer?.phone_number].filter(Boolean).join(' ');
+  const clientEmail = isCompany ? company?.email : customer?.email;
+  const clientContact = isCompany ? company?.contact : null;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -109,13 +117,16 @@ export default function QuotationDetail() {
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow-sm border p-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Customer</p>
-          <p className="font-semibold text-gray-800">{customer?.name || '-'}</p>
-          {customer?.phone_number && (
-            <p className="text-sm text-gray-500">{customer.phone_country_code} {customer.phone_number}</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{isCompany ? 'Company' : 'Customer'}</p>
+          <p className="font-semibold text-gray-800">{clientName || '-'}</p>
+          {clientContact && (
+            <p className="text-sm text-gray-500">Contact: {clientContact}</p>
           )}
-          {customer?.email && (
-            <p className="text-sm text-gray-500">{customer.email}</p>
+          {clientPhone && (
+            <p className="text-sm text-gray-500">{clientPhone}</p>
+          )}
+          {clientEmail && (
+            <p className="text-sm text-gray-500">{clientEmail}</p>
           )}
         </div>
         <div className="bg-white rounded-lg shadow-sm border p-4">

@@ -59,7 +59,7 @@ export default function Quotations() {
 
   const columns = [
     { key: 'quotation_number', label: 'Quotation #' },
-    { key: 'customer', label: 'Customer', render: (val) => val?.name || '-' },
+    { key: 'customer', label: 'Client', render: (val, row) => val?.name || row.company?.name || '-' },
     {
       key: 'status', label: 'Status',
       render: (val) => (

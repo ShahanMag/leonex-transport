@@ -1,5 +1,6 @@
 const Quotation = require('../models/Quotation');
 const Customer = require('../models/Customer');
+const Company = require('../models/Company');
 const Term = require('../models/Terms');
 const { generateQuotationCode } = require('../utils/codeGenerator');
 
@@ -27,6 +28,7 @@ exports.getAllQuotations = async (req, res) => {
 
     const quotations = await Quotation.find(searchFilter)
       .populate('customer')
+      .populate('company')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -51,7 +53,8 @@ exports.getAllQuotations = async (req, res) => {
 exports.getQuotationById = async (req, res) => {
   try {
     const quotation = await Quotation.findById(req.params.id)
-      .populate('customer');
+      .populate('customer')
+      .populate('company');
 
     if (!quotation || quotation.is_deleted)
       return res.status(404).json({ message: 'Quotation not found' });
@@ -68,6 +71,7 @@ exports.createQuotation = async (req, res) => {
   try {
     const {
       customer,
+      company,
       transport_rates,
       term_ids,
       quotation_date,
@@ -75,8 +79,11 @@ exports.createQuotation = async (req, res) => {
       notes
     } = req.body;
 
-    if (!customer)
-      return res.status(400).json({ message: 'Customer is required' });
+    if (!customer && !company)
+      return res.status(400).json({ message: 'Either Customer or Company is required' });
+
+    if (customer && company)
+      return res.status(400).json({ message: 'Select only one: Customer or Company' });
 
     if (!quotation_date)
       return res.status(400).json({ message: 'Quotation date is required' });
@@ -86,10 +93,17 @@ exports.createQuotation = async (req, res) => {
 
     const quotation_number = await generateQuotationCode();
 
-    // Validate customer
-    const foundCustomer = await Customer.findById(customer);
-    if (!foundCustomer)
-      return res.status(404).json({ message: 'Customer not found' });
+    // Validate customer or company
+    if (customer) {
+      const foundCustomer = await Customer.findById(customer);
+      if (!foundCustomer)
+        return res.status(404).json({ message: 'Customer not found' });
+    }
+    if (company) {
+      const foundCompany = await Company.findById(company);
+      if (!foundCompany)
+        return res.status(404).json({ message: 'Company not found' });
+    }
 
     // Validate transport rows
     if (!transport_rates || transport_rates.length === 0)
@@ -115,7 +129,8 @@ exports.createQuotation = async (req, res) => {
 
     const quotation = new Quotation({
       quotation_number,
-      customer,
+      customer: customer || null,
+      company: company || null,
       transport_rates,
       terms: selectedTerms,
       quotation_date: baseDate,
@@ -142,6 +157,8 @@ exports.updateQuotation = async (req, res) => {
       return res.status(404).json({ message: 'Quotation not found' });
 
     const {
+      customer,
+      company,
       transport_rates,
       term_ids,
       status,
@@ -149,6 +166,12 @@ exports.updateQuotation = async (req, res) => {
       valid_until,
       notes
     } = req.body;
+
+    // Update client (customer/company)
+    if (customer !== undefined || company !== undefined) {
+      quotation.customer = customer || null;
+      quotation.company = company || null;
+    }
 
     if (transport_rates !== undefined) {
       const emptyRow = transport_rates.find((r) => !r.from_location?.trim() || !r.to_location?.trim());
