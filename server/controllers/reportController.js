@@ -894,8 +894,14 @@ exports.getBillsReportJSON = async (req, res) => {
       .sort({ date: -1 })
       .lean();
 
-    const totalIncome  = bills.filter(b => b.type === 'income').reduce((s, b) => s + b.totalAmount, 0);
-    const totalExpense = bills.filter(b => b.type === 'expense').reduce((s, b) => s + b.totalAmount, 0);
+    const incomeBills  = bills.filter(b => b.type === 'income');
+    const expenseBills = bills.filter(b => b.type === 'expense');
+    const totalIncome     = incomeBills.reduce((s, b) => s + b.totalAmount, 0);
+    const receivedIncome  = incomeBills.reduce((s, b) => s + (b.paidAmount || 0), 0);
+    const pendingIncome   = incomeBills.reduce((s, b) => s + (b.totalAmount - (b.paidAmount || 0)), 0);
+    const totalExpense    = expenseBills.reduce((s, b) => s + b.totalAmount, 0);
+    const paidExpense     = expenseBills.reduce((s, b) => s + (b.paidAmount || 0), 0);
+    const pendingExpense  = expenseBills.reduce((s, b) => s + (b.totalAmount - (b.paidAmount || 0)), 0);
     const totalPaid    = bills.reduce((s, b) => s + (b.paidAmount || 0), 0);
     const totalDue     = bills.reduce((s, b) => s + (b.totalAmount - (b.paidAmount || 0)), 0);
 
@@ -916,7 +922,7 @@ exports.getBillsReportJSON = async (req, res) => {
     }));
 
     res.status(200).json({
-      summary: { totalIncome, totalExpense, netBalance: totalIncome - totalExpense, totalPaid, totalDue },
+      summary: { totalIncome, receivedIncome, pendingIncome, totalExpense, paidExpense, pendingExpense, netBalance: totalIncome - totalExpense, totalPaid, totalDue },
       data,
     });
   } catch (err) {

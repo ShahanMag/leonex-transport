@@ -110,37 +110,53 @@ export default function IncomeExpenseReport() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
-          <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📥</span></div>
-          <div>
-            <p className="text-sm text-gray-500">Total Income</p>
-            <p className="text-xl font-bold text-green-600">{(summary.totalIncome || 0).toLocaleString()} {currencySymbol}</p>
+      <div className="space-y-3 mb-6">
+        {/* Income Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-500">
+            <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📥</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Total Income</p>
+              <p className="text-xl font-bold text-green-600">{(summary.totalIncome || 0).toLocaleString()} {currencySymbol}</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-300">
+            <div className="bg-green-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Received Income</p>
+              <p className="text-xl font-bold text-green-500">{(summary.receivedIncome || 0).toLocaleString()} {currencySymbol}</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-yellow-400">
+            <div className="bg-yellow-400 p-3 rounded-lg"><span className="text-white text-xl">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Pending Income</p>
+              <p className="text-xl font-bold text-yellow-500">{(summary.pendingIncome || 0).toLocaleString()} {currencySymbol}</p>
+            </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
-          <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📤</span></div>
-          <div>
-            <p className="text-sm text-gray-500">Total Expense</p>
-            <p className="text-xl font-bold text-red-600">{(summary.totalExpense || 0).toLocaleString()} {currencySymbol}</p>
+        {/* Expense Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-500">
+            <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📤</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Total Expense</p>
+              <p className="text-xl font-bold text-red-600">{(summary.totalExpense || 0).toLocaleString()} {currencySymbol}</p>
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
-          <div className={`${(summary.netBalance || 0) >= 0 ? 'bg-blue-500' : 'bg-orange-500'} p-3 rounded-lg`}>
-            <span className="text-white text-xl">{(summary.netBalance || 0) >= 0 ? '📈' : '📉'}</span>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-300">
+            <div className="bg-red-300 p-3 rounded-lg"><span className="text-white text-xl">💸</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Paid Expense</p>
+              <p className="text-xl font-bold text-red-500">{(summary.paidExpense || 0).toLocaleString()} {currencySymbol}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Net Balance</p>
-            <p className={`text-xl font-bold ${(summary.netBalance || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-              {(summary.netBalance || 0).toLocaleString()} {currencySymbol}
-            </p>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4">
-          <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
-          <div>
-            <p className="text-sm text-gray-500">Total Due</p>
-            <p className="text-xl font-bold text-purple-600">{(summary.totalDue || 0).toLocaleString()} {currencySymbol}</p>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-400">
+            <div className="bg-orange-400 p-3 rounded-lg"><span className="text-white text-xl">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Pending Expense</p>
+              <p className="text-xl font-bold text-orange-500">{(summary.pendingExpense || 0).toLocaleString()} {currencySymbol}</p>
+            </div>
           </div>
         </div>
       </div>

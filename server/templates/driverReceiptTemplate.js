@@ -1,7 +1,7 @@
 const moment = require("moment-timezone");
 const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
   const saudiTime = moment().tz("Asia/Riyadh").format("DD/MM/YYYY HH:mm");
-  const { showInstallments = false, installment = null, watermark = null } = options;
+  const { showInstallments = false, installment = null, watermark = null, signature = null } = options;
 
   // If printing a specific installment, show all installments up to and including that one
   const installmentsRows = installment
@@ -160,7 +160,7 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
           <!-- Signatures -->
           <div style="display: flex; justify-content: space-between; margin-top: 40px; padding: 0 10px;">
             <div style="text-align: center; width: 40%;">
-              <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 40px;"></div>
+              ${signature ? `<img src="${signature}" style="height: 60px; object-fit: contain; margin-top: -20px;" />` : '<div style="margin-top: 40px;"></div>'}
               <p style="font-size: 11px; font-weight: bold; color: #374151;">التوقيع المعتمد</p>
               <p style="font-size: 10px; color: #374151;">Authorized Signature</p>
               <p style="font-size: 10px; color: #6b7280; margin-top: 2px;">شركة عيسى للنقل / EESA Transport</p>
