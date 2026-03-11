@@ -257,6 +257,10 @@ export const invoiceAPI = {
   update:      (id, data)    => api.put(`/invoices/${id}`, data),
   delete:      (id)          => api.delete(`/invoices/${id}`),
   bulkCreate:  (rows)        => api.post('/invoices/bulk', { rows }),
+  // Installments (track = 'amount' | 'commission')
+  addInstallment:    (id, track, data)          => api.post(`/invoices/${id}/installments/${track}`, data),
+  updateInstallment: (id, track, instId, data)  => api.put(`/invoices/${id}/installments/${track}/${instId}`, data),
+  deleteInstallment: (id, track, instId)        => api.delete(`/invoices/${id}/installments/${track}/${instId}`),
 };
 
 // ==========================

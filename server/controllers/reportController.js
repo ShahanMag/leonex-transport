@@ -1029,8 +1029,13 @@ exports.getInvoicesReportJSON = async (req, res) => {
       .lean();
 
     const totalAmount     = invoices.reduce((s, inv) => s + inv.amount, 0);
+    const amtReceived     = invoices.reduce((s, inv) => s + (inv.amount_paid || 0), 0);
     const totalVAT        = invoices.reduce((s, inv) => s + inv.amount * 0.15 / 1.15, 0);
     const totalCommission = invoices.reduce((s, inv) => s + (inv.amount / 1.15) * (inv.commission_pct / 100), 0);
+    const commReceived    = invoices.reduce((s, inv) => s + (inv.commission_paid || 0), 0);
+    const payableAmount   = totalAmount - totalVAT - totalCommission;
+    const vatOfReceived   = amtReceived * 0.15 / 1.15;
+    const payablePaid     = amtReceived - vatOfReceived - commReceived;
     const totalBalance    = totalAmount - totalVAT - totalCommission;
 
     const data = invoices.map(inv => ({
@@ -1045,12 +1050,16 @@ exports.getInvoicesReportJSON = async (req, res) => {
       commission_pct:     inv.commission_pct,
       commission_amount:  (inv.amount / 1.15) * (inv.commission_pct / 100),
       balance:            inv.amount - (inv.amount * 0.15 / 1.15) - (inv.amount / 1.15) * (inv.commission_pct / 100),
+      amount_paid:        inv.amount_paid || 0,
+      amount_status:      inv.amount_status || 'unpaid',
+      commission_paid:    inv.commission_paid || 0,
+      commission_status:  inv.commission_status || 'unpaid',
       notes:              inv.notes || '-',
       description:        inv.description || '-',
     }));
 
     res.status(200).json({
-      summary: { totalAmount, totalVAT, totalCommission, totalBalance },
+      summary: { totalAmount, amtReceived, totalVAT, totalCommission, commReceived, payableAmount, payablePaid, totalBalance },
       data,
     });
   } catch (err) {

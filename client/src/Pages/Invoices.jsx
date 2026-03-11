@@ -20,6 +20,18 @@ const emptyForm = {
   notes: '',
 };
 
+const emptyInstallmentForm = {
+  amount: '',
+  paid_date: '',
+  notes: '',
+};
+
+const STATUS_STYLES = {
+  paid:    'bg-green-100 text-green-800',
+  partial: 'bg-yellow-100 text-yellow-800',
+  unpaid:  'bg-red-100 text-red-800',
+};
+
 // Download a blank Excel template for bulk upload
 function downloadTemplate() {
   const headers = [
@@ -52,10 +64,19 @@ export default function Invoices() {
   const [form, setForm]           = useState(emptyForm);
   const [errors, setErrors]       = useState({});
 
+  // Installments modal
+  const [isInstallOpen, setIsInstallOpen] = useState(false);
+  const [activeInvoice, setActiveInvoice] = useState(null);
+  const [activeTrack, setActiveTrack]     = useState('amount'); // 'amount' | 'commission'
+  const [installForm, setInstallForm]     = useState(emptyInstallmentForm);
+  const [installErrors, setInstallErrors] = useState({});
+  const [editingInstallId, setEditingInstallId] = useState(null);
+  const [installLoading, setInstallLoading] = useState(false);
+
   // Bulk upload
   const fileInputRef              = useRef(null);
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [bulkResults, setBulkResults] = useState(null); // null | { successCount, errorCount, results[] }
+  const [bulkResults, setBulkResults] = useState(null);
 
   const navigate = useNavigate();
 
@@ -159,12 +180,94 @@ export default function Invoices() {
     });
   };
 
+  // ─── Installments ───────────────────────────────────────────────
+
+  const syncActiveInvoice = (updated) => {
+    setInvoices(prev => prev.map(inv => inv._id === updated._id ? updated : inv));
+    setActiveInvoice(updated);
+  };
+
+  const handleOpenInstallments = (inv, track) => {
+    setActiveInvoice(inv);
+    setActiveTrack(track);
+    setInstallForm(emptyInstallmentForm);
+    setInstallErrors({});
+    setEditingInstallId(null);
+    setIsInstallOpen(true);
+  };
+
+  const handleEditInstallment = (inst) => {
+    setInstallForm({
+      amount: inst.amount ?? '',
+      paid_date: inst.paid_date ? new Date(inst.paid_date).toISOString().split('T')[0] : '',
+      notes: inst.notes || '',
+    });
+    setEditingInstallId(inst._id);
+  };
+
+  const handleCancelInstallEdit = () => {
+    setInstallForm(emptyInstallmentForm);
+    setInstallErrors({});
+    setEditingInstallId(null);
+  };
+
+  const validateInstallment = () => {
+    const e = {};
+    if (installForm.amount === '' || installForm.amount === undefined) e.amount = 'Amount is required';
+    else if (isNaN(installForm.amount) || Number(installForm.amount) <= 0) e.amount = 'Amount must be greater than 0';
+    if (!installForm.paid_date) e.paid_date = 'Date is required';
+    setInstallErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleInstallSubmit = async () => {
+    if (!validateInstallment()) return;
+    try {
+      setInstallLoading(true);
+      const payload = {
+        amount: parseFloat(installForm.amount),
+        paid_date: installForm.paid_date,
+        notes: installForm.notes || undefined,
+      };
+      let res;
+      if (editingInstallId) {
+        res = await invoiceAPI.updateInstallment(activeInvoice._id, activeTrack, editingInstallId, payload);
+        showSuccess('Payment updated');
+      } else {
+        res = await invoiceAPI.addInstallment(activeInvoice._id, activeTrack, payload);
+        showSuccess('Payment recorded');
+      }
+      syncActiveInvoice(res.data.invoice);
+      setInstallForm(emptyInstallmentForm);
+      setInstallErrors({});
+      setEditingInstallId(null);
+    } catch (error) {
+      showError(error.response?.data?.message || 'Failed to save payment');
+    } finally {
+      setInstallLoading(false);
+    }
+  };
+
+  const handleDeleteInstallment = (inst) => {
+    showConfirm('Delete this payment entry?', async () => {
+      try {
+        setInstallLoading(true);
+        const res = await invoiceAPI.deleteInstallment(activeInvoice._id, activeTrack, inst._id);
+        showSuccess('Payment deleted');
+        syncActiveInvoice(res.data.invoice);
+      } catch {
+        showError('Failed to delete payment');
+      } finally {
+        setInstallLoading(false);
+      }
+    });
+  };
+
   // ─── Bulk Upload ────────────────────────────────────────────────
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Reset so the same file can be re-selected
     e.target.value = '';
 
     try {
@@ -172,7 +275,6 @@ export default function Invoices() {
       const buffer = await file.arrayBuffer();
       const wb = XLSX.read(buffer, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      // header: true → array of objects keyed by first row
       const rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
       if (rawRows.length === 0) {
@@ -180,7 +282,6 @@ export default function Invoices() {
         return;
       }
 
-      // Map header names to field names (flexible matching)
       const rows = rawRows.map(r => ({
         invoice_number: r['Invoice Number'] ?? r['invoice_number'] ?? r['InvoiceNumber'] ?? '',
         date:           r['Date (YYYY-MM-DD)'] ?? r['Date'] ?? r['date'] ?? '',
@@ -205,9 +306,15 @@ export default function Invoices() {
   // ─── Summary ────────────────────────────────────────────────────
 
   const totalAmount     = invoices.reduce((s, inv) => s + inv.amount, 0);
-  const totalVAT        = invoices.reduce((s, inv) => s + (inv.vat_amount        ?? inv.amount * 0.15 / 1.15), 0);
+  const amtReceived     = invoices.reduce((s, inv) => s + (inv.amount_paid || 0), 0);
+  const totalVAT        = invoices.reduce((s, inv) => s + (inv.vat_amount ?? inv.amount * 0.15 / 1.15), 0);
   const totalCommission = invoices.reduce((s, inv) => s + (inv.commission_amount ?? (inv.amount / 1.15) * (inv.commission_pct / 100)), 0);
-  const totalBalance    = invoices.reduce((s, inv) => s + (inv.balance           ?? inv.amount - (inv.amount * 0.15 / 1.15) - (inv.amount / 1.15) * (inv.commission_pct / 100)), 0);
+  const commReceived    = invoices.reduce((s, inv) => s + (inv.commission_paid || 0), 0);
+  const payableAmount   = totalAmount - totalVAT - totalCommission;
+  const vatOfReceived   = amtReceived * 0.15 / 1.15;
+  const payablePaid     = amtReceived - vatOfReceived - commReceived;
+  const netBalance      = payableAmount;
+  const balanceReceived = payablePaid;
 
   // Form preview — amount is VAT-inclusive
   const previewAmount      = parseFloat(form.amount)         || 0;
@@ -220,7 +327,7 @@ export default function Invoices() {
   const companyOptions  = [{ value: '', label: '— None —' }, ...companies.map(c => ({ value: c._id, label: c.name }))];
   const customerOptions = [{ value: '', label: '— None —' }, ...customers.map(c => ({ value: c._id, label: c.name }))];
 
-  const fmt = (n) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const fmt = (n) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const columns = [
     { key: 'invoice_number', label: 'Invoice No.' },
@@ -235,13 +342,50 @@ export default function Invoices() {
       const b = val ?? (row.amount - (row.amount * 0.15 / 1.15) - (row.amount / 1.15) * (row.commission_pct / 100));
       return <span className="font-semibold text-green-700">{fmt(b)} SR</span>;
     }},
+    { key: 'amount_status', label: 'Amt Status', render: (val) => (
+      <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[val] || ''}`}>{val || 'unpaid'}</span>
+    )},
+    { key: 'commission_status', label: 'Comm Status', render: (val) => (
+      <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[val] || ''}`}>{val || 'unpaid'}</span>
+    )},
     { key: 'notes', label: 'Notes', render: (val) => val || '-' },
   ];
 
   const actions = (row) => [
-    { label: 'Edit',   onClick: () => handleEdit(row),   variant: 'secondary' },
-    { label: 'Delete', onClick: () => handleDelete(row), variant: 'danger' },
+    { label: 'Payments', onClick: () => handleOpenInstallments(row, 'amount'), variant: 'primary' },
+    { label: 'Edit',     onClick: () => handleEdit(row),   variant: 'secondary' },
+    { label: 'Delete',   onClick: () => handleDelete(row), variant: 'danger' },
   ];
+
+  // ─── Installment modal helpers ──────────────────────────────────
+
+  const getTrackInstallments = () => {
+    if (!activeInvoice) return [];
+    return activeTrack === 'amount'
+      ? (activeInvoice.amount_installments || [])
+      : (activeInvoice.commission_installments || []);
+  };
+
+  const getTrackTotal = () => {
+    if (!activeInvoice) return 0;
+    return activeTrack === 'amount'
+      ? activeInvoice.amount
+      : (activeInvoice.commission_amount ?? (activeInvoice.amount / 1.15) * (activeInvoice.commission_pct / 100));
+  };
+
+  const getTrackPaid = () => {
+    if (!activeInvoice) return 0;
+    return activeTrack === 'amount'
+      ? (activeInvoice.amount_paid || 0)
+      : (activeInvoice.commission_paid || 0);
+  };
+
+  const getTrackStatus = () => {
+    if (!activeInvoice) return 'unpaid';
+    return activeTrack === 'amount'
+      ? (activeInvoice.amount_status || 'unpaid')
+      : (activeInvoice.commission_status || 'unpaid');
+  };
 
   return (
     <div className="p-6">
@@ -251,10 +395,10 @@ export default function Invoices() {
         <h1 className="text-3xl font-bold text-gray-800">Invoices</h1>
         <div className="flex flex-wrap gap-2">
           <Button variant="primary" onClick={() => navigate('/invoices/report')}>
-            📊 View Report
+            View Report
           </Button>
           <Button variant="secondary" onClick={downloadTemplate} title="Download Excel template for bulk upload">
-            📥 Template
+            Template
           </Button>
           <Button
             variant="secondary"
@@ -262,7 +406,7 @@ export default function Invoices() {
             disabled={bulkLoading}
             title="Upload an Excel file to bulk-create invoices"
           >
-            {bulkLoading ? 'Uploading...' : '📤 Bulk Upload'}
+            {bulkLoading ? 'Uploading...' : 'Bulk Upload'}
           </Button>
           <input
             ref={fileInputRef}
@@ -275,34 +419,68 @@ export default function Invoices() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-blue-500">
-          <div className="bg-blue-500 p-3 rounded-lg"><span className="text-white text-xl">💰</span></div>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Total Amount</p>
-            <p className="text-xl font-bold text-blue-600">{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR</p>
+      {/* Summary Cards — 8 tiles in 2 rows */}
+      <div className="space-y-3 mb-6">
+        {/* Row 1 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-blue-500">
+            <div className="bg-blue-500 p-3 rounded-lg"><span className="text-white text-xl">💰</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Amt. Received</p>
+              <p className="text-xl font-bold text-blue-600">{fmt(amtReceived)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-500">
+            <div className="bg-orange-500 p-3 rounded-lg"><span className="text-white text-xl">🏛️</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">VAT Deducted</p>
+              <p className="text-xl font-bold text-orange-600">{fmt(totalVAT)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-500">
+            <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📊</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Total</p>
+              <p className="text-xl font-bold text-purple-600">{fmt(totalCommission)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-300">
+            <div className="bg-purple-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Received</p>
+              <p className="text-xl font-bold text-purple-500">{fmt(commReceived)} SR</p>
+            </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-500">
-          <div className="bg-orange-500 p-3 rounded-lg"><span className="text-white text-xl">🏛️</span></div>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Total VAT (15%)</p>
-            <p className="text-xl font-bold text-orange-600">{totalVAT.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR</p>
+        {/* Row 2 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-500">
+            <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Payable Amount</p>
+              <p className="text-xl font-bold text-red-600">{fmt(payableAmount)} SR</p>
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-500">
-          <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📊</span></div>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Total Commission</p>
-            <p className="text-xl font-bold text-purple-600">{totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR</p>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-300">
+            <div className="bg-red-300 p-3 rounded-lg"><span className="text-white text-xl">💸</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Payable Paid</p>
+              <p className="text-xl font-bold text-red-500">{fmt(payablePaid)} SR</p>
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-500">
-          <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📈</span></div>
-          <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wide">Net Balance</p>
-            <p className="text-xl font-bold text-green-600">{totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR</p>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-500">
+            <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📈</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Net Balance</p>
+              <p className="text-xl font-bold text-green-600">{fmt(netBalance)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-300">
+            <div className="bg-green-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Balance Received</p>
+              <p className="text-xl font-bold text-green-500">{fmt(balanceReceived)} SR</p>
+            </div>
           </div>
         </div>
       </div>
@@ -334,7 +512,6 @@ export default function Invoices() {
             { name: 'customer_id', label: 'Customer (optional)', type: 'select', options: customerOptions },
             { name: 'amount', label: 'Amount (SR)', type: 'number', placeholder: '0', required: true },
             { name: 'commission_pct', label: 'Commission %', type: 'number', placeholder: '0', required: true },
-
             { name: 'notes', label: 'Notes', placeholder: 'Optional notes' },
           ]}
           values={form}
@@ -366,6 +543,129 @@ export default function Invoices() {
         )}
       </Modal>
 
+      {/* ── Installments Modal ── */}
+      <Modal
+        isOpen={isInstallOpen}
+        onClose={() => { setIsInstallOpen(false); setActiveInvoice(null); handleCancelInstallEdit(); }}
+        title={activeInvoice
+          ? `${activeTrack === 'amount' ? 'Amount' : 'Commission'} Payments — ${activeInvoice.invoice_number}`
+          : 'Payments'}
+        size="lg"
+        footer={
+          <Button variant="secondary" onClick={() => { setIsInstallOpen(false); setActiveInvoice(null); handleCancelInstallEdit(); }}>
+            Close
+          </Button>
+        }
+      >
+        {activeInvoice && (
+          <div className="space-y-5">
+
+            {/* Track tabs */}
+            <div className="flex border-b border-gray-200">
+              {['amount', 'commission'].map(t => (
+                <button
+                  key={t}
+                  onClick={() => { setActiveTrack(t); handleCancelInstallEdit(); }}
+                  className={`px-5 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTrack === t
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {t === 'amount' ? 'Amount Payments' : 'Commission Payments'}
+                </button>
+              ))}
+            </div>
+
+            {/* Summary bar */}
+            <div className="grid grid-cols-3 gap-3 bg-gray-50 rounded-lg p-4 text-center">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Total</p>
+                <p className="font-bold text-gray-800">{fmt(getTrackTotal())} SR</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Paid</p>
+                <p className="font-bold text-green-600">{fmt(getTrackPaid())} SR</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Remaining</p>
+                <p className="font-bold text-red-600">{fmt(getTrackTotal() - getTrackPaid())} SR</p>
+              </div>
+              <div className="col-span-3">
+                <span className={`px-3 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[getTrackStatus()] || ''}`}>
+                  {getTrackStatus()}
+                </span>
+              </div>
+            </div>
+
+            {/* Installments list */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Payment History</h4>
+              {getTrackInstallments().length === 0 ? (
+                <p className="text-sm text-gray-400 italic">No payments recorded yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {getTrackInstallments().map((inst) => (
+                    <div key={inst._id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-4 py-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{fmt(inst.amount)} SR</p>
+                        <p className="text-xs text-gray-500">{inst.paid_date ? formatDate(inst.paid_date) : '-'}</p>
+                        {inst.notes && <p className="text-xs text-gray-400 mt-0.5">{inst.notes}</p>}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="primary" size="sm" onClick={() => handleEditInstallment(inst)}>
+                          Edit
+                        </Button>
+                        <Button variant="danger" size="sm" onClick={() => handleDeleteInstallment(inst)} disabled={installLoading}>
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add / Edit installment form */}
+            {(getTrackStatus() !== 'paid' || editingInstallId) && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  {editingInstallId ? 'Edit Payment' : 'Record New Payment'}
+                </h4>
+                <Form
+                  fields={[
+                    { name: 'amount',   label: 'Amount (SR)', type: 'number', placeholder: '0', required: true },
+                    { name: 'paid_date', label: 'Payment Date', type: 'date',   required: true },
+                    { name: 'notes',    label: 'Notes',        placeholder: 'Optional note' },
+                  ]}
+                  values={installForm}
+                  errors={installErrors}
+                  onChange={setInstallForm}
+                  isLoading={installLoading}
+                />
+                <div className="flex gap-2 mt-3">
+                  <Button variant="primary" onClick={handleInstallSubmit} disabled={installLoading}>
+                    {installLoading ? 'Saving...' : editingInstallId ? 'Update Payment' : 'Add Payment'}
+                  </Button>
+                  {editingInstallId && (
+                    <Button variant="secondary" onClick={handleCancelInstallEdit} disabled={installLoading}>
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {getTrackStatus() === 'paid' && !editingInstallId && (
+              <p className="text-sm text-green-600 font-medium text-center border-t pt-4">
+                Fully paid.
+              </p>
+            )}
+
+          </div>
+        )}
+      </Modal>
+
       {/* ── Bulk Upload Results Modal ── */}
       <Modal
         isOpen={!!bulkResults}
@@ -378,7 +678,6 @@ export default function Invoices() {
       >
         {bulkResults && (
           <div className="space-y-4">
-            {/* Summary bar */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                 <p className="text-2xl font-bold text-green-600">{bulkResults.successCount}</p>
@@ -390,7 +689,6 @@ export default function Invoices() {
               </div>
             </div>
 
-            {/* Per-row details */}
             {bulkResults.results.length > 0 && (
               <div className="max-h-72 overflow-y-auto border rounded-lg divide-y">
                 {bulkResults.results.map((r, i) => (

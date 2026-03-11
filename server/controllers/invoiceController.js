@@ -2,6 +2,25 @@ const Invoice = require('../models/Invoice');
 const Company = require('../models/Company');
 const Customer = require('../models/Customer');
 
+const r2 = (n) => Math.round(n * 100) / 100;
+
+// Helper: recalculate paid + status for a given installment track
+function recalculate(invoice, track) {
+  const installments = invoice[`${track}_installments`];
+  const total = track === 'amount'
+    ? invoice.amount
+    : r2((invoice.amount / 1.15) * (invoice.commission_pct / 100));
+  const paid = r2(installments.reduce((s, i) => s + i.amount, 0));
+  invoice[`${track}_paid`] = paid;
+  if (paid >= total) {
+    invoice[`${track}_status`] = 'paid';
+  } else if (paid > 0) {
+    invoice[`${track}_status`] = 'partial';
+  } else {
+    invoice[`${track}_status`] = 'unpaid';
+  }
+}
+
 exports.getAllInvoices = async (req, res) => {
   try {
     const filter = {};
@@ -46,11 +65,11 @@ exports.createInvoice = async (req, res) => {
 
     const invoice = new Invoice({
       invoice_number: invoice_number.trim(),
-      amount,
+      amount: r2(amount),
       date: new Date(date),
       company_id:    company_id    || null,
       customer_id:   customer_id   || null,
-      commission_pct: commission_pct !== undefined ? commission_pct : 0,
+      commission_pct: commission_pct !== undefined ? r2(commission_pct) : 0,
       notes:         notes         || undefined,
       description:   description   || undefined,
     });
@@ -60,6 +79,10 @@ exports.createInvoice = async (req, res) => {
     await saved.populate('customer_id', 'name');
     res.status(201).json(saved);
   } catch (error) {
+    if (error.code === 11000) {
+      const dupVal = error.keyValue?.invoice_number || '';
+      return res.status(400).json({ message: `Invoice number "${dupVal}" already exists` });
+    }
     res.status(400).json({ message: error.message });
   }
 };
@@ -72,11 +95,11 @@ exports.updateInvoice = async (req, res) => {
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
 
     if (invoice_number !== undefined) invoice.invoice_number = invoice_number.trim();
-    if (amount        !== undefined) invoice.amount        = amount;
+    if (amount        !== undefined) invoice.amount        = r2(amount);
     if (date          !== undefined) invoice.date          = new Date(date);
     if (company_id    !== undefined) invoice.company_id    = company_id    || null;
     if (customer_id   !== undefined) invoice.customer_id   = customer_id   || null;
-    if (commission_pct !== undefined) invoice.commission_pct = commission_pct;
+    if (commission_pct !== undefined) invoice.commission_pct = r2(commission_pct);
     if (notes         !== undefined) invoice.notes         = notes;
     if (description   !== undefined) invoice.description   = description;
 
@@ -85,6 +108,10 @@ exports.updateInvoice = async (req, res) => {
     await updated.populate('customer_id', 'name');
     res.status(200).json(updated);
   } catch (error) {
+    if (error.code === 11000) {
+      const dupVal = error.keyValue?.invoice_number || '';
+      return res.status(400).json({ message: `Invoice number "${dupVal}" already exists` });
+    }
     res.status(400).json({ message: error.message });
   }
 };
@@ -169,8 +196,8 @@ exports.bulkCreateInvoices = async (req, res) => {
           date:           parsedDate,
           company_id,
           customer_id,
-          amount:         parsedAmount,
-          commission_pct: parsedCommPct,
+          amount:         r2(parsedAmount),
+          commission_pct: r2(parsedCommPct),
           description:    description || undefined,
           notes:          notes       || undefined,
         });
@@ -187,6 +214,113 @@ exports.bulkCreateInvoices = async (req, res) => {
     const errorCount   = results.filter(r => r.status === 'error').length;
 
     res.status(200).json({ successCount, errorCount, results });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ─── Installments (amount / commission) ─────────────────────────
+
+const populateInvoice = async (inv) => {
+  await inv.populate('company_id', 'name');
+  await inv.populate('customer_id', 'name');
+  return inv;
+};
+
+exports.addInstallment = async (req, res) => {
+  try {
+    const { track } = req.params; // 'amount' or 'commission'
+    if (!['amount', 'commission'].includes(track)) {
+      return res.status(400).json({ message: 'Track must be "amount" or "commission"' });
+    }
+
+    const { amount, paid_date, notes } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ message: 'Amount must be greater than 0' });
+    if (!paid_date) return res.status(400).json({ message: 'Payment date is required' });
+    const dateObj = new Date(paid_date);
+    if (isNaN(dateObj.getTime())) return res.status(400).json({ message: 'Invalid date format' });
+
+    const invoice = await Invoice.findById(req.params.id);
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+
+    const total = track === 'amount'
+      ? invoice.amount
+      : (invoice.amount / 1.15) * (invoice.commission_pct / 100);
+    const paid = invoice[`${track}_paid`] || 0;
+    const remaining = total - paid;
+
+    if (paid >= total) return res.status(400).json({ message: 'Already fully paid' });
+    if (amount > remaining + 0.01) return res.status(400).json({ message: `Amount exceeds remaining (${remaining.toFixed(2)} SR)` });
+
+    invoice[`${track}_installments`].push({ amount: r2(amount), paid_date: dateObj, notes });
+    recalculate(invoice, track);
+
+    const saved = await (await populateInvoice(await invoice.save()));
+    res.status(200).json({ message: 'Installment added', invoice: saved });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.updateInstallment = async (req, res) => {
+  try {
+    const { track, id, installmentId } = req.params;
+    if (!['amount', 'commission'].includes(track)) {
+      return res.status(400).json({ message: 'Track must be "amount" or "commission"' });
+    }
+
+    const { amount, paid_date, notes } = req.body;
+    if (!amount || amount <= 0) return res.status(400).json({ message: 'Amount must be greater than 0' });
+    if (!paid_date) return res.status(400).json({ message: 'Payment date is required' });
+    const dateObj = new Date(paid_date);
+    if (isNaN(dateObj.getTime())) return res.status(400).json({ message: 'Invalid date format' });
+
+    const invoice = await Invoice.findById(id);
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+
+    const installments = invoice[`${track}_installments`];
+    const idx = installments.findIndex(i => i._id.toString() === installmentId);
+    if (idx === -1) return res.status(404).json({ message: 'Installment not found' });
+
+    const total = track === 'amount'
+      ? invoice.amount
+      : (invoice.amount / 1.15) * (invoice.commission_pct / 100);
+    const otherPaid = installments.reduce((s, i, index) => index !== idx ? s + i.amount : s, 0);
+    if (otherPaid + amount > total + 0.01) {
+      return res.status(400).json({ message: `Amount exceeds remaining (${(total - otherPaid).toFixed(2)} SR)` });
+    }
+
+    installments[idx].amount = r2(amount);
+    installments[idx].paid_date = dateObj;
+    installments[idx].notes = notes;
+    recalculate(invoice, track);
+
+    const saved = await populateInvoice(await invoice.save());
+    res.status(200).json({ message: 'Installment updated', invoice: saved });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+exports.deleteInstallment = async (req, res) => {
+  try {
+    const { track, id, installmentId } = req.params;
+    if (!['amount', 'commission'].includes(track)) {
+      return res.status(400).json({ message: 'Track must be "amount" or "commission"' });
+    }
+
+    const invoice = await Invoice.findById(id);
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+
+    const installments = invoice[`${track}_installments`];
+    const idx = installments.findIndex(i => i._id.toString() === installmentId);
+    if (idx === -1) return res.status(404).json({ message: 'Installment not found' });
+
+    installments.splice(idx, 1);
+    recalculate(invoice, track);
+
+    const saved = await populateInvoice(await invoice.save());
+    res.status(200).json({ message: 'Installment deleted', invoice: saved });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
