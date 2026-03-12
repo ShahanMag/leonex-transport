@@ -163,7 +163,10 @@ const generateCompanyReceiptHTML = (payment, company, driver, options = {}) => {
           <!-- Signatures -->
           <div style="display: flex; justify-content: space-between; margin-top: 40px; padding: 0 10px;">
             <div style="text-align: center; width: 40%;">
-              ${signature ? `<img src="${signature}" style="height: 60px; object-fit: contain; margin-top: -20px;" />` : '<div style="margin-top: 40px;"></div>'}
+              <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <p style="font-size: 13px; font-weight: bold; color: #374151;">ANSHAD</p>
+                ${signature ? `<img src="${signature}" style="height: 60px; object-fit: contain;" />` : '<div style="margin-top: 40px;"></div>'}
+              </div>
               <p style="font-size: 11px; font-weight: bold; color: #374151;">التوقيع المعتمد</p>
               <p style="font-size: 10px; color: #374151;">Authorized Signature</p>
               <p style="font-size: 10px; color: #6b7280; margin-top: 2px;">شركة عيسى للنقل / EESA Transport</p>
