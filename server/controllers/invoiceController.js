@@ -4,12 +4,20 @@ const Customer = require('../models/Customer');
 
 const r2 = (n) => Math.round(n * 100) / 100;
 
+// Helper: get the total for a given track
+function getTrackTotal(invoice, track) {
+  if (track === 'amount') return invoice.amount;
+  if (track === 'commission') return r2((invoice.amount / 1.15) * (invoice.commission_pct / 100));
+  // payable = amount - VAT - commission
+  const vat = invoice.amount * 0.15 / 1.15;
+  const comm = (invoice.amount / 1.15) * (invoice.commission_pct / 100);
+  return r2(invoice.amount - vat - comm);
+}
+
 // Helper: recalculate paid + status for a given installment track
 function recalculate(invoice, track) {
   const installments = invoice[`${track}_installments`];
-  const total = track === 'amount'
-    ? invoice.amount
-    : r2((invoice.amount / 1.15) * (invoice.commission_pct / 100));
+  const total = getTrackTotal(invoice, track);
   const paid = r2(installments.reduce((s, i) => s + i.amount, 0));
   invoice[`${track}_paid`] = paid;
   if (paid >= total) {
@@ -230,8 +238,8 @@ const populateInvoice = async (inv) => {
 exports.addInstallment = async (req, res) => {
   try {
     const { track } = req.params; // 'amount' or 'commission'
-    if (!['amount', 'commission'].includes(track)) {
-      return res.status(400).json({ message: 'Track must be "amount" or "commission"' });
+    if (!['amount', 'commission', 'payable'].includes(track)) {
+      return res.status(400).json({ message: 'Track must be "amount", "commission", or "payable"' });
     }
 
     const { amount, paid_date, notes } = req.body;
@@ -243,9 +251,7 @@ exports.addInstallment = async (req, res) => {
     const invoice = await Invoice.findById(req.params.id);
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
 
-    const total = track === 'amount'
-      ? invoice.amount
-      : (invoice.amount / 1.15) * (invoice.commission_pct / 100);
+    const total = getTrackTotal(invoice, track);
     const paid = invoice[`${track}_paid`] || 0;
     const remaining = total - paid;
 
@@ -265,8 +271,8 @@ exports.addInstallment = async (req, res) => {
 exports.updateInstallment = async (req, res) => {
   try {
     const { track, id, installmentId } = req.params;
-    if (!['amount', 'commission'].includes(track)) {
-      return res.status(400).json({ message: 'Track must be "amount" or "commission"' });
+    if (!['amount', 'commission', 'payable'].includes(track)) {
+      return res.status(400).json({ message: 'Track must be "amount", "commission", or "payable"' });
     }
 
     const { amount, paid_date, notes } = req.body;
@@ -282,9 +288,7 @@ exports.updateInstallment = async (req, res) => {
     const idx = installments.findIndex(i => i._id.toString() === installmentId);
     if (idx === -1) return res.status(404).json({ message: 'Installment not found' });
 
-    const total = track === 'amount'
-      ? invoice.amount
-      : (invoice.amount / 1.15) * (invoice.commission_pct / 100);
+    const total = getTrackTotal(invoice, track);
     const otherPaid = installments.reduce((s, i, index) => index !== idx ? s + i.amount : s, 0);
     if (otherPaid + amount > total + 0.01) {
       return res.status(400).json({ message: `Amount exceeds remaining (${(total - otherPaid).toFixed(2)} SR)` });
@@ -305,8 +309,8 @@ exports.updateInstallment = async (req, res) => {
 exports.deleteInstallment = async (req, res) => {
   try {
     const { track, id, installmentId } = req.params;
-    if (!['amount', 'commission'].includes(track)) {
-      return res.status(400).json({ message: 'Track must be "amount" or "commission"' });
+    if (!['amount', 'commission', 'payable'].includes(track)) {
+      return res.status(400).json({ message: 'Track must be "amount", "commission", or "payable"' });
     }
 
     const invoice = await Invoice.findById(id);

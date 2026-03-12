@@ -93,43 +93,46 @@ export default function InvoicesReport() {
         </Button>
       </div>
 
-      {/* Summary Cards — 8 tiles in 2 rows */}
-      <div className="space-y-3 mb-6">
-        {/* Row 1 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      {/* Summary Cards — 4 paired columns */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        {/* Col 1: Total Amount / Amt. Received */}
+        <div className="space-y-3">
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-blue-500">
             <div className="bg-blue-500 p-3 rounded-lg"><span className="text-white text-xl">💰</span></div>
             <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Total Amount</p>
+              <p className="text-xl font-bold text-blue-600">{fmt(summary.totalAmount || 0)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-blue-300">
+            <div className="bg-blue-300 p-3 rounded-lg"><span className="text-white text-xl">💵</span></div>
+            <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Amt. Received</p>
-              <p className="text-xl font-bold text-blue-600">{fmt(summary.amtReceived || 0)} SR</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-500">
-            <div className="bg-orange-500 p-3 rounded-lg"><span className="text-white text-xl">🏛️</span></div>
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide">VAT Deducted</p>
-              <p className="text-xl font-bold text-orange-600">{fmt(summary.totalVAT || 0)} SR</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-500">
-            <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📊</span></div>
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Total</p>
-              <p className="text-xl font-bold text-purple-600">{fmt(summary.totalCommission || 0)} SR</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-300">
-            <div className="bg-purple-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Received</p>
-              <p className="text-xl font-bold text-purple-500">{fmt(summary.commReceived || 0)} SR</p>
+              <p className="text-xl font-bold text-blue-500">{fmt(summary.amtReceived || 0)} SR</p>
             </div>
           </div>
         </div>
-        {/* Row 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        {/* Col 2: Total VAT / VAT Deducted */}
+        <div className="space-y-3">
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-500">
+            <div className="bg-orange-500 p-3 rounded-lg"><span className="text-white text-xl">🏛️</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Total VAT</p>
+              <p className="text-xl font-bold text-orange-600">{fmt(summary.totalVAT || 0)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-300">
+            <div className="bg-orange-300 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">VAT Deducted</p>
+              <p className="text-xl font-bold text-orange-500">{fmt(summary.vatDeducted || 0)} SR</p>
+            </div>
+          </div>
+        </div>
+        {/* Col 3: Payable Amount / Payable Paid */}
+        <div className="space-y-3">
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-500">
-            <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
+            <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📊</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Payable Amount</p>
               <p className="text-xl font-bold text-red-600">{fmt(summary.payableAmount || 0)} SR</p>
@@ -142,18 +145,21 @@ export default function InvoicesReport() {
               <p className="text-xl font-bold text-red-500">{fmt(summary.payablePaid || 0)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-500">
-            <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📈</span></div>
+        </div>
+        {/* Col 4: Commission Total / Commission Received */}
+        <div className="space-y-3">
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-500">
+            <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📈</span></div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide">Net Balance</p>
-              <p className="text-xl font-bold text-green-600">{fmt(summary.totalBalance || 0)} SR</p>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Total</p>
+              <p className="text-xl font-bold text-purple-600">{fmt(summary.totalCommission || 0)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-300">
-            <div className="bg-green-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-300">
+            <div className="bg-purple-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide">Balance Received</p>
-              <p className="text-xl font-bold text-green-500">{fmt(summary.payablePaid || 0)} SR</p>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Received</p>
+              <p className="text-xl font-bold text-purple-500">{fmt(summary.commReceived || 0)} SR</p>
             </div>
           </div>
         </div>
@@ -227,12 +233,12 @@ export default function InvoicesReport() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Company</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Customer</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Total Amount</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">VAT (15%)</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Amt w/o VAT</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Comm %</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Commission</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Balance</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Payable Amount</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Notes</th>
                 </tr>
               </thead>
@@ -248,8 +254,8 @@ export default function InvoicesReport() {
                     <td className="px-4 py-3 text-sm text-orange-700 whitespace-nowrap">{inv.vat_amount?.toLocaleString(undefined, { maximumFractionDigits: 2 })} SR</td>
                     <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{inv.amount_without_vat?.toLocaleString(undefined, { maximumFractionDigits: 2 })} SR</td>
                     <td className="px-4 py-3 text-sm text-gray-800">{inv.commission_pct}%</td>
-                    <td className="px-4 py-3 text-sm text-purple-700 whitespace-nowrap">{inv.commission_amount?.toLocaleString(undefined, { maximumFractionDigits: 2 })} SR</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-green-700 whitespace-nowrap">{inv.balance?.toLocaleString()} SR</td>
+                    <td className="px-4 py-3 text-sm text-green-700 whitespace-nowrap">{inv.commission_amount?.toLocaleString(undefined, { maximumFractionDigits: 2 })} SR</td>
+                    <td className="px-4 py-3 text-sm font-semibold whitespace-nowrap">{inv.balance?.toLocaleString()} SR</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{inv.notes || '-'}</td>
                   </tr>
                 ))}

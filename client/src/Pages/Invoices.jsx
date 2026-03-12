@@ -67,7 +67,7 @@ export default function Invoices() {
   // Installments modal
   const [isInstallOpen, setIsInstallOpen] = useState(false);
   const [activeInvoice, setActiveInvoice] = useState(null);
-  const [activeTrack, setActiveTrack]     = useState('amount'); // 'amount' | 'commission'
+  const [activeTrack, setActiveTrack]     = useState('amount'); // 'amount' | 'payable' | 'commission'
   const [installForm, setInstallForm]     = useState(emptyInstallmentForm);
   const [installErrors, setInstallErrors] = useState({});
   const [editingInstallId, setEditingInstallId] = useState(null);
@@ -313,8 +313,6 @@ export default function Invoices() {
   const payableAmount   = totalAmount - totalVAT - totalCommission;
   const vatOfReceived   = amtReceived * 0.15 / 1.15;
   const payablePaid     = amtReceived - vatOfReceived - commReceived;
-  const netBalance      = payableAmount;
-  const balanceReceived = payablePaid;
 
   // Form preview — amount is VAT-inclusive
   const previewAmount      = parseFloat(form.amount)         || 0;
@@ -334,15 +332,18 @@ export default function Invoices() {
     { key: 'company_id',  label: 'Company',  render: (val) => val?.name || '-' },
     { key: 'customer_id', label: 'Customer', render: (val) => val?.name || '-' },
     { key: 'date',   label: 'Date',   render: (val) => val ? formatDate(val) : '-' },
-    { key: 'amount', label: 'Amount', render: (val) => val != null ? `${val.toLocaleString()} SR` : '-' },
+    { key: 'amount', label: 'Total Amount', render: (val) => val != null ? `${val.toLocaleString()} SR` : '-' },
     { key: 'vat_amount',       label: 'VAT (15%)',   render: (val, row) => `${fmt(val ?? row.amount * 0.15 / 1.15)} SR` },
     { key: 'amount_without_vat', label: 'Amt w/o VAT', render: (val, row) => `${fmt(val ?? row.amount / 1.15)} SR` },
-    { key: 'commission_amount', label: 'Commission',  render: (val, row) => `${fmt(val ?? (row.amount / 1.15) * (row.commission_pct / 100))} SR` },
-    { key: 'balance', label: 'Balance', render: (val, row) => {
+    { key: 'commission_amount', label: 'Commission',  render: (val, row) => <span className="text-green-700">{fmt(val ?? (row.amount / 1.15) * (row.commission_pct / 100))} SR</span> },
+    { key: 'balance', label: 'Payable Amount', render: (val, row) => {
       const b = val ?? (row.amount - (row.amount * 0.15 / 1.15) - (row.amount / 1.15) * (row.commission_pct / 100));
-      return <span className="font-semibold text-green-700">{fmt(b)} SR</span>;
+      return <span className="font-semibold">{fmt(b)} SR</span>;
     }},
     { key: 'amount_status', label: 'Amt Status', render: (val) => (
+      <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[val] || ''}`}>{val || 'unpaid'}</span>
+    )},
+    { key: 'payable_status', label: 'Payable Status', render: (val) => (
       <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[val] || ''}`}>{val || 'unpaid'}</span>
     )},
     { key: 'commission_status', label: 'Comm Status', render: (val) => (
@@ -361,30 +362,27 @@ export default function Invoices() {
 
   const getTrackInstallments = () => {
     if (!activeInvoice) return [];
-    return activeTrack === 'amount'
-      ? (activeInvoice.amount_installments || [])
-      : (activeInvoice.commission_installments || []);
+    return activeInvoice[`${activeTrack}_installments`] || [];
   };
 
   const getTrackTotal = () => {
     if (!activeInvoice) return 0;
-    return activeTrack === 'amount'
-      ? activeInvoice.amount
-      : (activeInvoice.commission_amount ?? (activeInvoice.amount / 1.15) * (activeInvoice.commission_pct / 100));
+    if (activeTrack === 'amount') return activeInvoice.amount;
+    if (activeTrack === 'commission') return activeInvoice.commission_amount ?? (activeInvoice.amount / 1.15) * (activeInvoice.commission_pct / 100);
+    // payable = amount - VAT - commission
+    const vat = activeInvoice.amount * 0.15 / 1.15;
+    const comm = activeInvoice.commission_amount ?? (activeInvoice.amount / 1.15) * (activeInvoice.commission_pct / 100);
+    return activeInvoice.amount - vat - comm;
   };
 
   const getTrackPaid = () => {
     if (!activeInvoice) return 0;
-    return activeTrack === 'amount'
-      ? (activeInvoice.amount_paid || 0)
-      : (activeInvoice.commission_paid || 0);
+    return activeInvoice[`${activeTrack}_paid`] || 0;
   };
 
   const getTrackStatus = () => {
     if (!activeInvoice) return 'unpaid';
-    return activeTrack === 'amount'
-      ? (activeInvoice.amount_status || 'unpaid')
-      : (activeInvoice.commission_status || 'unpaid');
+    return activeInvoice[`${activeTrack}_status`] || 'unpaid';
   };
 
   return (
@@ -419,43 +417,46 @@ export default function Invoices() {
         </div>
       </div>
 
-      {/* Summary Cards — 8 tiles in 2 rows */}
-      <div className="space-y-3 mb-6">
-        {/* Row 1 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      {/* Summary Cards — 4 paired columns */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        {/* Col 1: Total Amount / Amt. Received */}
+        <div className="space-y-3">
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-blue-500">
             <div className="bg-blue-500 p-3 rounded-lg"><span className="text-white text-xl">💰</span></div>
             <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Total Amount</p>
+              <p className="text-xl font-bold text-blue-600">{fmt(totalAmount)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-blue-300">
+            <div className="bg-blue-300 p-3 rounded-lg"><span className="text-white text-xl">💵</span></div>
+            <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Amt. Received</p>
-              <p className="text-xl font-bold text-blue-600">{fmt(amtReceived)} SR</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-500">
-            <div className="bg-orange-500 p-3 rounded-lg"><span className="text-white text-xl">🏛️</span></div>
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide">VAT Deducted</p>
-              <p className="text-xl font-bold text-orange-600">{fmt(totalVAT)} SR</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-500">
-            <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📊</span></div>
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Total</p>
-              <p className="text-xl font-bold text-purple-600">{fmt(totalCommission)} SR</p>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-300">
-            <div className="bg-purple-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
-            <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Received</p>
-              <p className="text-xl font-bold text-purple-500">{fmt(commReceived)} SR</p>
+              <p className="text-xl font-bold text-blue-500">{fmt(amtReceived)} SR</p>
             </div>
           </div>
         </div>
-        {/* Row 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        {/* Col 2: Total VAT / VAT Deducted */}
+        <div className="space-y-3">
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-500">
+            <div className="bg-orange-500 p-3 rounded-lg"><span className="text-white text-xl">🏛️</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Total VAT</p>
+              <p className="text-xl font-bold text-orange-600">{fmt(totalVAT)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-300">
+            <div className="bg-orange-300 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">VAT Deducted</p>
+              <p className="text-xl font-bold text-orange-500">{fmt(vatOfReceived)} SR</p>
+            </div>
+          </div>
+        </div>
+        {/* Col 3: Payable Amount / Payable Paid */}
+        <div className="space-y-3">
           <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-500">
-            <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
+            <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📊</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Payable Amount</p>
               <p className="text-xl font-bold text-red-600">{fmt(payableAmount)} SR</p>
@@ -468,18 +469,21 @@ export default function Invoices() {
               <p className="text-xl font-bold text-red-500">{fmt(payablePaid)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-500">
-            <div className="bg-green-500 p-3 rounded-lg"><span className="text-white text-xl">📈</span></div>
+        </div>
+        {/* Col 4: Commission Total / Commission Received */}
+        <div className="space-y-3">
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-500">
+            <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📈</span></div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide">Net Balance</p>
-              <p className="text-xl font-bold text-green-600">{fmt(netBalance)} SR</p>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Total</p>
+              <p className="text-xl font-bold text-purple-600">{fmt(totalCommission)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-green-300">
-            <div className="bg-green-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-300">
+            <div className="bg-purple-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide">Balance Received</p>
-              <p className="text-xl font-bold text-green-500">{fmt(balanceReceived)} SR</p>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Received</p>
+              <p className="text-xl font-bold text-purple-500">{fmt(commReceived)} SR</p>
             </div>
           </div>
         </div>
@@ -548,7 +552,7 @@ export default function Invoices() {
         isOpen={isInstallOpen}
         onClose={() => { setIsInstallOpen(false); setActiveInvoice(null); handleCancelInstallEdit(); }}
         title={activeInvoice
-          ? `${activeTrack === 'amount' ? 'Amount' : 'Commission'} Payments — ${activeInvoice.invoice_number}`
+          ? `${activeTrack === 'amount' ? 'Amount' : activeTrack === 'payable' ? 'Payable' : 'Commission'} Payments — ${activeInvoice.invoice_number}`
           : 'Payments'}
         size="lg"
         footer={
@@ -562,7 +566,7 @@ export default function Invoices() {
 
             {/* Track tabs */}
             <div className="flex border-b border-gray-200">
-              {['amount', 'commission'].map(t => (
+              {['amount', 'payable', 'commission'].map(t => (
                 <button
                   key={t}
                   onClick={() => { setActiveTrack(t); handleCancelInstallEdit(); }}
@@ -572,7 +576,7 @@ export default function Invoices() {
                       : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  {t === 'amount' ? 'Amount Payments' : 'Commission Payments'}
+                  {t === 'amount' ? 'Amount Received' : t === 'payable' ? 'Payable Payments' : 'Commission Received'}
                 </button>
               ))}
             </div>

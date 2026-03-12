@@ -63,6 +63,10 @@ const invoiceSchema = new mongoose.Schema(
     commission_installments: [installmentSchema],
     commission_paid: { type: Number, default: 0, min: 0 },
     commission_status: { type: String, enum: ['unpaid', 'partial', 'paid'], default: 'unpaid' },
+    // Installments for payable amount (amount - VAT - commission)
+    payable_installments: [installmentSchema],
+    payable_paid: { type: Number, default: 0, min: 0 },
+    payable_status: { type: String, enum: ['unpaid', 'partial', 'paid'], default: 'unpaid' },
     notes: {
       type: String,
       trim: true,
@@ -115,16 +119,7 @@ invoiceSchema.virtual('balance').get(function () {
   return this.amount - (this.amount * 0.15 / 1.15) - amtNoVat * (this.commission_pct / 100);
 });
 
-// Payable = amount - VAT - commission
-invoiceSchema.virtual('payable_amount').get(function () {
-  return this.amount - this.vat_amount - this.commission_amount;
-});
 
-// Payable paid = amount_paid - proportional VAT of received - commission_paid
-invoiceSchema.virtual('payable_paid').get(function () {
-  const vatPortion = (this.amount_paid || 0) * 0.15 / 1.15;
-  return (this.amount_paid || 0) - vatPortion - (this.commission_paid || 0);
-});
 
 invoiceSchema.set('toJSON', { virtuals: true });
 invoiceSchema.set('toObject', { virtuals: true });

@@ -9,13 +9,13 @@ export default function Table({ columns, data, actions, isLoading = false }) {
 
   return (
     <div className="overflow-x-auto border rounded-lg">
-      <table className="w-full border-collapse">
+      <table className="w-full min-w-max border-collapse">
         <thead>
           <tr className="bg-gray-100 border-b">
             {columns.map((column) => (
               <th
                 key={column.key}
-                className="px-4 py-3 text-left text-sm font-semibold text-gray-700"
+                className="px-4 py-3 text-left text-sm font-semibold text-gray-700 whitespace-nowrap"
               >
                 {column.label}
               </th>
@@ -29,7 +29,7 @@ export default function Table({ columns, data, actions, isLoading = false }) {
               {columns.map((column) => (
                 <td
                   key={`${rowIndex}-${column.key}`}
-                  className="px-4 py-3 text-sm text-gray-800"
+                  className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap"
                 >
                   {column.render
                     ? column.render(row[column.key], row)

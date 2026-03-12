@@ -1031,12 +1031,11 @@ exports.getInvoicesReportJSON = async (req, res) => {
     const totalAmount     = invoices.reduce((s, inv) => s + inv.amount, 0);
     const amtReceived     = invoices.reduce((s, inv) => s + (inv.amount_paid || 0), 0);
     const totalVAT        = invoices.reduce((s, inv) => s + inv.amount * 0.15 / 1.15, 0);
+    const vatDeducted     = amtReceived * 0.15 / 1.15;
     const totalCommission = invoices.reduce((s, inv) => s + (inv.amount / 1.15) * (inv.commission_pct / 100), 0);
     const commReceived    = invoices.reduce((s, inv) => s + (inv.commission_paid || 0), 0);
     const payableAmount   = totalAmount - totalVAT - totalCommission;
-    const vatOfReceived   = amtReceived * 0.15 / 1.15;
-    const payablePaid     = amtReceived - vatOfReceived - commReceived;
-    const totalBalance    = totalAmount - totalVAT - totalCommission;
+    const payablePaid     = invoices.reduce((s, inv) => s + (inv.payable_paid || 0), 0);
 
     const data = invoices.map(inv => ({
       _id:                inv._id,
@@ -1059,7 +1058,7 @@ exports.getInvoicesReportJSON = async (req, res) => {
     }));
 
     res.status(200).json({
-      summary: { totalAmount, amtReceived, totalVAT, totalCommission, commReceived, payableAmount, payablePaid, totalBalance },
+      summary: { totalAmount, amtReceived, totalVAT, vatDeducted, totalCommission, commReceived, payableAmount, payablePaid },
       data,
     });
   } catch (err) {
