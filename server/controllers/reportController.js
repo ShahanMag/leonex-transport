@@ -1094,34 +1094,55 @@ exports.getInvoicesReportExcel = async (req, res) => {
       .lean();
 
     const columns = [
-      { header: '#',               key: 'No',        width: 6  },
-      { header: 'Invoice No.',     key: 'InvoiceNo', width: 20 },
-      { header: 'Company',         key: 'Company',   width: 25 },
-      { header: 'Customer',        key: 'Customer',  width: 25 },
-      { header: 'Date',            key: 'Date',      width: 15 },
-      { header: 'Amount',          key: 'Amount',    width: 15 },
-      { header: 'VAT (15%)',       key: 'VAT',       width: 15 },
-      { header: 'Amt w/o VAT',     key: 'AmtNoVAT',  width: 15 },
-      { header: 'Commission %',    key: 'CommPct',   width: 15 },
-      { header: 'Commission Amt',  key: 'CommAmt',   width: 15 },
-      { header: 'Balance',         key: 'Balance',   width: 15 },
-      { header: 'Notes',           key: 'Notes',     width: 30 },
+      { header: '#',                  key: 'No',            width: 6  },
+      { header: 'Invoice No.',        key: 'InvoiceNo',     width: 20 },
+      { header: 'Company',            key: 'Company',       width: 25 },
+      { header: 'Customer',           key: 'Customer',      width: 25 },
+      { header: 'Date',               key: 'Date',          width: 15 },
+      { header: 'Amount',             key: 'Amount',        width: 15 },
+      { header: 'VAT (15%)',          key: 'VAT',           width: 15 },
+      { header: 'Amt w/o VAT',        key: 'AmtNoVAT',      width: 15 },
+      { header: 'Commission %',       key: 'CommPct',       width: 15 },
+      { header: 'Commission Amt',     key: 'CommAmt',       width: 15 },
+      { header: 'Balance',            key: 'Balance',       width: 15 },
+      { header: 'Amt Paid',           key: 'AmtPaid',       width: 15 },
+      { header: 'Amt Status',         key: 'AmtStatus',     width: 15 },
+      { header: 'Commission Paid',    key: 'CommPaid',      width: 15 },
+      { header: 'Commission Status',  key: 'CommStatus',    width: 18 },
+      { header: 'Payable Amt',        key: 'PayableAmt',    width: 15 },
+      { header: 'Payable Paid',       key: 'PayablePaid',   width: 15 },
+      { header: 'Payable Status',     key: 'PayableStatus', width: 15 },
+      { header: 'Description',        key: 'Description',   width: 30 },
+      { header: 'Notes',              key: 'Notes',         width: 30 },
     ];
 
-    const data = invoices.map((inv, idx) => ({
-      No:        idx + 1,
-      InvoiceNo: inv.invoice_number,
-      Company:   inv.company_id?.name || '-',
-      Customer:  inv.customer_id?.name || '-',
-      Date:      inv.date ? moment(inv.date).format('YYYY-MM-DD') : '-',
-      Amount:    inv.amount,
-      VAT:       inv.amount * 0.15 / 1.15,
-      AmtNoVAT:  inv.amount / 1.15,
-      CommPct:   inv.commission_pct,
-      CommAmt:   (inv.amount / 1.15) * (inv.commission_pct / 100),
-      Balance:   inv.amount - (inv.amount * 0.15 / 1.15) - (inv.amount / 1.15) * (inv.commission_pct / 100),
-      Notes:     inv.notes || '-',
-    }));
+    const data = invoices.map((inv, idx) => {
+      const vat        = inv.amount * 0.15 / 1.15;
+      const commAmt    = (inv.amount / 1.15) * (inv.commission_pct / 100);
+      const balance    = inv.amount - vat - commAmt;
+      return {
+        No:            idx + 1,
+        InvoiceNo:     inv.invoice_number,
+        Company:       inv.company_id?.name || '-',
+        Customer:      inv.customer_id?.name || '-',
+        Date:          inv.date ? moment(inv.date).format('YYYY-MM-DD') : '-',
+        Amount:        inv.amount,
+        VAT:           vat,
+        AmtNoVAT:      inv.amount / 1.15,
+        CommPct:       inv.commission_pct,
+        CommAmt:       commAmt,
+        Balance:       balance,
+        AmtPaid:       inv.amount_paid || 0,
+        AmtStatus:     inv.amount_status || 'unpaid',
+        CommPaid:      inv.commission_paid || 0,
+        CommStatus:    inv.commission_status || 'unpaid',
+        PayableAmt:    balance,
+        PayablePaid:   inv.payable_paid || 0,
+        PayableStatus: inv.payable_status || 'unpaid',
+        Description:   inv.description || '-',
+        Notes:         inv.notes || '-',
+      };
+    });
 
     await generateExcel('Invoices Report', columns, data, res);
   } catch (err) {
