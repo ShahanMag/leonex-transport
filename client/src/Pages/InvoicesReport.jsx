@@ -5,6 +5,12 @@ import MultiSelect from '../components/MultiSelect';
 import { showError, showSuccess } from '../utils/toast';
 import { formatDate } from '../utils/dateUtils';
 
+const STATUS_STYLES = {
+  paid:    'bg-green-100 text-green-800',
+  partial: 'bg-yellow-100 text-yellow-800',
+  unpaid:  'bg-red-100 text-red-800',
+};
+
 export default function InvoicesReport() {
   const [reportData, setReportData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,6 +22,7 @@ export default function InvoicesReport() {
   const [customerFilter, setCustomerFilter] = useState('');
   const [startDate, setStartDate]   = useState('');
   const [endDate, setEndDate]       = useState('');
+  const [settledFilter, setSettledFilter] = useState('active');
 
   useEffect(() => {
     companyAPI.getAll().then(r => setCompanies(r.data)).catch(() => {});
@@ -29,6 +36,7 @@ export default function InvoicesReport() {
     if (customerFilter)           params.customer_id  = customerFilter;
     if (startDate)                params.startDate    = startDate;
     if (endDate)                  params.endDate      = endDate;
+    params.settled = settledFilter;
     return params;
   };
 
@@ -51,7 +59,8 @@ export default function InvoicesReport() {
     setCustomerFilter('');
     setStartDate('');
     setEndDate('');
-    fetchReport({});
+    setSettledFilter('active');
+    fetchReport({ settled: 'active' });
   };
 
   const handleDownload = async () => {
@@ -208,6 +217,18 @@ export default function InvoicesReport() {
               ))}
             </select>
           </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Status</label>
+            <select
+              value={settledFilter}
+              onChange={e => setSettledFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="active">Active Only</option>
+              <option value="settled">Settled Only</option>
+              <option value="all">All Invoices</option>
+            </select>
+          </div>
           <Button variant="primary" onClick={handleApplyFilters} disabled={isLoading}>
             Apply
           </Button>
@@ -239,6 +260,11 @@ export default function InvoicesReport() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Comm %</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Commission</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Payable Amount</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Amt. Balance</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Amt Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Payable Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Comm Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Settled</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Notes</th>
                 </tr>
               </thead>
@@ -256,6 +282,13 @@ export default function InvoicesReport() {
                     <td className="px-4 py-3 text-sm text-gray-800">{inv.commission_pct}%</td>
                     <td className="px-4 py-3 text-sm text-green-700 whitespace-nowrap">{inv.commission_amount?.toLocaleString(undefined, { maximumFractionDigits: 2 })} SR</td>
                     <td className="px-4 py-3 text-sm font-semibold whitespace-nowrap">{inv.balance?.toLocaleString()} SR</td>
+                    <td className="px-4 py-3 text-sm font-semibold whitespace-nowrap">
+                      {(() => { const bal = (inv.amount || 0) - (inv.amount_paid || 0); return <span className={bal > 0 ? 'text-red-600' : 'text-green-600'}>{bal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SR</span>; })()}
+                    </td>
+                    <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${STATUS_STYLES[inv.amount_status] || ''}`}>{inv.amount_status || '-'}</span></td>
+                    <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${STATUS_STYLES[inv.payable_status] || ''}`}>{inv.payable_status || '-'}</span></td>
+                    <td className="px-4 py-3"><span className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${STATUS_STYLES[inv.commission_status] || ''}`}>{inv.commission_status || '-'}</span></td>
+                    <td className="px-4 py-3">{inv.is_settled ? <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-700">Settled</span> : null}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{inv.notes || '-'}</td>
                   </tr>
                 ))}

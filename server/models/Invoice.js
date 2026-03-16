@@ -75,6 +75,14 @@ const invoiceSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    is_settled: {
+      type: Boolean,
+      default: false,
+    },
+    settled_at: {
+      type: Date,
+      default: null,
+    },
     isDeleted: {
       type: Boolean,
       default: false,

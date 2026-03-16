@@ -1007,7 +1007,7 @@ exports.getBillsReportExcel = async (req, res) => {
  * =========================== */
 exports.getInvoicesReportJSON = async (req, res) => {
   try {
-    const { company_id, company_ids, customer_id, startDate, endDate } = req.query;
+    const { company_id, company_ids, customer_id, startDate, endDate, settled } = req.query;
     const filter = {};
     if (company_ids) {
       const ids = company_ids.split(',').filter(Boolean);
@@ -1021,6 +1021,9 @@ exports.getInvoicesReportJSON = async (req, res) => {
       if (startDate) filter.date.$gte = new Date(startDate);
       if (endDate)   filter.date.$lte = new Date(endDate + 'T23:59:59.999Z');
     }
+    if (settled === 'settled') filter.is_settled = true;
+    else if (!settled || settled === 'active') filter.is_settled = { $ne: true };
+    // 'all' => no filter on is_settled
 
     const invoices = await Invoice.find(filter)
       .populate('company_id', 'name')
@@ -1053,6 +1056,8 @@ exports.getInvoicesReportJSON = async (req, res) => {
       amount_status:      inv.amount_status || 'unpaid',
       commission_paid:    inv.commission_paid || 0,
       commission_status:  inv.commission_status || 'unpaid',
+      payable_status:     inv.payable_status || 'unpaid',
+      is_settled:         inv.is_settled || false,
       notes:              inv.notes || '-',
       description:        inv.description || '-',
     }));
@@ -1072,7 +1077,7 @@ exports.getInvoicesReportJSON = async (req, res) => {
  * =========================== */
 exports.getInvoicesReportExcel = async (req, res) => {
   try {
-    const { company_id, company_ids, customer_id, startDate, endDate } = req.query;
+    const { company_id, company_ids, customer_id, startDate, endDate, settled } = req.query;
     const filter = {};
     if (company_ids) {
       const ids = company_ids.split(',').filter(Boolean);
@@ -1086,6 +1091,8 @@ exports.getInvoicesReportExcel = async (req, res) => {
       if (startDate) filter.date.$gte = new Date(startDate);
       if (endDate)   filter.date.$lte = new Date(endDate + 'T23:59:59.999Z');
     }
+    if (settled === 'settled') filter.is_settled = true;
+    else if (!settled || settled === 'active') filter.is_settled = { $ne: true };
 
     const invoices = await Invoice.find(filter)
       .populate('company_id', 'name')
@@ -1112,6 +1119,7 @@ exports.getInvoicesReportExcel = async (req, res) => {
       { header: 'Payable Amt',        key: 'PayableAmt',    width: 15 },
       { header: 'Payable Paid',       key: 'PayablePaid',   width: 15 },
       { header: 'Payable Status',     key: 'PayableStatus', width: 15 },
+      { header: 'Settled',            key: 'Settled',       width: 12 },
       { header: 'Description',        key: 'Description',   width: 30 },
       { header: 'Notes',              key: 'Notes',         width: 30 },
     ];
@@ -1139,6 +1147,7 @@ exports.getInvoicesReportExcel = async (req, res) => {
         PayableAmt:    balance,
         PayablePaid:   inv.payable_paid || 0,
         PayableStatus: inv.payable_status || 'unpaid',
+        Settled:       inv.is_settled ? 'Yes' : 'No',
         Description:   inv.description || '-',
         Notes:         inv.notes || '-',
       };

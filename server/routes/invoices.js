@@ -6,7 +6,8 @@ router.get('/',       invoiceController.getAllInvoices);
 router.get('/:id',    invoiceController.getInvoiceById);
 router.post('/bulk',  invoiceController.bulkCreateInvoices);  // must be before /:id
 router.post('/',      invoiceController.createInvoice);
-router.put('/:id',    invoiceController.updateInvoice);
+router.put('/:id',       invoiceController.updateInvoice);
+router.patch('/:id/settle', invoiceController.toggleSettled);
 router.delete('/:id', invoiceController.deleteInvoice);
 
 // Installments (track = 'amount' or 'commission')

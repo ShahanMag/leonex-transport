@@ -39,6 +39,9 @@ exports.getAllInvoices = async (req, res) => {
       if (req.query.startDate) filter.date.$gte = new Date(req.query.startDate);
       if (req.query.endDate)   filter.date.$lte = new Date(req.query.endDate + 'T23:59:59.999Z');
     }
+    // settled filter: 'active' (default) = non-settled, 'settled' = settled only, 'all' = everything
+    if (req.query.settled === 'settled') filter.is_settled = true;
+    else if (!req.query.settled || req.query.settled === 'active') filter.is_settled = { $ne: true };
 
     const invoices = await Invoice.find(filter)
       .populate('company_id', 'name')
@@ -134,6 +137,21 @@ exports.deleteInvoice = async (req, res) => {
     await invoice.save();
 
     res.status(200).json({ message: 'Invoice deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.toggleSettled = async (req, res) => {
+  try {
+    const invoice = await Invoice.findById(req.params.id);
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+    invoice.is_settled = !invoice.is_settled;
+    invoice.settled_at = invoice.is_settled ? new Date() : null;
+    const saved = await invoice.save();
+    await saved.populate('company_id', 'name');
+    await saved.populate('customer_id', 'name');
+    res.status(200).json(saved);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -256,6 +256,7 @@ export const invoiceAPI = {
   create:      (data)        => api.post('/invoices', data),
   update:      (id, data)    => api.put(`/invoices/${id}`, data),
   delete:      (id)          => api.delete(`/invoices/${id}`),
+  toggleSettled: (id)        => api.patch(`/invoices/${id}/settle`),
   bulkCreate:  (rows)        => api.post('/invoices/bulk', { rows }),
   // Installments (track = 'amount' | 'commission')
   addInstallment:    (id, track, data)          => api.post(`/invoices/${id}/installments/${track}`, data),

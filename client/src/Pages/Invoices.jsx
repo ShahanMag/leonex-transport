@@ -57,6 +57,7 @@ export default function Invoices() {
   const [companies, setCompanies] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [settledFilter, setSettledFilter] = useState('active'); // 'active' | 'settled' | 'all'
 
   // Create/edit modal
   const [isOpen, setIsOpen]       = useState(false);
@@ -86,10 +87,10 @@ export default function Invoices() {
     customerAPI.getAll().then(r => setCustomers(r.data)).catch(() => {});
   }, []);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (filter = settledFilter) => {
     try {
       setIsLoading(true);
-      const res = await invoiceAPI.getAll();
+      const res = await invoiceAPI.getAll({ settled: filter });
       setInvoices(res.data);
     } catch {
       showError('Failed to fetch invoices');
@@ -340,6 +341,10 @@ export default function Invoices() {
       const b = val ?? (row.amount - (row.amount * 0.15 / 1.15) - (row.amount / 1.15) * (row.commission_pct / 100));
       return <span className="font-semibold">{fmt(b)} SR</span>;
     }},
+    { key: 'amount_paid', label: 'Amt. Balance', render: (val, row) => {
+      const bal = (row.amount || 0) - (val || 0);
+      return <span className={`font-semibold ${bal > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmt(bal)} SR</span>;
+    }},
     { key: 'amount_status', label: 'Amt Status', render: (val) => (
       <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[val] || ''}`}>{val || 'unpaid'}</span>
     )},
@@ -349,11 +354,27 @@ export default function Invoices() {
     { key: 'commission_status', label: 'Comm Status', render: (val) => (
       <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[val] || ''}`}>{val || 'unpaid'}</span>
     )},
+    { key: 'is_settled', label: 'Settled', render: (val) => val
+      ? <span className="px-2 py-1 rounded text-xs font-semibold bg-gray-200 text-gray-700">Settled</span>
+      : null
+    },
     { key: 'notes', label: 'Notes', render: (val) => val || '-' },
   ];
 
+  const handleToggleSettled = async (inv) => {
+    const action = inv.is_settled ? 'Unsettle' : 'Settle';
+    try {
+      const res = await invoiceAPI.toggleSettled(inv._id);
+      setInvoices(prev => prev.map(i => i._id === res.data._id ? res.data : i));
+      showSuccess(`Invoice ${action.toLowerCase()}d`);
+    } catch {
+      showError(`Failed to ${action.toLowerCase()} invoice`);
+    }
+  };
+
   const actions = (row) => [
     { label: 'Payments', onClick: () => handleOpenInstallments(row, 'amount'), variant: 'primary' },
+    { label: row.is_settled ? 'Unsettle' : 'Settle', onClick: () => handleToggleSettled(row), variant: row.is_settled ? 'secondary' : 'warning' },
     { label: 'Edit',     onClick: () => handleEdit(row),   variant: 'secondary' },
     { label: 'Delete',   onClick: () => handleDelete(row), variant: 'danger' },
   ];
@@ -391,7 +412,16 @@ export default function Invoices() {
       {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Invoices</h1>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <select
+            value={settledFilter}
+            onChange={e => { setSettledFilter(e.target.value); fetchInvoices(e.target.value); }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="active">Active Only</option>
+            <option value="settled">Settled Only</option>
+            <option value="all">All Invoices</option>
+          </select>
           <Button variant="primary" onClick={() => navigate('/invoices/report')}>
             View Report
           </Button>

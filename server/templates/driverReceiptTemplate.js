@@ -164,13 +164,13 @@ const generateDriverReceiptHTML = (payment, company, driver, options = {}) => {
                 <p style="font-size: 13px; font-weight: semi-bold; color: #374151;">ANSHAD</p>
                 ${signature ? `<img src="${signature}" style="height: 60px; object-fit: contain;" />` : '<div style="margin-top: 40px;"></div>'}
               </div>
-              <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 8px;"></div>
+              <div style="border-top: 1px solid #374151; padding-top: 4px; margin-top: -6px;"></div>
               <p style="font-size: 11px; font-weight: bold; color: #374151;">التوقيع المعتمد</p>
               <p style="font-size: 10px; color: #374151;">Authorized Signature</p>
               <p style="font-size: 10px; color: #6b7280; margin-top: 2px;">شركة عيسى للنقل / EESA Transport</p>
             </div>
             <div style="text-align: center; width: 40%;">
-              <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 40px;"></div>
+              <div style="border-top: 1px solid #374151; padding-top: 8px; margin-top: 50px;"></div>
               <p style="font-size: 11px; font-weight: bold; color: #374151;">توقيع العميل</p>
               <p style="font-size: 10px; color: #374151;">Customer Signature</p>
               <p style="font-size: 10px; color: #6b7280; margin-top: 2px;">${driver?.name || ""}</p>
