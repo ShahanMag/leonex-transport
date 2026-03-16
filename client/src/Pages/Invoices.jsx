@@ -314,6 +314,10 @@ export default function Invoices() {
   const payableAmount   = totalAmount - totalVAT - totalCommission;
   const vatOfReceived   = amtReceived * 0.15 / 1.15;
   const payablePaid     = amtReceived - vatOfReceived - commReceived;
+  const amtBalance      = totalAmount - amtReceived;
+  const vatBalance      = totalVAT - vatOfReceived;
+  const payableBalance  = payableAmount - payablePaid;
+  const commBalance     = totalCommission - commReceived;
 
   // Form preview — amount is VAT-inclusive
   const previewAmount      = parseFloat(form.amount)         || 0;
@@ -340,10 +344,6 @@ export default function Invoices() {
     { key: 'balance', label: 'Payable Amount', render: (val, row) => {
       const b = val ?? (row.amount - (row.amount * 0.15 / 1.15) - (row.amount / 1.15) * (row.commission_pct / 100));
       return <span className="font-semibold">{fmt(b)} SR</span>;
-    }},
-    { key: 'amount_paid', label: 'Amt. Balance', render: (val, row) => {
-      const bal = (row.amount || 0) - (val || 0);
-      return <span className={`font-semibold ${bal > 0 ? 'text-red-600' : 'text-green-600'}`}>{fmt(bal)} SR</span>;
     }},
     { key: 'amount_status', label: 'Amt Status', render: (val) => (
       <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[val] || ''}`}>{val || 'unpaid'}</span>
@@ -449,71 +449,99 @@ export default function Invoices() {
 
       {/* Summary Cards — 4 paired columns */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-        {/* Col 1: Total Amount / Amt. Received */}
-        <div className="space-y-3">
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-blue-500">
-            <div className="bg-blue-500 p-3 rounded-lg"><span className="text-white text-xl">💰</span></div>
+        {/* Col 1: Total Amount / Amt. Received / Balance */}
+        <div className="space-y-2">
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-blue-500">
+            <div className="bg-blue-500 p-2 rounded-lg"><span className="text-white text-sm">💰</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Total Amount</p>
-              <p className="text-xl font-bold text-blue-600">{fmt(totalAmount)} SR</p>
+              <p className="text-base font-bold text-blue-600">{fmt(totalAmount)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-blue-300">
-            <div className="bg-blue-300 p-3 rounded-lg"><span className="text-white text-xl">💵</span></div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-blue-300">
+            <div className="bg-blue-300 p-2 rounded-lg"><span className="text-white text-sm">💵</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Amt. Received</p>
-              <p className="text-xl font-bold text-blue-500">{fmt(amtReceived)} SR</p>
+              <p className="text-base font-bold text-blue-500">{fmt(amtReceived)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-blue-700">
+            <div className="bg-blue-700 p-2 rounded-lg"><span className="text-white text-sm">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Balance</p>
+              <p className="text-base font-bold text-blue-700">{fmt(amtBalance)} SR</p>
             </div>
           </div>
         </div>
-        {/* Col 2: Total VAT / VAT Deducted */}
-        <div className="space-y-3">
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-500">
-            <div className="bg-orange-500 p-3 rounded-lg"><span className="text-white text-xl">🏛️</span></div>
+        {/* Col 2: Total VAT / VAT Deducted / Balance */}
+        <div className="space-y-2">
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-orange-500">
+            <div className="bg-orange-500 p-2 rounded-lg"><span className="text-white text-sm">🏛️</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Total VAT</p>
-              <p className="text-xl font-bold text-orange-600">{fmt(totalVAT)} SR</p>
+              <p className="text-base font-bold text-orange-600">{fmt(totalVAT)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-300">
-            <div className="bg-orange-300 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-orange-300">
+            <div className="bg-orange-300 p-2 rounded-lg"><span className="text-white text-sm">📋</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">VAT Deducted</p>
-              <p className="text-xl font-bold text-orange-500">{fmt(vatOfReceived)} SR</p>
+              <p className="text-base font-bold text-orange-500">{fmt(vatOfReceived)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-orange-700">
+            <div className="bg-orange-700 p-2 rounded-lg"><span className="text-white text-sm">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Balance</p>
+              <p className="text-base font-bold text-orange-700">{fmt(vatBalance)} SR</p>
             </div>
           </div>
         </div>
-        {/* Col 3: Payable Amount / Payable Paid */}
-        <div className="space-y-3">
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-500">
-            <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📊</span></div>
+        {/* Col 3: Payable Amount / Payable Paid / Balance */}
+        <div className="space-y-2">
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-red-500">
+            <div className="bg-red-500 p-2 rounded-lg"><span className="text-white text-sm">📊</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Payable Amount</p>
-              <p className="text-xl font-bold text-red-600">{fmt(payableAmount)} SR</p>
+              <p className="text-base font-bold text-red-600">{fmt(payableAmount)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-300">
-            <div className="bg-red-300 p-3 rounded-lg"><span className="text-white text-xl">💸</span></div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-red-300">
+            <div className="bg-red-300 p-2 rounded-lg"><span className="text-white text-sm">💸</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Payable Paid</p>
-              <p className="text-xl font-bold text-red-500">{fmt(payablePaid)} SR</p>
+              <p className="text-base font-bold text-red-500">{fmt(payablePaid)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-red-700">
+            <div className="bg-red-700 p-2 rounded-lg"><span className="text-white text-sm">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Balance</p>
+              <p className="text-base font-bold text-red-700">{fmt(payableBalance)} SR</p>
             </div>
           </div>
         </div>
-        {/* Col 4: Commission Total / Commission Received */}
-        <div className="space-y-3">
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-500">
-            <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📈</span></div>
+        {/* Col 4: Commission Total / Commission Received / Balance */}
+        <div className="space-y-2">
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-purple-500">
+            <div className="bg-purple-500 p-2 rounded-lg"><span className="text-white text-sm">📈</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Total</p>
-              <p className="text-xl font-bold text-purple-600">{fmt(totalCommission)} SR</p>
+              <p className="text-base font-bold text-purple-600">{fmt(totalCommission)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-300">
-            <div className="bg-purple-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-purple-300">
+            <div className="bg-purple-300 p-2 rounded-lg"><span className="text-white text-sm">✅</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Received</p>
-              <p className="text-xl font-bold text-purple-500">{fmt(commReceived)} SR</p>
+              <p className="text-base font-bold text-purple-500">{fmt(commReceived)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-purple-700">
+            <div className="bg-purple-700 p-2 rounded-lg"><span className="text-white text-sm">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Balance</p>
+              <p className="text-base font-bold text-purple-700">{fmt(commBalance)} SR</p>
             </div>
           </div>
         </div>
