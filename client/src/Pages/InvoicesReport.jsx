@@ -102,73 +102,101 @@ export default function InvoicesReport() {
         </Button>
       </div>
 
-      {/* Summary Cards — 4 paired columns */}
+      {/* Summary Cards — 4 columns × 3 rows (Total / Received / Balance) */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-        {/* Col 1: Total Amount / Amt. Received */}
-        <div className="space-y-3">
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-blue-500">
-            <div className="bg-blue-500 p-3 rounded-lg"><span className="text-white text-xl">💰</span></div>
+        {/* Col 1: Total Amount / Amt. Received / Balance */}
+        <div className="space-y-2">
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-blue-500">
+            <div className="bg-blue-500 p-2 rounded-lg"><span className="text-white text-sm">💰</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Total Amount</p>
-              <p className="text-xl font-bold text-blue-600">{fmt(summary.totalAmount || 0)} SR</p>
+              <p className="text-base font-bold text-blue-600">{fmt(summary.totalAmount || 0)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-blue-300">
-            <div className="bg-blue-300 p-3 rounded-lg"><span className="text-white text-xl">💵</span></div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-blue-300">
+            <div className="bg-blue-300 p-2 rounded-lg"><span className="text-white text-sm">💵</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Amt. Received</p>
-              <p className="text-xl font-bold text-blue-500">{fmt(summary.amtReceived || 0)} SR</p>
+              <p className="text-base font-bold text-blue-500">{fmt(summary.amtReceived || 0)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-blue-700">
+            <div className="bg-blue-700 p-2 rounded-lg"><span className="text-white text-sm">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Balance</p>
+              <p className="text-base font-bold text-blue-700">{fmt((summary.totalAmount || 0) - (summary.amtReceived || 0))} SR</p>
             </div>
           </div>
         </div>
-        {/* Col 2: Total VAT / VAT Deducted */}
-        <div className="space-y-3">
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-500">
-            <div className="bg-orange-500 p-3 rounded-lg"><span className="text-white text-xl">🏛️</span></div>
+        {/* Col 2: Total VAT / VAT Deducted / Balance */}
+        <div className="space-y-2">
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-orange-500">
+            <div className="bg-orange-500 p-2 rounded-lg"><span className="text-white text-sm">🏛️</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Total VAT</p>
-              <p className="text-xl font-bold text-orange-600">{fmt(summary.totalVAT || 0)} SR</p>
+              <p className="text-base font-bold text-orange-600">{fmt(summary.totalVAT || 0)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-orange-300">
-            <div className="bg-orange-300 p-3 rounded-lg"><span className="text-white text-xl">📋</span></div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-orange-300">
+            <div className="bg-orange-300 p-2 rounded-lg"><span className="text-white text-sm">📋</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">VAT Deducted</p>
-              <p className="text-xl font-bold text-orange-500">{fmt(summary.vatDeducted || 0)} SR</p>
+              <p className="text-base font-bold text-orange-500">{fmt(summary.vatDeducted || 0)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-orange-700">
+            <div className="bg-orange-700 p-2 rounded-lg"><span className="text-white text-sm">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Balance</p>
+              <p className="text-base font-bold text-orange-700">{fmt((summary.totalVAT || 0) - (summary.vatDeducted || 0))} SR</p>
             </div>
           </div>
         </div>
-        {/* Col 3: Payable Amount / Payable Paid */}
-        <div className="space-y-3">
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-500">
-            <div className="bg-red-500 p-3 rounded-lg"><span className="text-white text-xl">📊</span></div>
+        {/* Col 3: Payable Amount / Payable Paid / Balance */}
+        <div className="space-y-2">
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-red-500">
+            <div className="bg-red-500 p-2 rounded-lg"><span className="text-white text-sm">📊</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Payable Amount</p>
-              <p className="text-xl font-bold text-red-600">{fmt(summary.payableAmount || 0)} SR</p>
+              <p className="text-base font-bold text-red-600">{fmt(summary.payableAmount || 0)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-red-300">
-            <div className="bg-red-300 p-3 rounded-lg"><span className="text-white text-xl">💸</span></div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-red-300">
+            <div className="bg-red-300 p-2 rounded-lg"><span className="text-white text-sm">💸</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Payable Paid</p>
-              <p className="text-xl font-bold text-red-500">{fmt(summary.payablePaid || 0)} SR</p>
+              <p className="text-base font-bold text-red-500">{fmt(summary.payablePaid || 0)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-red-700">
+            <div className="bg-red-700 p-2 rounded-lg"><span className="text-white text-sm">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Balance</p>
+              <p className="text-base font-bold text-red-700">{fmt((summary.payableAmount || 0) - (summary.payablePaid || 0))} SR</p>
             </div>
           </div>
         </div>
-        {/* Col 4: Commission Total / Commission Received */}
-        <div className="space-y-3">
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-500">
-            <div className="bg-purple-500 p-3 rounded-lg"><span className="text-white text-xl">📈</span></div>
+        {/* Col 4: Commission Total / Commission Received / Balance */}
+        <div className="space-y-2">
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-purple-500">
+            <div className="bg-purple-500 p-2 rounded-lg"><span className="text-white text-sm">📈</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Total</p>
-              <p className="text-xl font-bold text-purple-600">{fmt(summary.totalCommission || 0)} SR</p>
+              <p className="text-base font-bold text-purple-600">{fmt(summary.totalCommission || 0)} SR</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-5 flex items-center gap-4 border-l-4 border-purple-300">
-            <div className="bg-purple-300 p-3 rounded-lg"><span className="text-white text-xl">✅</span></div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-purple-300">
+            <div className="bg-purple-300 p-2 rounded-lg"><span className="text-white text-sm">✅</span></div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wide">Commission Received</p>
-              <p className="text-xl font-bold text-purple-500">{fmt(summary.commReceived || 0)} SR</p>
+              <p className="text-base font-bold text-purple-500">{fmt(summary.commReceived || 0)} SR</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 border-purple-700">
+            <div className="bg-purple-700 p-2 rounded-lg"><span className="text-white text-sm">⏳</span></div>
+            <div>
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Balance</p>
+              <p className="text-base font-bold text-purple-700">{fmt((summary.totalCommission || 0) - (summary.commReceived || 0))} SR</p>
             </div>
           </div>
         </div>
