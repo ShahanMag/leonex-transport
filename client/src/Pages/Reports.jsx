@@ -4,22 +4,25 @@ import Button from '../components/Button';
 import { showError, showSuccess } from '../utils/toast';
 import { formatDate } from '../utils/dateUtils';
 
-// ─── Summary Card ─────────────────────────────────────────────────────────────
+// ─── Money formatter — 2 decimals, matches the Invoices projection ────────────
+const fmt = (n) => (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ─── Compact summary card — matches the Invoices/InvoicesReport design language ─
 const StatCard = ({ title, value, icon, color = 'blue' }) => {
-  const colorClasses = {
-    blue: 'bg-blue-500', green: 'bg-green-500', red: 'bg-red-500',
-    yellow: 'bg-yellow-500', purple: 'bg-purple-500',
-  };
+  const accent = {
+    blue:   { border: 'border-blue-500',   box: 'bg-blue-500',   text: 'text-blue-600' },
+    green:  { border: 'border-green-500',  box: 'bg-green-500',  text: 'text-green-600' },
+    red:    { border: 'border-red-500',    box: 'bg-red-500',    text: 'text-red-600' },
+    yellow: { border: 'border-yellow-500', box: 'bg-yellow-500', text: 'text-yellow-600' },
+    purple: { border: 'border-purple-500', box: 'bg-purple-500', text: 'text-purple-600' },
+    orange: { border: 'border-orange-500', box: 'bg-orange-500', text: 'text-orange-600' },
+  }[color] || {};
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium mb-1">{title}</p>
-          <p className="text-2xl font-bold text-gray-800">{value}</p>
-        </div>
-        <div className={`${colorClasses[color]} p-3 rounded-lg`}>
-          <span className="text-white text-2xl">{icon}</span>
-        </div>
+    <div className={`bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 ${accent.border}`}>
+      <div className={`${accent.box} p-2 rounded-lg`}><span className="text-white text-sm">{icon}</span></div>
+      <div>
+        <p className="text-xs text-gray-400 uppercase tracking-wide">{title}</p>
+        <p className={`text-base font-bold ${accent.text}`}>{value}</p>
       </div>
     </div>
   );
@@ -32,7 +35,7 @@ const STATUS_CLASSES = {
   unpaid: 'bg-red-100 text-red-800',
 };
 const StatusBadge = ({ status }) => (
-  <span className={`px-2 py-1 rounded text-xs font-medium capitalize ${STATUS_CLASSES[status] || ''}`}>
+  <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_CLASSES[status] || ''}`}>
     {status}
   </span>
 );
@@ -202,7 +205,7 @@ const STATUS_OPTIONS = ['paid', 'partial', 'unpaid'];
 const FilterPanel = ({ activeReport, filters, setFilter, companyOptions, driverOptions, agentOptions, onApply, onReset, isLoading }) => {
   const cfg = REPORT_FILTERS[activeReport] || {};
   return (
-    <div className="mb-4 flex flex-wrap gap-3 items-end">
+    <div className="flex flex-wrap gap-3 items-end">
       {cfg.date && (
         <>
           <div className="flex flex-col gap-1">
@@ -269,7 +272,7 @@ const FilterPanel = ({ activeReport, filters, setFilter, companyOptions, driverO
   );
 };
 
-const EMPTY_FILTERS = { status: '', company: [], driver: '', agent: '', startDate: '', endDate: '' };
+const EMPTY_FILTERS = { status: 'unpaid', company: [], driver: '', agent: '', startDate: '', endDate: '' };
 
 export default function Reports() {
   const [activeReport, setActiveReport] = useState('company-payments');
@@ -375,11 +378,11 @@ export default function Reports() {
         const totalPaid   = data.reduce((s, p) => s + (p.total_paid   || 0), 0);
         const totalDue    = data.reduce((s, p) => s + (p.total_due    || 0), 0);
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <StatCard title="Total Amount"   value={`SR ${totalAmount.toLocaleString()}`} icon="💰" color="blue" />
-            <StatCard title="Total Paid"     value={`SR ${totalPaid.toLocaleString()}`}   icon="✅" color="green" />
-            <StatCard title="Total Due"      value={`SR ${totalDue.toLocaleString()}`}    icon="⏳" color="red" />
-            <StatCard title="Total Payments" value={data.length}                            icon="📋" color="purple" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <StatCard title="Total Amount"   value={`${fmt(totalAmount)} SR`} icon="💰" color="blue" />
+            <StatCard title="Total Paid"     value={`${fmt(totalPaid)} SR`}   icon="✅" color="green" />
+            <StatCard title="Total Due"      value={`${fmt(totalDue)} SR`}    icon="⏳" color="red" />
+            <StatCard title="Total Payments" value={data.length}              icon="📋" color="purple" />
           </div>
         );
       }
@@ -388,11 +391,11 @@ export default function Reports() {
         const totalCost    = data.reduce((s, i) => s + (i.cost       || 0), 0);
         const netProfit    = data.reduce((s, i) => s + (i.net_profit || 0), 0);
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <StatCard title="Total Revenue"    value={`SR ${totalRevenue.toLocaleString()}`} icon="💵" color="green" />
-            <StatCard title="Total Cost"       value={`SR ${totalCost.toLocaleString()}`}    icon="💸" color="red" />
-            <StatCard title="Net Profit/Loss"  value={`SR ${netProfit.toLocaleString()}`}    icon={netProfit >= 0 ? '📈' : '📉'} color={netProfit >= 0 ? 'green' : 'red'} />
-            <StatCard title="Transactions"     value={data.length}                             icon="🔄" color="purple" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <StatCard title="Total Revenue"    value={`${fmt(totalRevenue)} SR`} icon="💵" color="green" />
+            <StatCard title="Total Cost"       value={`${fmt(totalCost)} SR`}    icon="💸" color="red" />
+            <StatCard title="Net Profit/Loss"  value={`${fmt(netProfit)} SR`}    icon={netProfit >= 0 ? '📈' : '📉'} color={netProfit >= 0 ? 'green' : 'red'} />
+            <StatCard title="Transactions"     value={data.length}               icon="🔄" color="purple" />
           </div>
         );
       }
@@ -402,11 +405,11 @@ export default function Reports() {
         const netProfit    = data.reduce((s, i) => s + (i.net_profit || 0), 0);
         const avgMargin    = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(2) : 0;
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <StatCard title="Total Revenue"   value={`SR ${totalRevenue.toLocaleString()}`} icon="💵" color="green" />
-            <StatCard title="Total Cost"      value={`SR ${totalCost.toLocaleString()}`}    icon="💸" color="red" />
-            <StatCard title="Net Profit/Loss" value={`SR ${netProfit.toLocaleString()}`}    icon={netProfit >= 0 ? '📈' : '📉'} color={netProfit >= 0 ? 'green' : 'red'} />
-            <StatCard title="Avg Margin"      value={`${avgMargin}%`}                        icon="📊" color={netProfit >= 0 ? 'blue' : 'yellow'} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <StatCard title="Total Revenue"   value={`${fmt(totalRevenue)} SR`} icon="💵" color="green" />
+            <StatCard title="Total Cost"      value={`${fmt(totalCost)} SR`}    icon="💸" color="red" />
+            <StatCard title="Net Profit/Loss" value={`${fmt(netProfit)} SR`}    icon={netProfit >= 0 ? '📈' : '📉'} color={netProfit >= 0 ? 'green' : 'red'} />
+            <StatCard title="Avg Margin"      value={`${avgMargin}%`}           icon="📊" color={netProfit >= 0 ? 'blue' : 'yellow'} />
           </div>
         );
       }
@@ -486,9 +489,9 @@ export default function Reports() {
                 <td className="px-4 py-3 text-xs text-gray-800">{p.company}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{p.driver || '-'}</td>
                 {isRental && <td className="px-4 py-3 text-xs text-gray-800">{p.iqama_id || '-'}</td>}
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">SR {p.total_amount?.toLocaleString()}</td>
-                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">SR {p.total_paid?.toLocaleString()}</td>
-                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">SR {p.total_due?.toLocaleString()}</td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{fmt(p.total_amount)} SR</td>
+                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">{fmt(p.total_paid)} SR</td>
+                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">{fmt(p.total_due)} SR</td>
                 <td className="px-4 py-3 text-xs"><StatusBadge status={p.status} /></td>
               </tr>
             ))}
@@ -520,16 +523,16 @@ export default function Reports() {
                 <td className="px-4 py-3 text-xs text-gray-800">{item.agent || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.from_location || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.to_location || '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">SR {item.revenue?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">SR {item.revenue_paid?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">SR {item.revenue_due?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{fmt(item.revenue)} SR</td>
+                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">{fmt(item.revenue_paid)} SR</td>
+                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">{fmt(item.revenue_due)} SR</td>
                 <td className="px-4 py-3 text-xs"><StatusBadge status={item.revenue_status} /></td>
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">SR {item.cost?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">SR {item.cost_paid?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">SR {item.cost_due?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{fmt(item.cost)} SR</td>
+                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">{fmt(item.cost_paid)} SR</td>
+                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">{fmt(item.cost_due)} SR</td>
                 <td className="px-4 py-3 text-xs"><StatusBadge status={item.cost_status} /></td>
                 <td className={`px-4 py-3 text-xs font-bold whitespace-nowrap ${profit ? 'text-green-600' : 'text-red-600'}`}>
-                  SR {item.net_profit?.toLocaleString() || 0}
+                  {fmt(item.net_profit)} SR
                 </td>
               </tr>
             );
@@ -558,10 +561,10 @@ export default function Reports() {
                 <td className="px-4 py-3 text-xs text-gray-800">{item.company || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.driver || '-'}</td>
                 <td className="px-4 py-3 text-xs text-gray-800">{item.agent || '-'}</td>
-                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">SR {item.revenue?.toLocaleString() || 0}</td>
-                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">SR {item.cost?.toLocaleString() || 0}</td>
+                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">{fmt(item.revenue)} SR</td>
+                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">{fmt(item.cost)} SR</td>
                 <td className={`px-4 py-3 text-xs font-bold whitespace-nowrap ${profit ? 'text-green-600' : 'text-red-600'}`}>
-                  SR {item.net_profit?.toLocaleString() || 0}
+                  {fmt(item.net_profit)} SR
                 </td>
                 <td className={`px-4 py-3 text-xs font-medium whitespace-nowrap ${profit ? 'text-green-600' : 'text-red-600'}`}>
                   {item.profit_margin || '0%'}
@@ -601,13 +604,18 @@ export default function Reports() {
 
   return (
     <div className="p-4 md:p-6">
+      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Reports</h1>
-        <p className="text-sm md:text-base text-gray-600 mt-2">View detailed reports and download Excel files</p>
+        <p className="text-sm md:text-base text-gray-600 mt-1">View detailed reports and download Excel files</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-        <ReportTabs />
+      <ReportTabs />
+
+      <SummaryCards />
+
+      {/* Filters — Invoices-style panel */}
+      <div className="bg-white rounded-lg shadow p-4 mb-6">
         <FilterPanel
           activeReport={activeReport}
           filters={filters}
@@ -619,10 +627,11 @@ export default function Reports() {
           onReset={handleReset}
           isLoading={isLoading}
         />
-        <DownloadRow />
-        <SummaryCards />
-        {renderReport()}
       </div>
+
+      <DownloadRow />
+
+      {renderReport()}
     </div>
   );
 }

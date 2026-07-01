@@ -8,26 +8,32 @@ import Modal from '../components/Modal';
 import { showSuccess, showError, showConfirm } from '../utils/toast';
 import { formatDate } from '../utils/dateUtils';
 
-// 📊 Summary Card Component
-const StatCard = ({ title, value, icon, color = 'blue' }) => {
-  const colorClasses = {
-    blue: 'bg-blue-500',
-    green: 'bg-green-500',
-    red: 'bg-red-500',
-    yellow: 'bg-yellow-500',
-    purple: 'bg-purple-500',
-  };
+// Status badge colors — shared with the Invoices design
+const STATUS_STYLES = {
+  paid:    'bg-green-100 text-green-800',
+  partial: 'bg-yellow-100 text-yellow-800',
+  unpaid:  'bg-red-100 text-red-800',
+};
+
+// Money formatter — 2 decimals, matches the Invoices projection
+const fmt = (n) => (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// 📊 Compact summary card — matches the Invoices/InvoicesReport design language
+const SummaryCard = ({ title, value, icon, color = 'blue' }) => {
+  const accent = {
+    blue:   { border: 'border-blue-500',   box: 'bg-blue-500',   text: 'text-blue-600' },
+    green:  { border: 'border-green-500',  box: 'bg-green-500',  text: 'text-green-600' },
+    red:    { border: 'border-red-500',    box: 'bg-red-500',    text: 'text-red-600' },
+    purple: { border: 'border-purple-500', box: 'bg-purple-500', text: 'text-purple-600' },
+    orange: { border: 'border-orange-500', box: 'bg-orange-500', text: 'text-orange-600' },
+  }[color] || {};
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-600 text-sm font-medium mb-1">{title}</p>
-          <p className="text-2xl font-bold text-gray-800">{value}</p>
-        </div>
-        <div className={`${colorClasses[color]} p-3 rounded-lg`}>
-          <span className="text-white text-2xl">{icon}</span>
-        </div>
+    <div className={`bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 ${accent.border}`}>
+      <div className={`${accent.box} p-2 rounded-lg`}><span className="text-white text-sm">{icon}</span></div>
+      <div>
+        <p className="text-xs text-gray-400 uppercase tracking-wide">{title}</p>
+        <p className={`text-base font-bold ${accent.text}`}>{value}</p>
       </div>
     </div>
   );
@@ -39,7 +45,7 @@ export default function Payments() {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('vehicle-acquisition');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('unpaid');
 
   // Additional filters
   const [startDateFilter, setStartDateFilter] = useState('');
@@ -70,7 +76,7 @@ export default function Payments() {
   const [editInstallmentErrors, setEditInstallmentErrors] = useState({});
 
   useEffect(() => {
-    fetchPayments();
+    fetchPayments(); // status is applied client-side (defaults to 'unpaid')
     fetchLoads();
     agentAPI.getAll().then(res => setAgents(res.data)).catch(() => {});
   }, []);
@@ -114,22 +120,8 @@ export default function Payments() {
     }
   };
 
-  const handleFilterByStatus = async (status) => {
-    setStatusFilter(status);
-    if (status === 'all') {
-      fetchPayments();
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const response = await paymentAPI.filterByStatus(status);
-      setPayments(response.data);
-    } catch (error) {
-      showError('Failed to filter payments');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleFilterByStatus = (status) => {
+    setStatusFilter(status); // applied client-side in displayPayments
   };
 
 const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) => {
@@ -309,7 +301,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     {
       key: 'total_amount',
       label: 'Amount',
-      render: (amount) => `SR ${amount?.toLocaleString() || 0}`
+      render: (amount) => `${fmt(amount)} SR`
     },
     {
       key: 'transaction_date',
@@ -319,12 +311,12 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     {
       key: 'total_paid',
       label: 'Paid',
-      render: (amount) => `SR ${amount?.toLocaleString() || 0}`
+      render: (amount) => <span className="text-green-700 font-medium">{fmt(amount)} SR</span>
     },
     {
       key: 'total_due',
       label: 'Due',
-      render: (amount) => `SR ${amount?.toLocaleString() || 0}`
+      render: (amount) => <span className="text-red-700 font-medium">{fmt(amount)} SR</span>
     },
     {
       key: 'payment_type',
@@ -340,13 +332,8 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
       key: 'status',
       label: 'Status',
       render: (status) => (
-        <span className={`px-3 py-1 rounded text-sm font-medium ${
-          status === 'unpaid' ? 'bg-red-100 text-red-800' :
-          status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
-          status === 'paid' ? 'bg-green-100 text-green-800' :
-          'bg-gray-100 text-gray-800'
-        }`}>
-          {status?.charAt(0).toUpperCase() + status?.slice(1)}
+        <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_STYLES[status] || 'bg-gray-100 text-gray-800'}`}>
+          {status || 'unpaid'}
         </span>
       )
     },
@@ -363,7 +350,12 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
 
   // Filter payments based on tab and additional filters
   // Search is already handled by backend API (searches by vehicle number)
-  let displayPayments = payments.filter(p => p.payment_type === activeTab);
+  // Status is filtered client-side (defaults to 'unpaid')
+  const statusFiltered = statusFilter === 'all'
+    ? payments
+    : payments.filter(p => p.status === statusFilter);
+
+  let displayPayments = statusFiltered.filter(p => p.payment_type === activeTab);
 
   // Apply additional client-side filters
   if (startDateFilter) {
@@ -396,8 +388,8 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
     });
   }
 
-  const vehicleAcqCount = payments.filter(p => p.payment_type === 'vehicle-acquisition').length;
-  const driverRentalCount = payments.filter(p => p.payment_type === 'driver-rental').length;
+  const vehicleAcqCount = statusFiltered.filter(p => p.payment_type === 'vehicle-acquisition').length;
+  const driverRentalCount = statusFiltered.filter(p => p.payment_type === 'driver-rental').length;
 
   const selectedPayment = getSelectedPayment();
 
@@ -430,67 +422,18 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
         </p>
       </div> */}
 
-      {/* Search and Filter */}
-      <div className="mb-6 space-y-4">
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-[200px]">
-            <input
-              type="text"
-              placeholder="Search by vehicle number..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      {/* Summary Cards — top of page */}
+      {displayPayments.length > 0 && (() => {
+        const summary = calculateSummary();
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <SummaryCard title="Total Amount"   value={`${fmt(summary.totalAmount)} SR`} icon="💰" color="blue" />
+            <SummaryCard title="Total Paid"     value={`${fmt(summary.totalPaid)} SR`}   icon="✅" color="green" />
+            <SummaryCard title="Total Due"      value={`${fmt(summary.totalDue)} SR`}    icon="⏳" color="red" />
+            <SummaryCard title="Total Payments" value={summary.count}                    icon="📋" color="purple" />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => handleFilterByStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Status</option>
-            <option value="unpaid">Unpaid</option>
-            <option value="partial">Partially Paid</option>
-            <option value="paid">Paid</option>
-          </select>
-        </div>
-
-        {/* Additional Filters */}
-        <div className="flex flex-wrap gap-3">
-          <input
-            type="date"
-            placeholder="Start Date"
-            value={startDateFilter}
-            onChange={(e) => setStartDateFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          />
-          <input
-            type="date"
-            placeholder="End Date"
-            value={endDateFilter}
-            onChange={(e) => setEndDateFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          />
-          <input
-            type="text"
-            placeholder="Filter by company/driver name..."
-            value={companyDriverFilter}
-            onChange={(e) => setCompanyDriverFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-64"
-          />
-          {activeTab === 'driver-rental' && (
-            <select
-              value={agentFilter}
-              onChange={(e) => setAgentFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="">All Agents</option>
-              {agents.map(agent => (
-                <option key={agent._id} value={agent.name}>{agent.name}</option>
-              ))}
-            </select>
-          )}
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Tabs */}
       <div className="mb-6 flex gap-2 border-b border-gray-200">
@@ -516,38 +459,77 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
         </button>
       </div>
 
-      {/* Summary Cards */}
-      {displayPayments.length > 0 && (() => {
-        const summary = calculateSummary();
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <StatCard
-              title="Total Amount"
-              value={`SR ${summary.totalAmount.toLocaleString()}`}
-              icon="💰"
-              color="blue"
-            />
-            <StatCard
-              title="Total Paid"
-              value={`SR ${summary.totalPaid.toLocaleString()}`}
-              icon="✅"
-              color="green"
-            />
-            <StatCard
-              title="Total Due"
-              value={`SR ${summary.totalDue.toLocaleString()}`}
-              icon="⏳"
-              color="red"
-            />
-            <StatCard
-              title="Total Payments"
-              value={summary.count}
-              icon="📋"
-              color="purple"
+      {/* Filters — Invoices-style panel (in place of the summary tiles) */}
+      <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-xs text-gray-500 mb-1">Search</label>
+            <input
+              type="text"
+              placeholder="Search by vehicle number..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-        );
-      })()}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => handleFilterByStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="partial">Partially Paid</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">From Date</label>
+            <input
+              type="date"
+              value={startDateFilter}
+              onChange={(e) => setStartDateFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">To Date</label>
+            <input
+              type="date"
+              value={endDateFilter}
+              onChange={(e) => setEndDateFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Company / Driver</label>
+            <input
+              type="text"
+              placeholder="Filter by name..."
+              value={companyDriverFilter}
+              onChange={(e) => setCompanyDriverFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
+            />
+          </div>
+          {activeTab === 'driver-rental' && (
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Agent</label>
+              <select
+                value={agentFilter}
+                onChange={(e) => setAgentFilter(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Agents</option>
+                {agents.map(agent => (
+                  <option key={agent._id} value={agent.name}>{agent.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Payments Table with Nested History */}
       <div className="mb-8">
@@ -612,7 +594,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                         <div className="space-y-3">
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600">
-                              <strong>Progress:</strong> SR {payment.total_paid?.toLocaleString() || 0} / SR {payment.total_amount?.toLocaleString() || 0}
+                              <strong>Progress:</strong> {fmt(payment.total_paid)} SR / {fmt(payment.total_amount)} SR
                             </span>
                             <span className="text-gray-600">
                               <strong>{payment.total_amount > 0 ? Math.round((payment.total_paid / payment.total_amount) * 100) : 0}%</strong>
@@ -634,7 +616,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                                 {payment.installments.map((installment, idx) => (
                                   <tr key={installment._id} className="border-b border-gray-200 hover:bg-gray-50">
                                     <td className="px-4 py-2 text-gray-800">{idx + 1}</td>
-                                    <td className="px-4 py-2 text-gray-800">SR {installment.amount?.toLocaleString() || 0}</td>
+                                    <td className="px-4 py-2 text-gray-800">{fmt(installment.amount)} SR</td>
                                     <td className="px-4 py-2 text-gray-800">
                                       {installment.paid_date ? formatDate(installment.paid_date) : 'N/A'}
                                     </td>
@@ -730,13 +712,13 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
           <div className="space-y-4">
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">
-                <strong>Total Amount:</strong> SR {selectedPayment.total_amount?.toLocaleString() || 0}
+                <strong>Total Amount:</strong> {fmt(selectedPayment.total_amount)} SR
               </p>
               <p className="text-sm text-gray-600">
-                <strong>Already Paid:</strong> SR {selectedPayment.total_paid?.toLocaleString() || 0}
+                <strong>Already Paid:</strong> {fmt(selectedPayment.total_paid)} SR
               </p>
               <p className="text-sm text-gray-600">
-                <strong>Remaining Due:</strong> SR {selectedPayment.total_due?.toLocaleString() || 0}
+                <strong>Remaining Due:</strong> {fmt(selectedPayment.total_due)} SR
               </p>
             </div>
 
@@ -746,7 +728,7 @@ const handleRegisterInstallment = async (paymentId, amount, paid_date, notes) =>
                   name: 'amount',
                   label: 'Amount to Pay',
                   type: 'number',
-                  placeholder: `Max: SR ${selectedPayment.total_due || 0}`,
+                  placeholder: `Max: ${fmt(selectedPayment.total_due)} SR`,
                   required: true,
                 },
                 {
