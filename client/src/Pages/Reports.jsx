@@ -1,25 +1,58 @@
-import { useState, useEffect, useRef } from 'react';
-import { reportAPI, companyAPI, driverAPI, agentAPI } from '../services/api';
-import Button from '../components/Button';
-import { showError, showSuccess } from '../utils/toast';
-import { formatDate } from '../utils/dateUtils';
+import { useEffect, useRef, useState } from "react";
+import Button from "../components/Button";
+import { agentAPI, companyAPI, driverAPI, reportAPI } from "../services/api";
+import { formatDate } from "../utils/dateUtils";
+import { showError, showSuccess } from "../utils/toast";
 
 // ─── Money formatter — 2 decimals, matches the Invoices projection ────────────
-const fmt = (n) => (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (n) =>
+  (n || 0).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 // ─── Compact summary card — matches the Invoices/InvoicesReport design language ─
-const StatCard = ({ title, value, icon, color = 'blue' }) => {
-  const accent = {
-    blue:   { border: 'border-blue-500',   box: 'bg-blue-500',   text: 'text-blue-600' },
-    green:  { border: 'border-green-500',  box: 'bg-green-500',  text: 'text-green-600' },
-    red:    { border: 'border-red-500',    box: 'bg-red-500',    text: 'text-red-600' },
-    yellow: { border: 'border-yellow-500', box: 'bg-yellow-500', text: 'text-yellow-600' },
-    purple: { border: 'border-purple-500', box: 'bg-purple-500', text: 'text-purple-600' },
-    orange: { border: 'border-orange-500', box: 'bg-orange-500', text: 'text-orange-600' },
-  }[color] || {};
+const StatCard = ({ title, value, icon, color = "blue" }) => {
+  const accent =
+    {
+      blue: {
+        border: "border-blue-500",
+        box: "bg-blue-500",
+        text: "text-blue-600",
+      },
+      green: {
+        border: "border-green-500",
+        box: "bg-green-500",
+        text: "text-green-600",
+      },
+      red: {
+        border: "border-red-500",
+        box: "bg-red-500",
+        text: "text-red-600",
+      },
+      yellow: {
+        border: "border-yellow-500",
+        box: "bg-yellow-500",
+        text: "text-yellow-600",
+      },
+      purple: {
+        border: "border-purple-500",
+        box: "bg-purple-500",
+        text: "text-purple-600",
+      },
+      orange: {
+        border: "border-orange-500",
+        box: "bg-orange-500",
+        text: "text-orange-600",
+      },
+    }[color] || {};
   return (
-    <div className={`bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 ${accent.border}`}>
-      <div className={`${accent.box} p-2 rounded-lg`}><span className="text-white text-sm">{icon}</span></div>
+    <div
+      className={`bg-white rounded-lg shadow p-3 flex items-center gap-3 border-l-4 ${accent.border}`}
+    >
+      <div className={`${accent.box} p-2 rounded-lg`}>
+        <span className="text-white text-sm">{icon}</span>
+      </div>
       <div>
         <p className="text-xs text-gray-400 uppercase tracking-wide">{title}</p>
         <p className={`text-base font-bold ${accent.text}`}>{value}</p>
@@ -30,41 +63,77 @@ const StatCard = ({ title, value, icon, color = 'blue' }) => {
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 const STATUS_CLASSES = {
-  paid: 'bg-green-100 text-green-800',
-  partial: 'bg-yellow-100 text-yellow-800',
-  unpaid: 'bg-red-100 text-red-800',
+  paid: "bg-green-100 text-green-800",
+  partial: "bg-yellow-100 text-yellow-800",
+  unpaid: "bg-red-100 text-red-800",
 };
 const StatusBadge = ({ status }) => (
-  <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_CLASSES[status] || ''}`}>
+  <span
+    className={`px-2 py-1 rounded text-xs font-semibold capitalize ${STATUS_CLASSES[status] || ""}`}
+  >
     {status}
   </span>
 );
 
 // ─── Config: which filters each report uses ───────────────────────────────────
 const REPORT_FILTERS = {
-  'company-payments': { status: true, company: true, driver: false, agent: false, date: true },
-  'rental-payments':  { status: true, company: true,  driver: true,  agent: false, date: true },
-  'combined-report':  { status: true, company: true,  driver: true,  agent: true,  date: true },
-  'profit-loss':      { status: false, company: true, driver: true,  agent: true,  date: true },
+  "company-payments": {
+    status: true,
+    company: true,
+    driver: false,
+    agent: false,
+    date: true,
+  },
+  "rental-payments": {
+    status: true,
+    company: true,
+    driver: true,
+    agent: false,
+    date: true,
+  },
+  "combined-report": {
+    status: true,
+    company: true,
+    driver: true,
+    agent: true,
+    date: true,
+  },
+  "profit-loss": {
+    status: false,
+    company: true,
+    driver: true,
+    agent: true,
+    date: true,
+  },
 };
 
 // ─── Searchable Select ────────────────────────────────────────────────────────
-const SearchableSelect = ({ label, value, onChange, options, placeholder = 'All' }) => {
+const SearchableSelect = ({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = "All",
+}) => {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const ref = useRef(null);
 
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
+  const filtered = options.filter((o) =>
+    o.toLowerCase().includes(search.toLowerCase()),
+  );
 
   const select = (val) => {
     onChange(val);
-    setSearch('');
+    setSearch("");
     setOpen(false);
   };
 
@@ -74,12 +143,24 @@ const SearchableSelect = ({ label, value, onChange, options, placeholder = 'All'
       <div className="relative">
         <button
           type="button"
-          onClick={() => setOpen(o => !o)}
+          onClick={() => setOpen((o) => !o)}
           className="w-44 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
         >
-          <span className={value ? 'text-gray-800' : 'text-gray-400'}>{value || placeholder}</span>
-          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <span className={value ? "text-gray-800" : "text-gray-400"}>
+            {value || placeholder}
+          </span>
+          <svg
+            className="w-4 h-4 text-gray-400 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
         {open && (
@@ -89,23 +170,23 @@ const SearchableSelect = ({ label, value, onChange, options, placeholder = 'All'
                 autoFocus
                 type="text"
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search..."
                 className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
             <ul className="max-h-48 overflow-y-auto">
               <li
-                onClick={() => select('')}
+                onClick={() => select("")}
                 className="px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 cursor-pointer"
               >
                 {placeholder}
               </li>
-              {filtered.map(o => (
+              {filtered.map((o) => (
                 <li
                   key={o}
                   onClick={() => select(o)}
-                  className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 ${value === o ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-800'}`}
+                  className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 ${value === o ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-800"}`}
                 >
                   {o}
                 </li>
@@ -122,24 +203,41 @@ const SearchableSelect = ({ label, value, onChange, options, placeholder = 'All'
 };
 
 // ─── Multi Searchable Select ──────────────────────────────────────────────────
-const MultiSearchableSelect = ({ label, value = [], onChange, options, placeholder = 'All' }) => {
+const MultiSearchableSelect = ({
+  label,
+  value = [],
+  onChange,
+  options,
+  placeholder = "All",
+}) => {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const ref = useRef(null);
 
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
+  const filtered = options.filter((o) =>
+    o.toLowerCase().includes(search.toLowerCase()),
+  );
 
   const toggle = (val) => {
-    onChange(value.includes(val) ? value.filter(v => v !== val) : [...value, val]);
+    onChange(
+      value.includes(val) ? value.filter((v) => v !== val) : [...value, val],
+    );
   };
 
-  const displayLabel = value.length === 0 ? placeholder : value.length === 1 ? value[0] : `${value.length} selected`;
+  const displayLabel =
+    value.length === 0
+      ? placeholder
+      : value.length === 1
+        ? value[0]
+        : `${value.length} selected`;
 
   return (
     <div className="flex flex-col gap-1" ref={ref}>
@@ -147,22 +245,41 @@ const MultiSearchableSelect = ({ label, value = [], onChange, options, placehold
       <div className="relative">
         <button
           type="button"
-          onClick={() => setOpen(o => !o)}
+          onClick={() => setOpen((o) => !o)}
           className="w-44 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500 flex justify-between items-center"
         >
-          <span className={value.length ? 'text-gray-800 truncate' : 'text-gray-400'}>{displayLabel}</span>
-          <svg className="w-4 h-4 text-gray-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <span
+            className={
+              value.length ? "text-gray-800 truncate" : "text-gray-400"
+            }
+          >
+            {displayLabel}
+          </span>
+          <svg
+            className="w-4 h-4 text-gray-400 shrink-0 ml-1"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
         {open && (
-          <div className="absolute z-50 mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-lg" onMouseDown={e => e.stopPropagation()}>
+          <div
+            className="absolute z-50 mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-lg"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <div className="p-2">
               <input
                 autoFocus
                 type="text"
                 value={search}
-                onChange={e => setSearch(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search..."
                 className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
@@ -178,13 +295,18 @@ const MultiSearchableSelect = ({ label, value = [], onChange, options, placehold
               </div>
             )}
             <ul className="max-h-48 overflow-y-auto">
-              {filtered.map(o => (
+              {filtered.map((o) => (
                 <li
                   key={o}
                   onClick={() => toggle(o)}
-                  className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 flex items-center gap-2 ${value.includes(o) ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-800'}`}
+                  className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 flex items-center gap-2 ${value.includes(o) ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-800"}`}
                 >
-                  <input type="checkbox" checked={value.includes(o)} onChange={() => {}} className="pointer-events-none" />
+                  <input
+                    type="checkbox"
+                    checked={value.includes(o)}
+                    onChange={() => {}}
+                    className="pointer-events-none"
+                  />
                   {o}
                 </li>
               ))}
@@ -199,48 +321,63 @@ const MultiSearchableSelect = ({ label, value = [], onChange, options, placehold
   );
 };
 
-const STATUS_OPTIONS = ['paid', 'partial', 'unpaid'];
+const STATUS_OPTIONS = ["paid", "partial", "unpaid"];
 
 // ─── Filter Panel (defined outside Reports to prevent remount on state change) ─
-const FilterPanel = ({ activeReport, filters, setFilter, companyOptions, driverOptions, agentOptions, onApply, onReset, isLoading }) => {
+const FilterPanel = ({
+  activeReport,
+  filters,
+  setFilter,
+  companyOptions,
+  driverOptions,
+  agentOptions,
+  onApply,
+  onReset,
+  isLoading,
+}) => {
   const cfg = REPORT_FILTERS[activeReport] || {};
   return (
     <div className="flex flex-wrap gap-3 items-end">
       {cfg.date && (
         <>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">Start Date</label>
+            <label className="text-xs text-gray-500 font-medium">
+              Start Date
+            </label>
             <input
               type="date"
               value={filters.startDate}
-              onChange={e => setFilter('startDate', e.target.value)}
+              onChange={(e) => setFilter("startDate", e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 font-medium">End Date</label>
+            <label className="text-xs text-gray-500 font-medium">
+              End Date
+            </label>
             <input
               type="date"
               value={filters.endDate}
-              onChange={e => setFilter('endDate', e.target.value)}
+              onChange={(e) => setFilter("endDate", e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </>
       )}
       {cfg.status && (
-        <SearchableSelect
+        <MultiSearchableSelect
           label="Status"
           value={filters.status}
-          onChange={v => setFilter('status', v)}
+          onChange={(v) => setFilter("status", v)}
           options={STATUS_OPTIONS}
+          placeholder="All Status"
         />
       )}
       {cfg.company && (
         <MultiSearchableSelect
           label="Company"
           value={filters.company}
-          onChange={v => setFilter('company', v)}
+          onChange={(v) => setFilter("company", v)}
           options={companyOptions}
         />
       )}
@@ -248,7 +385,7 @@ const FilterPanel = ({ activeReport, filters, setFilter, companyOptions, driverO
         <SearchableSelect
           label="Driver"
           value={filters.driver}
-          onChange={v => setFilter('driver', v)}
+          onChange={(v) => setFilter("driver", v)}
           options={driverOptions}
         />
       )}
@@ -256,7 +393,7 @@ const FilterPanel = ({ activeReport, filters, setFilter, companyOptions, driverO
         <SearchableSelect
           label="Agent"
           value={filters.agent}
-          onChange={v => setFilter('agent', v)}
+          onChange={(v) => setFilter("agent", v)}
           options={agentOptions}
         />
       )}
@@ -272,10 +409,17 @@ const FilterPanel = ({ activeReport, filters, setFilter, companyOptions, driverO
   );
 };
 
-const EMPTY_FILTERS = { status: 'unpaid', company: [], driver: '', agent: '', startDate: '', endDate: '' };
+const EMPTY_FILTERS = {
+  status: ["unpaid"],
+  company: [],
+  driver: "",
+  agent: "",
+  startDate: "",
+  endDate: "",
+};
 
 export default function Reports() {
-  const [activeReport, setActiveReport] = useState('company-payments');
+  const [activeReport, setActiveReport] = useState("company-payments");
   const [reportData, setReportData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -289,9 +433,18 @@ export default function Reports() {
 
   // Load company + driver + agent lists once for filter options
   useEffect(() => {
-    companyAPI.getAll().then(r => setCompanyOptions(r.data.map(c => c.name))).catch(() => {});
-    driverAPI.getAll().then(r => setDriverOptions(r.data.map(d => d.name))).catch(() => {});
-    agentAPI.getAll().then(r => setAgentOptions(r.data.map(a => a.name))).catch(() => {});
+    companyAPI
+      .getAll()
+      .then((r) => setCompanyOptions(r.data.map((c) => c.name)))
+      .catch(() => {});
+    driverAPI
+      .getAll()
+      .then((r) => setDriverOptions(r.data.map((d) => d.name)))
+      .catch(() => {});
+    agentAPI
+      .getAll()
+      .then((r) => setAgentOptions(r.data.map((a) => a.name)))
+      .catch(() => {});
   }, []);
 
   // Reset filters + data when switching tabs, then auto-fetch
@@ -305,13 +458,15 @@ export default function Reports() {
   const buildParams = (reportType, f) => {
     const params = {};
     if (f.startDate) params.startDate = f.startDate;
-    if (f.endDate)   params.endDate   = f.endDate;
+    if (f.endDate) params.endDate = f.endDate;
 
     const cfg = REPORT_FILTERS[reportType] || {};
-    if (cfg.status  && f.status)  params.status    = f.status;
-    if (cfg.company && f.company.length) params.companies = f.company.join(',');
-    if (cfg.driver  && f.driver)  params.drivers   = f.driver;
-    if (cfg.agent   && f.agent)   params.agents    = f.agent;
+    if (cfg.status && f.status.length) {
+      params.status = f.status.join(",");
+    }
+    if (cfg.company && f.company.length) params.companies = f.company.join(",");
+    if (cfg.driver && f.driver) params.drivers = f.driver;
+    if (cfg.agent && f.agent) params.agents = f.agent;
     return params;
   };
 
@@ -323,17 +478,26 @@ export default function Reports() {
       let response;
 
       switch (reportType) {
-        case 'company-payments':  response = await reportAPI.getCompanyPayments(params); break;
-        case 'rental-payments':   response = await reportAPI.getRentalPayments(params);  break;
-        case 'combined-report':   response = await reportAPI.getCombinedReport(params);  break;
-        case 'profit-loss':       response = await reportAPI.getProfitLoss(params);      break;
-        default: return;
+        case "company-payments":
+          response = await reportAPI.getCompanyPayments(params);
+          break;
+        case "rental-payments":
+          response = await reportAPI.getRentalPayments(params);
+          break;
+        case "combined-report":
+          response = await reportAPI.getCombinedReport(params);
+          break;
+        case "profit-loss":
+          response = await reportAPI.getProfitLoss(params);
+          break;
+        default:
+          return;
       }
 
       setReportData(response.data);
     } catch (err) {
       console.error(err);
-      showError('Failed to fetch report');
+      showError("Failed to fetch report");
     } finally {
       setIsLoading(false);
     }
@@ -345,24 +509,27 @@ export default function Reports() {
     fetchReport(activeReport, EMPTY_FILTERS);
   };
 
-  const setFilter = (key, val) => setFilters(prev => ({ ...prev, [key]: val }));
+  const setFilter = (key, val) =>
+    setFilters((prev) => ({ ...prev, [key]: val }));
 
   // ─── Excel Download ─────────────────────────────────────────────────────────
   const handleDownload = async (apiMethod, filename) => {
     try {
       const params = buildParams(activeReport, filters);
       const response = await reportAPI[apiMethod](params);
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"],
+      });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', filename);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       showSuccess(`Downloaded: ${filename}`);
     } catch (err) {
-      showError('Failed to download report');
+      showError("Failed to download report");
     }
   };
 
@@ -372,48 +539,110 @@ export default function Reports() {
     if (!data.length) return null;
 
     switch (activeReport) {
-      case 'company-payments':
-      case 'rental-payments': {
+      case "company-payments":
+      case "rental-payments": {
         const totalAmount = data.reduce((s, p) => s + (p.total_amount || 0), 0);
-        const totalPaid   = data.reduce((s, p) => s + (p.total_paid   || 0), 0);
-        const totalDue    = data.reduce((s, p) => s + (p.total_due    || 0), 0);
+        const totalPaid = data.reduce((s, p) => s + (p.total_paid || 0), 0);
+        const totalDue = data.reduce((s, p) => s + (p.total_due || 0), 0);
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <StatCard title="Total Amount"   value={`${fmt(totalAmount)} SR`} icon="💰" color="blue" />
-            <StatCard title="Total Paid"     value={`${fmt(totalPaid)} SR`}   icon="✅" color="green" />
-            <StatCard title="Total Due"      value={`${fmt(totalDue)} SR`}    icon="⏳" color="red" />
-            <StatCard title="Total Payments" value={data.length}              icon="📋" color="purple" />
+            <StatCard
+              title="Total Amount"
+              value={`${fmt(totalAmount)} SR`}
+              icon="💰"
+              color="blue"
+            />
+            <StatCard
+              title="Total Paid"
+              value={`${fmt(totalPaid)} SR`}
+              icon="✅"
+              color="green"
+            />
+            <StatCard
+              title="Total Due"
+              value={`${fmt(totalDue)} SR`}
+              icon="⏳"
+              color="red"
+            />
+            <StatCard
+              title="Total Payments"
+              value={data.length}
+              icon="📋"
+              color="purple"
+            />
           </div>
         );
       }
-      case 'combined-report': {
-        const totalRevenue = data.reduce((s, i) => s + (i.revenue    || 0), 0);
-        const totalCost    = data.reduce((s, i) => s + (i.cost       || 0), 0);
-        const netProfit    = data.reduce((s, i) => s + (i.net_profit || 0), 0);
+      case "combined-report": {
+        const totalRevenue = data.reduce((s, i) => s + (i.revenue || 0), 0);
+        const totalCost = data.reduce((s, i) => s + (i.cost || 0), 0);
+        const netProfit = data.reduce((s, i) => s + (i.net_profit || 0), 0);
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <StatCard title="Total Revenue"    value={`${fmt(totalRevenue)} SR`} icon="💵" color="green" />
-            <StatCard title="Total Cost"       value={`${fmt(totalCost)} SR`}    icon="💸" color="red" />
-            <StatCard title="Net Profit/Loss"  value={`${fmt(netProfit)} SR`}    icon={netProfit >= 0 ? '📈' : '📉'} color={netProfit >= 0 ? 'green' : 'red'} />
-            <StatCard title="Transactions"     value={data.length}               icon="🔄" color="purple" />
+            <StatCard
+              title="Total Revenue"
+              value={`${fmt(totalRevenue)} SR`}
+              icon="💵"
+              color="green"
+            />
+            <StatCard
+              title="Total Cost"
+              value={`${fmt(totalCost)} SR`}
+              icon="💸"
+              color="red"
+            />
+            <StatCard
+              title="Net Profit/Loss"
+              value={`${fmt(netProfit)} SR`}
+              icon={netProfit >= 0 ? "📈" : "📉"}
+              color={netProfit >= 0 ? "green" : "red"}
+            />
+            <StatCard
+              title="Transactions"
+              value={data.length}
+              icon="🔄"
+              color="purple"
+            />
           </div>
         );
       }
-      case 'profit-loss': {
-        const totalRevenue = data.reduce((s, i) => s + (i.revenue    || 0), 0);
-        const totalCost    = data.reduce((s, i) => s + (i.cost       || 0), 0);
-        const netProfit    = data.reduce((s, i) => s + (i.net_profit || 0), 0);
-        const avgMargin    = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(2) : 0;
+      case "profit-loss": {
+        const totalRevenue = data.reduce((s, i) => s + (i.revenue || 0), 0);
+        const totalCost = data.reduce((s, i) => s + (i.cost || 0), 0);
+        const netProfit = data.reduce((s, i) => s + (i.net_profit || 0), 0);
+        const avgMargin =
+          totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(2) : 0;
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <StatCard title="Total Revenue"   value={`${fmt(totalRevenue)} SR`} icon="💵" color="green" />
-            <StatCard title="Total Cost"      value={`${fmt(totalCost)} SR`}    icon="💸" color="red" />
-            <StatCard title="Net Profit/Loss" value={`${fmt(netProfit)} SR`}    icon={netProfit >= 0 ? '📈' : '📉'} color={netProfit >= 0 ? 'green' : 'red'} />
-            <StatCard title="Avg Margin"      value={`${avgMargin}%`}           icon="📊" color={netProfit >= 0 ? 'blue' : 'yellow'} />
+            <StatCard
+              title="Total Revenue"
+              value={`${fmt(totalRevenue)} SR`}
+              icon="💵"
+              color="green"
+            />
+            <StatCard
+              title="Total Cost"
+              value={`${fmt(totalCost)} SR`}
+              icon="💸"
+              color="red"
+            />
+            <StatCard
+              title="Net Profit/Loss"
+              value={`${fmt(netProfit)} SR`}
+              icon={netProfit >= 0 ? "📈" : "📉"}
+              color={netProfit >= 0 ? "green" : "red"}
+            />
+            <StatCard
+              title="Avg Margin"
+              value={`${avgMargin}%`}
+              icon="📊"
+              color={netProfit >= 0 ? "blue" : "yellow"}
+            />
           </div>
         );
       }
-      default: return null;
+      default:
+        return null;
     }
   };
 
@@ -423,18 +652,18 @@ export default function Reports() {
   const ReportTabs = () => (
     <div className="flex gap-2 mb-6 border-b overflow-x-auto">
       {[
-        { id: 'company-payments', label: 'Company Payments' },
-        { id: 'rental-payments',  label: 'Rental Payments' },
-        { id: 'combined-report',  label: 'Combined Report' },
-        { id: 'profit-loss',      label: 'Profit & Loss' },
-      ].map(tab => (
+        { id: "company-payments", label: "Company Payments" },
+        { id: "rental-payments", label: "Rental Payments" },
+        { id: "combined-report", label: "Combined Report" },
+        { id: "profit-loss", label: "Profit & Loss" },
+      ].map((tab) => (
         <button
           key={tab.id}
           onClick={() => setActiveReport(tab.id)}
           className={`px-4 py-2 font-medium transition whitespace-nowrap ${
             activeReport === tab.id
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-600 hover:text-gray-800'
+              ? "border-b-2 border-blue-600 text-blue-600"
+              : "text-gray-600 hover:text-gray-800"
           }`}
         >
           {tab.label}
@@ -446,16 +675,31 @@ export default function Reports() {
   // ─── Download Button Row ────────────────────────────────────────────────────
   const DownloadRow = () => {
     const map = {
-      'company-payments': { fn: 'downloadCompanyPayments', file: 'CompanyPaymentsReport.xlsx' },
-      'rental-payments':  { fn: 'downloadRentalPayments',  file: 'RentalPaymentsReport.xlsx' },
-      'combined-report':  { fn: 'downloadCombinedReport',  file: 'CombinedReport.xlsx' },
-      'profit-loss':      { fn: 'downloadProfitLoss',      file: 'ProfitLossReport.xlsx' },
+      "company-payments": {
+        fn: "downloadCompanyPayments",
+        file: "CompanyPaymentsReport.xlsx",
+      },
+      "rental-payments": {
+        fn: "downloadRentalPayments",
+        file: "RentalPaymentsReport.xlsx",
+      },
+      "combined-report": {
+        fn: "downloadCombinedReport",
+        file: "CombinedReport.xlsx",
+      },
+      "profit-loss": {
+        fn: "downloadProfitLoss",
+        file: "ProfitLossReport.xlsx",
+      },
     };
     const current = map[activeReport];
     if (!current) return null;
     return (
       <div className="mb-4 flex justify-end">
-        <Button variant="primary" onClick={() => handleDownload(current.fn, current.file)}>
+        <Button
+          variant="primary"
+          onClick={() => handleDownload(current.fn, current.file)}
+        >
           📥 Download Excel
         </Button>
       </div>
@@ -464,35 +708,75 @@ export default function Reports() {
 
   // ─── Table Components ───────────────────────────────────────────────────────
   const PaymentsReport = ({ data }) => {
-    const isRental = activeReport === 'rental-payments';
+    const isRental = activeReport === "rental-payments";
     return (
       <div className="overflow-x-auto border rounded-lg bg-white">
         <table className="w-full min-w-max">
           <thead>
             <tr className="bg-gray-100 border-b">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Type</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Date</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Company</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Driver</th>
-              {isRental && <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Iqama ID</th>}
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Total</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Paid</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Due</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">
+                Type
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">
+                Date
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">
+                Company
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">
+                Driver
+              </th>
+              {isRental && (
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">
+                  Iqama ID
+                </th>
+              )}
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">
+                Total
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">
+                Paid
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">
+                Due
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">
+                Status
+              </th>
             </tr>
           </thead>
           <tbody>
             {data.map((p, i) => (
               <tr key={i} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3 text-xs text-gray-800">{p.payment_type === 'vehicle-acquisition' ? 'Vehicle Rental' : p.payment_type}</td>
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{p.transaction_date ? formatDate(p.transaction_date) : '-'}</td>
+                <td className="px-4 py-3 text-xs text-gray-800">
+                  {p.payment_type === "vehicle-acquisition"
+                    ? "Vehicle Rental"
+                    : p.payment_type}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">
+                  {p.transaction_date ? formatDate(p.transaction_date) : "-"}
+                </td>
                 <td className="px-4 py-3 text-xs text-gray-800">{p.company}</td>
-                <td className="px-4 py-3 text-xs text-gray-800">{p.driver || '-'}</td>
-                {isRental && <td className="px-4 py-3 text-xs text-gray-800">{p.iqama_id || '-'}</td>}
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{fmt(p.total_amount)} SR</td>
-                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">{fmt(p.total_paid)} SR</td>
-                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">{fmt(p.total_due)} SR</td>
-                <td className="px-4 py-3 text-xs"><StatusBadge status={p.status} /></td>
+                <td className="px-4 py-3 text-xs text-gray-800">
+                  {p.driver || "-"}
+                </td>
+                {isRental && (
+                  <td className="px-4 py-3 text-xs text-gray-800">
+                    {p.iqama_id || "-"}
+                  </td>
+                )}
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">
+                  {fmt(p.total_amount)} SR
+                </td>
+                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">
+                  {fmt(p.total_paid)} SR
+                </td>
+                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">
+                  {fmt(p.total_due)} SR
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  <StatusBadge status={p.status} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -506,8 +790,30 @@ export default function Reports() {
       <table className="w-full min-w-max">
         <thead>
           <tr className="bg-gray-100 border-b">
-            {['Rental Code','Date','Company','Driver','Agent','From','To','Vehicle Cost','Vehicle Paid','Vehicle Due','Vehicle Payment Status','Driver Cost','Driver Paid','Driver Due','Driver Payment Status','Net Profit/Loss'].map(h => (
-              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">{h}</th>
+            {[
+              "Rental Code",
+              "Date",
+              "Company",
+              "Driver",
+              "Agent",
+              "From",
+              "To",
+              "Vehicle Cost",
+              "Vehicle Paid",
+              "Vehicle Due",
+              "Vehicle Payment Status",
+              "Driver Cost",
+              "Driver Paid",
+              "Driver Due",
+              "Driver Payment Status",
+              "Net Profit/Loss",
+            ].map((h) => (
+              <th
+                key={h}
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap"
+              >
+                {h}
+              </th>
             ))}
           </tr>
         </thead>
@@ -516,22 +822,54 @@ export default function Reports() {
             const profit = item.net_profit >= 0;
             return (
               <tr key={i} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{item.rental_code || '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{item.rental_date ? formatDate(item.rental_date) : '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800">{item.company || '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800">{item.driver || '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800">{item.agent || '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800">{item.from_location || '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800">{item.to_location || '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{fmt(item.revenue)} SR</td>
-                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">{fmt(item.revenue_paid)} SR</td>
-                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">{fmt(item.revenue_due)} SR</td>
-                <td className="px-4 py-3 text-xs"><StatusBadge status={item.revenue_status} /></td>
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{fmt(item.cost)} SR</td>
-                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">{fmt(item.cost_paid)} SR</td>
-                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">{fmt(item.cost_due)} SR</td>
-                <td className="px-4 py-3 text-xs"><StatusBadge status={item.cost_status} /></td>
-                <td className={`px-4 py-3 text-xs font-bold whitespace-nowrap ${profit ? 'text-green-600' : 'text-red-600'}`}>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">
+                  {item.rental_code || "-"}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">
+                  {item.rental_date ? formatDate(item.rental_date) : "-"}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800">
+                  {item.company || "-"}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800">
+                  {item.driver || "-"}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800">
+                  {item.agent || "-"}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800">
+                  {item.from_location || "-"}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800">
+                  {item.to_location || "-"}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">
+                  {fmt(item.revenue)} SR
+                </td>
+                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">
+                  {fmt(item.revenue_paid)} SR
+                </td>
+                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">
+                  {fmt(item.revenue_due)} SR
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  <StatusBadge status={item.revenue_status} />
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">
+                  {fmt(item.cost)} SR
+                </td>
+                <td className="px-4 py-3 text-xs text-green-700 whitespace-nowrap">
+                  {fmt(item.cost_paid)} SR
+                </td>
+                <td className="px-4 py-3 text-xs text-red-700 whitespace-nowrap">
+                  {fmt(item.cost_due)} SR
+                </td>
+                <td className="px-4 py-3 text-xs">
+                  <StatusBadge status={item.cost_status} />
+                </td>
+                <td
+                  className={`px-4 py-3 text-xs font-bold whitespace-nowrap ${profit ? "text-green-600" : "text-red-600"}`}
+                >
                   {fmt(item.net_profit)} SR
                 </td>
               </tr>
@@ -547,8 +885,23 @@ export default function Reports() {
       <table className="w-full min-w-max">
         <thead>
           <tr className="bg-gray-100 border-b">
-            {['Rental Code','Company','Driver','Agent','Revenue','Cost','Net Profit/Loss','Profit Margin','Date'].map(h => (
-              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap">{h}</th>
+            {[
+              "Rental Code",
+              "Company",
+              "Driver",
+              "Agent",
+              "Revenue",
+              "Cost",
+              "Net Profit/Loss",
+              "Profit Margin",
+              "Date",
+            ].map((h) => (
+              <th
+                key={h}
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap"
+              >
+                {h}
+              </th>
             ))}
           </tr>
         </thead>
@@ -557,20 +910,36 @@ export default function Reports() {
             const profit = item.net_profit >= 0;
             return (
               <tr key={i} className="border-b hover:bg-gray-50">
-                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">{item.rental_code || '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800">{item.company || '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800">{item.driver || '-'}</td>
-                <td className="px-4 py-3 text-xs text-gray-800">{item.agent || '-'}</td>
-                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">{fmt(item.revenue)} SR</td>
-                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">{fmt(item.cost)} SR</td>
-                <td className={`px-4 py-3 text-xs font-bold whitespace-nowrap ${profit ? 'text-green-600' : 'text-red-600'}`}>
+                <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">
+                  {item.rental_code || "-"}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800">
+                  {item.company || "-"}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800">
+                  {item.driver || "-"}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-800">
+                  {item.agent || "-"}
+                </td>
+                <td className="px-4 py-3 text-xs text-green-700 font-medium whitespace-nowrap">
+                  {fmt(item.revenue)} SR
+                </td>
+                <td className="px-4 py-3 text-xs text-red-700 font-medium whitespace-nowrap">
+                  {fmt(item.cost)} SR
+                </td>
+                <td
+                  className={`px-4 py-3 text-xs font-bold whitespace-nowrap ${profit ? "text-green-600" : "text-red-600"}`}
+                >
                   {fmt(item.net_profit)} SR
                 </td>
-                <td className={`px-4 py-3 text-xs font-medium whitespace-nowrap ${profit ? 'text-green-600' : 'text-red-600'}`}>
-                  {item.profit_margin || '0%'}
+                <td
+                  className={`px-4 py-3 text-xs font-medium whitespace-nowrap ${profit ? "text-green-600" : "text-red-600"}`}
+                >
+                  {item.profit_margin || "0%"}
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-800 whitespace-nowrap">
-                  {item.rental_date ? formatDate(item.rental_date) : '-'}
+                  {item.rental_date ? formatDate(item.rental_date) : "-"}
                 </td>
               </tr>
             );
@@ -582,23 +951,38 @@ export default function Reports() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
   const renderReport = () => {
-    if (isLoading) return <div className="text-center py-12 text-gray-600">Loading report...</div>;
-    if (!reportData) return (
-      <div className="text-center py-16">
-        <p className="text-gray-500 mb-4">Report data is not loaded yet.</p>
-        <Button variant="primary" onClick={() => fetchReport(activeReport)}>Load Report</Button>
-      </div>
-    );
+    if (isLoading)
+      return (
+        <div className="text-center py-12 text-gray-600">Loading report...</div>
+      );
+    if (!reportData)
+      return (
+        <div className="text-center py-16">
+          <p className="text-gray-500 mb-4">Report data is not loaded yet.</p>
+          <Button variant="primary" onClick={() => fetchReport(activeReport)}>
+            Load Report
+          </Button>
+        </div>
+      );
 
     const data = Array.isArray(reportData) ? reportData : [];
-    if (!data.length) return <div className="text-center py-12 text-gray-400">No results match the selected filters.</div>;
+    if (!data.length)
+      return (
+        <div className="text-center py-12 text-gray-400">
+          No results match the selected filters.
+        </div>
+      );
 
     switch (activeReport) {
-      case 'company-payments':
-      case 'rental-payments':  return <PaymentsReport data={data} />;
-      case 'combined-report':  return <CombinedReport data={data} />;
-      case 'profit-loss':      return <ProfitLossReport data={data} />;
-      default: return null;
+      case "company-payments":
+      case "rental-payments":
+        return <PaymentsReport data={data} />;
+      case "combined-report":
+        return <CombinedReport data={data} />;
+      case "profit-loss":
+        return <ProfitLossReport data={data} />;
+      default:
+        return null;
     }
   };
 
@@ -606,8 +990,12 @@ export default function Reports() {
     <div className="p-4 md:p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Reports</h1>
-        <p className="text-sm md:text-base text-gray-600 mt-1">View detailed reports and download Excel files</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+          Reports
+        </h1>
+        <p className="text-sm md:text-base text-gray-600 mt-1">
+          View detailed reports and download Excel files
+        </p>
       </div>
 
       <ReportTabs />
