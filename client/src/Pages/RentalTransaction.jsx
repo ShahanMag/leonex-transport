@@ -642,6 +642,7 @@ export default function RentalTransaction() {
                     label: 'Company',
                     type: 'select',
                     options: companyOptions,
+                    searchable: true,
                     required: true,
                   },
                 ]}
@@ -785,7 +786,7 @@ export default function RentalTransaction() {
             {agentType === 'existing' ? (
               <Form
                 fields={[
-                  { name: 'agent_id', label: 'Agent', type: 'select', options: agentOptions },
+                  { name: 'agent_id', label: 'Agent', type: 'select', options: agentOptions, searchable: true },
                 ]}
                 values={formValues}
                 errors={errors}
@@ -819,7 +820,7 @@ export default function RentalTransaction() {
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Vehicle Rental Details</h3>
             <Form
               fields={[
-                { name: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: vehicleTypeOptions, required: true },
+                { name: 'vehicle_type', label: 'Vehicle Type', type: 'select', options: vehicleTypeOptions, searchable: true, required: true },
                 { name: 'plate_no', label: 'Plate Number', placeholder: 'e.g., ABC-1234' },
                 { name: 'acquisition_cost', label: 'Vehicle Cost', type: 'number', placeholder: '0', required: true },
                 { name: 'acquisition_date', label: 'Purchase Date', type: 'date', required: true },
