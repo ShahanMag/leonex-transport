@@ -716,6 +716,7 @@ export default function RentalTransaction() {
                     label: 'Driver',
                     type: 'select',
                     options: driverOptions,
+                    searchable: true,
                     required: true,
                   },
                 ]}
