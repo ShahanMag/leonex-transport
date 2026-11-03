@@ -663,6 +663,7 @@ export default function RentalTransaction() {
                     label: 'Country Code',
                     type: 'select',
                     options: countryCodeOptions,
+                    searchable: true,
                   },
                   { name: 'company_phone_number', label: 'Phone Number', placeholder: 'Enter phone number' },
                 ]}
@@ -736,6 +737,7 @@ export default function RentalTransaction() {
                     label: 'Country Code',
                     type: 'select',
                     options: countryCodeOptions,
+                    searchable: true,
                   },
                   { name: 'driver_phone_number', label: 'Phone Number', placeholder: 'Enter phone number', required: true },
                 ]}
@@ -802,6 +804,7 @@ export default function RentalTransaction() {
                     label: 'Country Code',
                     type: 'select',
                     options: countryCodeOptions,
+                    searchable: true,
                   },
                   { name: 'agent_phone_number', label: 'Phone Number', placeholder: 'Enter phone number' },
                   { name: 'agent_email', label: 'Email', type: 'email', placeholder: 'Enter email (optional)' },

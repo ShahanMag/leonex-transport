@@ -570,8 +570,8 @@ export default function Invoices() {
           fields={[
             { name: 'invoice_number', label: 'Invoice Number', placeholder: 'e.g., INV-001', required: true },
             { name: 'date', label: 'Date', type: 'date', required: true },
-            { name: 'company_id',  label: 'Company (optional)',  type: 'select', options: companyOptions },
-            { name: 'customer_id', label: 'Customer (optional)', type: 'select', options: customerOptions },
+            { name: 'company_id',  label: 'Company (optional)',  type: 'select', options: companyOptions, searchable: true },
+            { name: 'customer_id', label: 'Customer (optional)', type: 'select', options: customerOptions, searchable: true },
             { name: 'amount', label: 'Amount (SR)', type: 'number', placeholder: '0', required: true },
             { name: 'commission_pct', label: 'Commission %', type: 'number', placeholder: '0', required: true },
             { name: 'notes', label: 'Notes', placeholder: 'Optional notes' },
